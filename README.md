@@ -220,7 +220,7 @@ These tests are running on each pull request, before each deploy, and on a daily
 
 You can view a sample run [here](https://github.com/configcat/js-universal-sdk/actions/runs/TODO).
 
-> We strive to provide an extensive support for the various JS runtimes and build tools. If you still encounter an issue with the SDK on some platform, please open a [GitHub issue](https://github.com/configcat/js-universal-sdk/issues/new/choose) or contact support.
+> We strive to provide an extensive support for the various JS runtimes and build tools. If you still encounter an issue with the SDK on some platform, please open a [GitHub issue](https://github.com/configcat/js-universal-sdk/issues/new/choose) or [contact support](https://configcat.com/support).
 
 ## Need help?
 https://configcat.com/support
