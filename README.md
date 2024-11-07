@@ -1,11 +1,11 @@
 # ConfigCat SDK for JavaScript
 
-[![JS SDK CI](https://github.com/configcat/js-universal-sdk/actions/workflows/js-ci.yml/badge.svg?branch=master)](https://github.com/configcat/js-universal-sdk/actions/workflows/js-ci.yml) 
-[![Quality Gate Status](https://img.shields.io/sonar/quality_gate/configcat_js-universal-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-universal-sdk)
-[![SonarCloud Coverage](https://img.shields.io/sonar/coverage/configcat_js-universal-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-universal-sdk)
-[![Known Vulnerabilities](https://snyk.io/test/github/configcat/js-universal-sdk/badge.svg?targetFile=package.json)](https://snyk.io/test/github/configcat/js-universal-sdk?targetFile=package.json) 
+[![JS SDK CI](https://github.com/configcat/js-unified-sdk/actions/workflows/js-ci.yml/badge.svg?branch=master)](https://github.com/configcat/js-unified-sdk/actions/workflows/js-ci.yml) 
+[![Quality Gate Status](https://img.shields.io/sonar/quality_gate/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
+[![SonarCloud Coverage](https://img.shields.io/sonar/coverage/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
+[![Known Vulnerabilities](https://snyk.io/test/github/configcat/js-unified-sdk/badge.svg?targetFile=package.json)](https://snyk.io/test/github/configcat/js-unified-sdk?targetFile=package.json) 
 [![Tree Shaking](https://badgen.net/bundlephobia/tree-shaking/@configcat/sdk)](https://bundlephobia.com/result?p=@configcat/sdk) 
-![License](https://img.shields.io/github/license/configcat/js-universal-sdk.svg) 
+![License](https://img.shields.io/github/license/configcat/js-unified-sdk.svg) 
 [![](https://data.jsdelivr.com/v1/package/npm/@configcat/sdk/badge)](https://www.jsdelivr.com/package/npm/@configcat/sdk)
 [![NPM](https://nodei.co/npm/@configcat/sdk.png)](https://nodei.co/npm/@configcat/sdk/)
 
@@ -135,20 +135,20 @@ if (value) {
 ```
 
 ## Sample/Demo apps
-  - [Sample Node.js console application](https://github.com/configcat/js-universal-sdk/tree/master/samples/node-console)
-  - [Sample Node.js console application using ECMAScript module system](https://github.com/configcat/js-universal-sdk/tree/master/samples/node-console-esm)
-  - [Sample Node.js console application using TypeScript](https://github.com/configcat/js-universal-sdk/tree/master/samples/ts-node-console)
-  - [Sample Node.js console application using TypeScript and ECMAScript module system](https://github.com/configcat/js-universal-sdk/tree/master/samples/ts-node-console-esm)
-  - [Sample Node.js application using Express and Docker](https://github.com/configcat/js-universal-sdk/tree/master/samples/node-expresswithdocker)
-  - [Sample Node.js application on how to get real time updates on feature flag changes](https://github.com/configcat/js-universal-sdk/tree/master/samples/node-realtimeupdate)
-  - [Sample Deno console application](https://github.com/configcat/js-universal-sdk/tree/master/samples/deno-console)
-  - [Plain HTML + JS](https://github.com/configcat/js-universal-sdk/tree/master/samples/html)
-  - [Plain HTML + JS using ECMAScript module system](https://github.com/configcat/js-universal-sdk/tree/master/samples/html-esm)
-  - [Sample Angular web application](https://github.com/configcat/js-universal-sdk/tree/master/samples/angular-sample)
-  - [Sample React web application](https://github.com/configcat/js-universal-sdk/tree/master/samples/react-sample)
-  - [Sample React Native application](https://github.com/configcat/js-universal-sdk/tree/master/samples/react-native-sample)
-  - [Sample Vue SSR web application](https://github.com/configcat/js-universal-sdk/tree/master/samples/vue-ssr-sample)
-  - [Sample Chrome extension](https://github.com/configcat/js-universal-sdk/tree/master/samples/chrome-extension)
+  - [Sample Node.js console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-console)
+  - [Sample Node.js console application using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-console-esm)
+  - [Sample Node.js console application using TypeScript](https://github.com/configcat/js-unified-sdk/tree/master/samples/ts-node-console)
+  - [Sample Node.js console application using TypeScript and ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/ts-node-console-esm)
+  - [Sample Node.js application using Express and Docker](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-expresswithdocker)
+  - [Sample Node.js application on how to get real time updates on feature flag changes](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-realtimeupdate)
+  - [Sample Deno console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/deno-console)
+  - [Plain HTML + JS](https://github.com/configcat/js-unified-sdk/tree/master/samples/html)
+  - [Plain HTML + JS using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/html-esm)
+  - [Sample Angular web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/angular-sample)
+  - [Sample React web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-sample)
+  - [Sample React Native application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-native-sample)
+  - [Sample Vue SSR web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/vue-ssr-sample)
+  - [Sample Chrome extension](https://github.com/configcat/js-unified-sdk/tree/master/samples/chrome-extension)
 
 ## Polling Modes
 
@@ -193,7 +193,7 @@ Currently the `@configcat/sdk` NPM package includes the following builds of the 
 
 This SDK should be compatible with all modern, widely used JS runtimes (execution engines) and bundlers.
 
-The SDK is [tested](https://github.com/configcat/js-universal-sdk/blob/master/.github/workflows/js-ci.yml) against the following runtimes:
+The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.github/workflows/js-ci.yml) against the following runtimes:
 - @configcat/sdk/browser:
   - Chrome (stable, latest, beta)
   - Chromium (64.0.3282.0, 72.0.3626.0, 80.0.3987.0)
@@ -208,9 +208,9 @@ The SDK is [tested](https://github.com/configcat/js-universal-sdk/blob/master/.g
 
 These tests are running on each pull request, before each deploy, and on a daily basis.
 
-You can view a sample run [here](https://github.com/configcat/js-universal-sdk/actions/runs/TODO).
+You can view a sample run [here](https://github.com/configcat/js-unified-sdk/actions/runs/TODO).
 
-> We strive to provide an extensive support for the various JS runtimes and build tools. If you still encounter an issue with the SDK on some platform, please open a [GitHub issue](https://github.com/configcat/js-universal-sdk/issues/new/choose) or [contact support](https://configcat.com/support).
+> We strive to provide an extensive support for the various JS runtimes and build tools. If you still encounter an issue with the SDK on some platform, please open a [GitHub issue](https://github.com/configcat/js-unified-sdk/issues/new/choose) or [contact support](https://configcat.com/support).
 
 ## Need help?
 https://configcat.com/support

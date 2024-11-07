@@ -2,13 +2,13 @@
 
 ## Before deployment
 
-Make sure the CI is running: https://github.com/configcat/js-universal-sdk/actions/workflows/js-sdk-ci.yml
+Make sure the CI is running: https://github.com/configcat/js-unified-sdk/actions/workflows/js-sdk-ci.yml
 
 ## Via shell script
 
 1. Run `./deploy.sh`
 
-2. Add release notes: https://github.com/configcat/js-universal-sdk/releases
+2. Add release notes: https://github.com/configcat/js-unified-sdk/releases
 
 2. Update `@configcat/sdk` in [`react-sdk`](https://github.com/configcat/react-sdk/) and re-deploy the package.
 
@@ -38,8 +38,8 @@ Increase version number by using `npm version patch | minor | major`
     ```
     *Example: git push origin v1.1.15*
 
-    You can follow the build status [here](https://github.com/configcat/js-universal-sdk/actions/workflows/js-sdk-ci.yml).
+    You can follow the build status [here](https://github.com/configcat/js-unified-sdk/actions/workflows/js-sdk-ci.yml).
 
-2. Add release notes: https://github.com/configcat/js-universal-sdk/releases
+2. Add release notes: https://github.com/configcat/js-unified-sdk/releases
 2. Update `@configcat/sdk` in [`react-sdk`](https://github.com/configcat/react-sdk/) and re-deploy the package.
 3. Test all packages manually!

@@ -16,7 +16,7 @@ npm start
 * If you have trouble running the `npm start`:
 
   Sample app dependencies conflict sometimes with the SDK root dependencies.
-  Make sure the `/js-universal-sdk/node_modules` is deleted before running `npm start` on `/js-universal-sdk/samples/react-sample`.
+  Make sure the `/js-unified-sdk/node_modules` is deleted before running `npm start` on `/js-unified-sdk/samples/react-sample`.
 
 * If `npm start` fails with "error:0308010C:digital envelope routines::unsupported":
   

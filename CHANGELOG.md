@@ -1,1 +1,1 @@
-Please check the [Github Releases](https://github.com/configcat/js-universal-sdk/releases) page for the changelog of the ConfigCat SDK for JavaScript.
+Please check the [Github Releases](https://github.com/configcat/js-unified-sdk/releases) page for the changelog of the ConfigCat SDK for JavaScript.
