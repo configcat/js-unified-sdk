@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { ObjectEntriesPolyfill, ObjectFromEntriesPolyfill, ObjectValuesPolyfill, getWeakRefStub } from "#lib/Polyfills";
+import { ObjectEntriesPolyfill, ObjectValuesPolyfill, getWeakRefStub } from "#lib/Polyfills";
 
 describe("Polyfills", () => {
   it("Object.values polyfill should work", () => {
@@ -24,21 +24,6 @@ describe("Polyfills", () => {
     assert.deepEqual([], ObjectEntriesPolyfill<any>({}));
     // eslint-disable-next-line @typescript-eslint/naming-convention
     expect(ObjectEntriesPolyfill<any>({ "a": 1, 2: "b" })).to.have.deep.members([["a", 1], ["2", "b"]]);
-  });
-
-  it("Object.fromEntries polyfill should work", () => {
-    assert.deepEqual({}, ObjectFromEntriesPolyfill<any>("" as any));
-
-    assert.deepEqual({}, ObjectFromEntriesPolyfill<any>([]));
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    assert.deepEqual({ "a": 1, 2: "b" }, ObjectFromEntriesPolyfill<any>([["a", 1], [2, "b"]]));
-
-    assert.deepEqual({}, ObjectFromEntriesPolyfill<any>((function* () { })()));
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const entries = (function* () { yield* [["a", 1], [2, "b"]]; })() as unknown as Iterable<readonly [PropertyKey, any]>;
-    assert.deepEqual({ "a": 1, 2: "b" }, ObjectFromEntriesPolyfill<any>(entries));
-
-    assert.throws(() => ObjectFromEntriesPolyfill<any>(1 as any));
   });
 
   it("WeakRef API polyfill should work", () => {

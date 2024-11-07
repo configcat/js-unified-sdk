@@ -3,14 +3,15 @@ import { FakeConfigCatKernel, FakeConfigFetcherBase, FakeConfigFetcherWithNullNe
 import { SettingKeyValue } from "#lib";
 import { ConfigCatClient, IConfigCatClient, IConfigCatKernel } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
-import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
+import { IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
+import { createFlagOverridesFromQueryParams } from "#lib/index.pubternals";
 import { SettingValue } from "#lib/ProjectConfig";
 import { isAllowedValue } from "#lib/RolloutEvaluator";
 
 describe("Local Overrides", () => {
   it("Values from map - LocalOnly", async () => {
     const configCatKernel: FakeConfigCatKernel = {
-      configFetcher: new FakeConfigFetcherBase("{\"f\": { \"fakeKey\": { \"v\": false, \"p\": [], \"r\": [] } } }"),
+      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
       sdkType: "common",
       sdkVersion: "1.0.0"
     };
@@ -51,7 +52,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - LocalOnly - watch changes - async", async () => {
     const configCatKernel: FakeConfigCatKernel = {
-      configFetcher: new FakeConfigFetcherBase("{\"f\": { \"fakeKey\": { \"v\": false, \"p\": [], \"r\": [] } } }"),
+      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
       sdkType: "common",
       sdkVersion: "1.0.0"
     };
@@ -92,7 +93,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - LocalOnly - watch changes - sync", async () => {
     const configCatKernel: FakeConfigCatKernel = {
-      configFetcher: new FakeConfigFetcherBase("{\"f\": { \"fakeKey\": { \"v\": false, \"p\": [], \"r\": [] } } }"),
+      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
       sdkType: "common",
       sdkVersion: "1.0.0"
     };
@@ -135,7 +136,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - LocalOverRemote", async () => {
     const configCatKernel: FakeConfigCatKernel = {
-      configFetcher: new FakeConfigFetcherBase("{\"f\": { \"fakeKey\": { \"v\": false, \"p\": [], \"r\": [] } } }"),
+      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
       sdkType: "common",
       sdkVersion: "1.0.0"
     };
@@ -233,9 +234,155 @@ describe("Local Overrides", () => {
     client.dispose();
   });
 
+  it("Values from query string - changes not watched", async () => {
+    const configCatKernel: FakeConfigCatKernel = {
+      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      sdkType: "common",
+      sdkVersion: "1.0.0"
+    };
+
+    let currentQueryString = "?cc-stringDefaultCat=OVERRIDE_CAT&stringDefaultDog=OVERRIDE_DOG";
+    const queryStringProvider: IQueryStringProvider = { get currentValue() { return currentQueryString; } };
+
+    const options: AutoPollOptions = new AutoPollOptions("localhost", "common", "1.0.0", {
+      flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, false, void 0, queryStringProvider),
+    });
+    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
+    assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
+
+    currentQueryString = "?cc-stringDefaultCat=CHANGED_OVERRIDE_CAT";
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
+    assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
+
+    client.dispose();
+  });
+
+  it("Values from query string - changes watched", async () => {
+    const configCatKernel: FakeConfigCatKernel = {
+      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      sdkType: "common",
+      sdkVersion: "1.0.0"
+    };
+
+    let currentQueryString = "?cc-stringDefaultCat=OVERRIDE_CAT&stringDefaultDog=OVERRIDE_DOG";
+    const queryStringProvider: IQueryStringProvider = { get currentValue() { return currentQueryString; } };
+
+    const options: AutoPollOptions = new AutoPollOptions("localhost", "common", "1.0.0", {
+      flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, true, void 0, queryStringProvider),
+    });
+    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
+    assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
+
+    currentQueryString = "?cc-stringDefaultCat=CHANGED_OVERRIDE_CAT";
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "CHANGED_OVERRIDE_CAT");
+    assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
+
+    client.dispose();
+  });
+
+  it("Values from query string - parsed query string", async () => {
+    const configCatKernel: FakeConfigCatKernel = {
+      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      sdkType: "common",
+      sdkVersion: "1.0.0"
+    };
+
+    let currentQueryString: { [key: string]: string } = {
+      "cc-stringDefaultCat": "OVERRIDE_CAT",
+      "stringDefaultDog": "OVERRIDE_DOG",
+    };
+    const queryStringProvider: IQueryStringProvider = { get currentValue() { return currentQueryString; } };
+
+    const options: AutoPollOptions = new AutoPollOptions("localhost", "common", "1.0.0", {
+      flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, true, void 0, queryStringProvider),
+    });
+    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
+    assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
+
+    currentQueryString = {
+      "cc-stringDefaultCat": "CHANGED_OVERRIDE_CAT"
+    };
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "CHANGED_OVERRIDE_CAT");
+    assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
+
+    client.dispose();
+  });
+
+  it("Values from query string - respects custom parameter name prefix", async () => {
+    const configCatKernel: FakeConfigCatKernel = {
+      configFetcher: new FakeConfigFetcherBase('{"f":{"numberDefaultZero":{"t":2,"v":{"i":42}}}}'),
+      sdkType: "common",
+      sdkVersion: "1.0.0"
+    };
+
+    const currentQueryString = "?numberDefaultZero=43&cc-numberDefaultZero=44";
+    const queryStringProvider: IQueryStringProvider = { get currentValue() { return currentQueryString; } };
+
+    const options: AutoPollOptions = new AutoPollOptions("localhost", "common", "1.0.0", {
+      flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, void 0, "", queryStringProvider),
+    });
+    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+
+    assert.equal(await client.getValueAsync("numberDefaultZero", 0), 43);
+    assert.equal(await client.getValueAsync("cc-numberDefaultZero", 0), 44);
+
+    client.dispose();
+  });
+
+  it("Values from query string - respects force string value suffix", async () => {
+    const configCatKernel: FakeConfigCatKernel = {
+      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}}}}'),
+      sdkType: "common",
+      sdkVersion: "1.0.0"
+    };
+
+    const currentQueryString = "?cc-stringDefaultCat;str=TRUE&cc-boolDefaultFalse=TRUE";
+    const queryStringProvider: IQueryStringProvider = { get currentValue() { return currentQueryString; } };
+
+    const options: AutoPollOptions = new AutoPollOptions("localhost", "common", "1.0.0", {
+      flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, void 0, void 0, queryStringProvider),
+    });
+    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "TRUE");
+    assert.equal(await client.getValueAsync("boolDefaultFalse", false), true);
+
+    client.dispose();
+  });
+
+  it("Values from query string - handles query string edge cases", async () => {
+    const configCatKernel: FakeConfigCatKernel = {
+      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}}}}'),
+      sdkType: "common",
+      sdkVersion: "1.0.0"
+    };
+
+    const currentQueryString = "?&some&=garbage&&cc-stringDefaultCat=OVERRIDE_CAT&=cc-stringDefaultCat&cc-stringDefaultCat";
+    const queryStringProvider: IQueryStringProvider = { get currentValue() { return currentQueryString; } };
+
+    const options: AutoPollOptions = new AutoPollOptions("localhost", "common", "1.0.0", {
+      flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, void 0, void 0, queryStringProvider),
+    });
+    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+
+    assert.equal(await client.getValueAsync("stringDefaultCat", ""), "");
+    assert.isNull(await client.getValueAsync("some", null));
+
+    client.dispose();
+  });
+
   it("LocalOnly - forceRefresh() should return failure", async () => {
     const configCatKernel: FakeConfigCatKernel = {
-      configFetcher: new FakeConfigFetcherBase("{\"f\": { \"fakeKey\": { \"v\": false, \"p\": [], \"r\": [] } } }"),
+      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
       sdkType: "common",
       sdkVersion: "1.0.0"
     };

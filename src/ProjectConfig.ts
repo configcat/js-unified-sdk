@@ -106,7 +106,7 @@ export class Config implements IConfig {
     this.preferences = json.p != null ? new Preferences(json.p) : void 0;
     this.segments = json.s?.map(item => new Segment(item)) ?? [];
     this.settings = json.f != null
-      ? Object.fromEntries(Object.entries(json.f).map(([key, value]) => [key, new Setting(value, this) as SettingUnion]))
+      ? Object.entries(json.f).reduce((acc, [key, value]) => (acc[key] = new Setting(value, this) as SettingUnion, acc), {})
       : {};
   }
 
