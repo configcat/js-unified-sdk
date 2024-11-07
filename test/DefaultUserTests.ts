@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { FakeConfigCatKernel, FakeConfigFetcherWithRules, createClientWithAutoPoll } from "./helpers/fakes";
+import { FakeConfigFetcherWithRules, createClientWithAutoPoll, createKernel } from "./helpers/fakes";
 import { LogLevel } from "#lib";
 import { IConfigCatClient } from "#lib/ConfigCatClient";
 import { createConsoleLogger } from "#lib/index.pubternals";
@@ -10,7 +10,7 @@ describe("DefaultUser", () => {
     const redEyeColorUser = { identifier: "redIdentifier", custom: { "eyeColor": "red" } };
     const blueEyeColorUser = { identifier: "blueIdentifier", custom: { "eyeColor": "blue" } };
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcherWithRules(), sdkType: "common", sdkVersion: "1.0.0" };
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcherWithRules() });
     const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: createConsoleLogger(LogLevel.Debug) });
 
     // Without passing the userobject, default values/variationids should be returned
@@ -91,7 +91,7 @@ describe("DefaultUser", () => {
     const redEyeColorUser = { identifier: "redIdentifier", custom: { "eyeColor": "red" } };
     const blueEyeColorUser = { identifier: "blueIdentifier", custom: { "eyeColor": "blue" } };
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcherWithRules(), sdkType: "common", sdkVersion: "1.0.0" };
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcherWithRules() });
     const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: createConsoleLogger(LogLevel.Debug), defaultUser: redEyeColorUser });
 
     // Without passing the userobject, default user from the constructor should be returned

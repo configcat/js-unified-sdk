@@ -1,7 +1,6 @@
 import { assert } from "chai";
 import { CdnConfigLocation, LocalFileConfigLocation } from "./helpers/ConfigLocation";
-import { FakeLogger, createClientWithManualPoll, sdkType, sdkVersion } from "./helpers/fakes";
-import { platform } from "./helpers/platform";
+import { FakeLogger, createClientWithManualPoll } from "./helpers/fakes";
 import { IManualPollOptions, OverrideBehaviour, SettingValue, User, UserAttributeValue } from "#lib";
 import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
 import { FlagOverrides, MapOverrideDataSource } from "#lib/FlagOverrides";
@@ -66,7 +65,7 @@ describe("Setting evaluation (config v2)", () => {
     ["stringDependsOnDouble", "mainDoubleFlag", void 0, null],
   ]) {
     it(`Prerequisite flag comparison value type mismatch - key: ${key} | prerequisiteFlagKey: ${prerequisiteFlagKey} | prerequisiteFlagValue: ${prerequisiteFlagValue}`, async () => {
-      const overrideMap: { [name: string]: NonNullable<SettingValue> } = {
+      const overrideMap: { [key: string]: NonNullable<SettingValue> } = {
         [prerequisiteFlagKey]: prerequisiteFlagValue as unknown as NonNullable<SettingValue>
       };
 
@@ -78,7 +77,7 @@ describe("Setting evaluation (config v2)", () => {
 
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
       const client = createClientWithManualPoll("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/JoGwdqJZQ0K2xDy7LnbyOg",
-        { sdkType, sdkVersion, configFetcher: platform().createConfigFetcher() }, options);
+        void 0, options);
 
       try {
         await client.forceRefreshAsync();
@@ -132,7 +131,7 @@ describe("Setting evaluation (config v2)", () => {
     ["stringDependsOnInt", "2", "john@notsensitivecompany.com", OverrideBehaviour.LocalOnly, "Falcon"],
   ]) {
     it(`Prerequisite flag override - key: ${key} | userId: ${userId} | email: ${email} | overrideBehavior: ${overrideBehaviour}`, async () => {
-      const overrideMap: { [name: string]: NonNullable<SettingValue> } = {
+      const overrideMap: { [key: string]: NonNullable<SettingValue> } = {
         ["mainStringFlag"]: "private", // to check the case where a prerequisite flag is overridden (dependent flag: 'stringDependsOnString')
         ["stringDependsOnInt"]: "Falcon" // to check the case where a dependent flag is overridden (prerequisite flag: 'mainIntFlag')
       };
@@ -143,7 +142,7 @@ describe("Setting evaluation (config v2)", () => {
 
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
       const client = createClientWithManualPoll("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/JoGwdqJZQ0K2xDy7LnbyOg",
-        { sdkType, sdkVersion, configFetcher: platform().createConfigFetcher() }, options);
+        void 0, options);
 
       try {
         await client.forceRefreshAsync();

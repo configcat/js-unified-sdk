@@ -1,8 +1,7 @@
 import { assert } from "chai";
-import { FakeConfigCatKernel, FakeConfigFetcher } from "./helpers/fakes";
+import { FakeConfigFetcher, createAutoPollOptions, createKernel, createManualPollOptions } from "./helpers/fakes";
 import { allowEventLoop } from "./helpers/utils";
 import { ConfigCatClient, ConfigCatClientCache } from "#lib/ConfigCatClient";
-import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
 import "./helpers/ConfigCatClientCacheExtensions";
 
@@ -12,8 +11,8 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcher(), sdkType: "common", sdkVersion: "1.0.0" };
-    const options = new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
@@ -49,8 +48,8 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcher(), sdkType: "common", sdkVersion: "1.0.0" };
-    const options = new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const options = createAutoPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
@@ -83,8 +82,8 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcher(), sdkType: "common", sdkVersion: "1.0.0" };
-    const options = new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
@@ -111,8 +110,8 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcher(), sdkType: "common", sdkVersion: "1.0.0" };
-    const options = new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
@@ -153,8 +152,8 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcher(), sdkType: "common", sdkVersion: "1.0.0" };
-    const options = new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
@@ -183,8 +182,8 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcher(), sdkType: "common", sdkVersion: "1.0.0" };
-    const options = new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
@@ -219,9 +218,9 @@ describe("ConfigCatClientCache", () => {
     const sdkKey1 = "123";
     const sdkKey2 = "456";
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcher(), sdkType: "common", sdkVersion: "1.0.0" };
-    const options1 = new ManualPollOptions(sdkKey1, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
-    const options2 = new ManualPollOptions(sdkKey2, configCatKernel.sdkType, configCatKernel.sdkVersion, {});
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const options1 = createManualPollOptions(sdkKey1, void 0, configCatKernel);
+    const options2 = createManualPollOptions(sdkKey2, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 

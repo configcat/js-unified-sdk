@@ -2,7 +2,6 @@ import type { IConfigCache, IConfigCatCache } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { IConfigCatLogger } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger, LoggerWrapper } from "./ConfigCatLogger";
-import { DefaultEventEmitter } from "./DefaultEventEmitter";
 import type { IEventEmitter } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { FlagOverrides } from "./FlagOverrides";
@@ -180,7 +179,7 @@ export abstract class OptionsBase {
         break;
     }
 
-    const eventEmitter = eventEmitterFactory?.() ?? new DefaultEventEmitter();
+    const eventEmitter = eventEmitterFactory?.() ?? new NullEventEmitter();
     const hooks = new Hooks(eventEmitter);
     const hooksWeakRef = new (isWeakRefAvailable() ? WeakRef : getWeakRefStub())(hooks);
     this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{

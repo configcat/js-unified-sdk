@@ -6,6 +6,7 @@ import { LocalStorageCache } from "#lib/browser/LocalStorageCache";
 import { XmlHttpRequestConfigFetcher } from "#lib/browser/XmlHttpRequestConfigFetcher";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
+import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
 
 const sdkVersion = "0.0.0-test";
@@ -13,18 +14,23 @@ const sdkType = "ConfigCat-JS";
 
 export const createConfigFetcher = (): IConfigFetcher => new XmlHttpRequestConfigFetcher();
 
+export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
+  const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+  return (setupKernel ?? LocalStorageCache.setup)(kernel);
+};
+
 export const createClientWithAutoPoll = (sdkKey: string, options?: IJSAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? LocalStorageCache.setup)({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
 export const createClientWithManualPoll = (sdkKey: string, options?: IJSLazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? LocalStorageCache.setup)({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
 export const createClientWithLazyLoad = (sdkKey: string, options?: IJSManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? LocalStorageCache.setup)({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
@@ -56,6 +62,7 @@ initPlatform({
   pathJoin,
   readFileUtf8,
   createConfigFetcher,
+  createKernel,
   createClientWithAutoPoll,
   createClientWithManualPoll,
   createClientWithLazyLoad,

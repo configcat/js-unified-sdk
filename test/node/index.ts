@@ -1,4 +1,5 @@
 import "mocha";
+import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as glob from "glob";
 import * as path from "path";
@@ -17,18 +18,23 @@ const sdkType = "ConfigCat-Node";
 
 export const createConfigFetcher = (): IConfigFetcher => new NodeHttpConfigFetcher();
 
+export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
+  const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new EventEmitter() };
+  return (setupKernel ?? (k => k))(kernel);
+};
+
 export const createClientWithAutoPoll = (sdkKey: string, options?: INodeAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? (k => k))({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
 export const createClientWithManualPoll = (sdkKey: string, options?: INodeManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? (k => k))({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
 export const createClientWithLazyLoad = (sdkKey: string, options?: INodeLazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? (k => k))({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
@@ -40,6 +46,7 @@ initPlatform({
   pathJoin,
   readFileUtf8,
   createConfigFetcher,
+  createKernel,
   createClientWithAutoPoll,
   createClientWithManualPoll,
   createClientWithLazyLoad,

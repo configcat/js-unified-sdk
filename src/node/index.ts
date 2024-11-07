@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
@@ -20,7 +21,8 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     {
       configFetcher: new NodeHttpConfigFetcher(),
       sdkType: "ConfigCat-Node",
-      sdkVersion: CONFIGCAT_SDK_VERSION
+      sdkVersion: CONFIGCAT_SDK_VERSION,
+      eventEmitterFactory: () => new EventEmitter()
     });
 }
 

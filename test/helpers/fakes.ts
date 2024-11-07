@@ -1,5 +1,6 @@
+import { platform } from "./platform";
 import { IConfigCache, IConfigCatCache } from "#lib/ConfigCatCache";
-import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
+import { IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, LazyLoadOptions, ManualPollOptions, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { IConfigCatLogger, LogEventId, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
 import { IConfigFetcher, IFetchResponse } from "#lib/ConfigFetcher";
@@ -7,18 +8,34 @@ import { IConfigCatKernel } from "#lib/index.pubternals";
 import { ProjectConfig } from "#lib/ProjectConfig";
 import { delay } from "#lib/Utils";
 
-export const sdkType = "ConfigCat-JS-Common", sdkVersion = "0.0.0-test";
-
-export function createClientWithAutoPoll(sdkKey: string, configCatKernel: IConfigCatKernel, options?: IAutoPollOptions): IConfigCatClient {
-  return new ConfigCatClient(new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
+export function createKernel(kernelOverride?: Partial<IConfigCatKernel>): IConfigCatKernel {
+  return platform().createKernel(kernel => Object.assign(kernel, kernelOverride));
 }
 
-export function createClientWithManualPoll(sdkKey: string, configCatKernel: IConfigCatKernel, options?: IManualPollOptions): IConfigCatClient {
-  return new ConfigCatClient(new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
+export function createAutoPollOptions(sdkKey: string, options?: IAutoPollOptions, kernel?: IConfigCatKernel): AutoPollOptions {
+  kernel ??= createKernel();
+  return new AutoPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
 }
 
-export function createClientWithLazyLoad(sdkKey: string, configCatKernel: IConfigCatKernel, options?: ILazyLoadingOptions): IConfigCatClient {
-  return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
+export function createManualPollOptions(sdkKey: string, options?: IManualPollOptions, kernel?: IConfigCatKernel): ManualPollOptions {
+  kernel ??= createKernel();
+  return new ManualPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+}
+
+export function createLazyLoadOptions(sdkKey: string, options?: ILazyLoadingOptions, kernel?: IConfigCatKernel): LazyLoadOptions {
+  kernel ??= createKernel();
+  return new LazyLoadOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+}
+export function createClientWithAutoPoll(sdkKey: string, kernelOverride?: Partial<IConfigCatKernel>, options?: IAutoPollOptions): IConfigCatClient {
+  return platform().createClientWithAutoPoll(sdkKey, options, kernel => Object.assign(kernel, kernelOverride));
+}
+
+export function createClientWithManualPoll(sdkKey: string, kernelOverride?: Partial<IConfigCatKernel>, options?: IManualPollOptions): IConfigCatClient {
+  return platform().createClientWithManualPoll(sdkKey, options, kernel => Object.assign(kernel, kernelOverride));
+}
+
+export function createClientWithLazyLoad(sdkKey: string, kernelOverride?: IConfigCatKernel, options?: ILazyLoadingOptions): IConfigCatClient {
+  return platform().createClientWithLazyLoad(sdkKey, options, kernel => Object.assign(kernel, kernelOverride));
 }
 
 export class FakeLogger implements IConfigCatLogger {
@@ -31,13 +48,6 @@ export class FakeLogger implements IConfigCatLogger {
   log(level: LogLevel, eventId: number, message: LogMessage, exception?: any): void {
     this.events.push([level, eventId, message, exception]);
   }
-}
-
-export class FakeConfigCatKernel implements IConfigCatKernel {
-  configFetcher!: IConfigFetcher;
-  sdkType = "common";
-  sdkVersion = "1.0.0";
-  defaultCacheFactory?: (options: OptionsBase) => IConfigCache;
 }
 
 export class FakeCache implements IConfigCache {

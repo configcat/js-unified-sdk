@@ -1,6 +1,7 @@
 import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
+import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
@@ -20,7 +21,8 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     {
       configFetcher: new FetchApiConfigFetcher(),
       sdkType: "ConfigCat-Deno",
-      sdkVersion: CONFIGCAT_SDK_VERSION
+      sdkVersion: CONFIGCAT_SDK_VERSION,
+      eventEmitterFactory: () => new DefaultEventEmitter()
     });
 }
 

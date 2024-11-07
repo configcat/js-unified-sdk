@@ -1,6 +1,7 @@
 import * as path from "https://deno.land/std@0.224.0/path/mod.ts";
 // @deno-types="npm:@types/mocha"
 import "npm:mocha/browser-entry.js";
+import { DefaultEventEmitter } from "../../src/DefaultEventEmitter";
 import { initPlatform } from "../helpers/platform";
 import { isTestSpec } from "../index";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
@@ -41,18 +42,23 @@ const sdkType = "ConfigCat-Deno";
 
 export const createConfigFetcher = (): IConfigFetcher => new FetchApiConfigFetcher();
 
+export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
+  const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+  return (setupKernel ?? (k => k))(kernel);
+};
+
 export const createClientWithAutoPoll = (sdkKey: string, options?: IDenoAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? (k => k))({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
 export const createClientWithManualPoll = (sdkKey: string, options?: IDenoManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? (k => k))({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
 export const createClientWithLazyLoad = (sdkKey: string, options?: IDenoLazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel: IConfigCatKernel = (setupKernel ?? (k => k))({ configFetcher: createConfigFetcher(), sdkType, sdkVersion });
+  const configCatKernel = createKernel(setupKernel);
   return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
@@ -64,6 +70,7 @@ initPlatform({
   pathJoin,
   readFileUtf8,
   createConfigFetcher,
+  createKernel,
   createClientWithAutoPoll,
   createClientWithManualPoll,
   createClientWithLazyLoad,

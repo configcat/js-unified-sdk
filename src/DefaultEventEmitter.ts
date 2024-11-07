@@ -8,8 +8,9 @@ function isSingle(listeners: Listeners): listeners is Listener {
 }
 
 // NOTE: It's better to place this class into a separate module so
-// it can be omitted from the final bundle in case we choose to
-// make the common library EventEmitter implementation-agnostic in the future.
+// it can be omitted from the final bundle in case it's not used.
+// (On platforms where a native implementation is available,
+// we may choose to use that.)
 
 /** A platform-independent implementation of `IEventEmitter`. */
 export class DefaultEventEmitter implements IEventEmitter {

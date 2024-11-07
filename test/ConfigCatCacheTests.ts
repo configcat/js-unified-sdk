@@ -1,7 +1,6 @@
 import { assert } from "chai";
-import { FakeLogger } from "./helpers/fakes";
+import { FakeLogger, createManualPollOptions } from "./helpers/fakes";
 import { ExternalConfigCache, IConfigCache, IConfigCatCache, InMemoryConfigCache, } from "#lib/ConfigCatCache";
-import { ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
 import { Config, ProjectConfig } from "#lib/ProjectConfig";
 
@@ -97,7 +96,7 @@ describe("ConfigCatCache", () => {
     ["configcat-sdk-1/TEST_KEY2-123456789012/1234567890123456789012", "da7bfd8662209c8ed3f9db96daed4f8d91ba5876"],
   ]) {
     it(`Cache key generation should be platform independent - ${sdkKey}`, () => {
-      const options = new ManualPollOptions(sdkKey, "common", "1.0.0");
+      const options = createManualPollOptions(sdkKey);
       assert.strictEqual(options.getCacheKey(), expectedCacheKey);
     });
   }

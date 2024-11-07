@@ -6,6 +6,7 @@ interface IPlatformAbstractions {
   pathJoin(...segments: string[]): string;
   readFileUtf8(path: string): string | Promise<string>;
   createConfigFetcher(): IConfigFetcher;
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel;
   createClientWithAutoPoll(sdkKey: string, options?: IAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient;
   createClientWithManualPoll(sdkKey: string, options?: IManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient;
   createClientWithLazyLoad(sdkKey: string, options?: ILazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient;

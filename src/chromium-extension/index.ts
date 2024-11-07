@@ -1,6 +1,7 @@
 import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
+import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals";
 import { setupPolyfills } from "../Polyfills";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
@@ -25,6 +26,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       configFetcher: new FetchApiConfigFetcher(),
       sdkType: "ConfigCat-JS-Chromium",
       sdkVersion: CONFIGCAT_SDK_VERSION,
+      eventEmitterFactory: () => new DefaultEventEmitter()
     }));
 }
 

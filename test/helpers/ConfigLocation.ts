@@ -1,4 +1,4 @@
-import { sdkType, sdkVersion } from "./fakes";
+import { createManualPollOptions } from "./fakes";
 import { platform } from "./platform";
 import { ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { ManualPollConfigService } from "#lib/ManualPollConfigService";
@@ -24,7 +24,7 @@ export abstract class ConfigLocation {
 export class CdnConfigLocation extends ConfigLocation {
   private $options?: ManualPollOptions;
   get options(): ManualPollOptions {
-    return this.$options ??= new ManualPollOptions(this.sdkKey, sdkType, sdkVersion, {
+    return this.$options ??= createManualPollOptions(this.sdkKey, {
       baseUrl: this.baseUrl ?? "https://cdn-eu.configcat.com"
     });
   }
