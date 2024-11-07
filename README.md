@@ -206,6 +206,8 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
 - @configcat/sdk/node:
   - Node.js (v14.x, v16.x, v18.x, v20.x, v22.x) on Windows / Ubuntu / macOS
 
+The SDK should be compatible with TypeScript v4.0.2 or newer. Earlier versions may work but those are not tested, thus, not supported officially.
+
 These tests are running on each pull request, before each deploy, and on a daily basis.
 
 You can view a sample run [here](https://github.com/configcat/js-unified-sdk/actions/runs/TODO).
