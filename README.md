@@ -1,16 +1,4 @@
 # ConfigCat SDK for JavaScript
-https://configcat.com
-
-ConfigCat SDK for JavaScript provides easy integration for your application to ConfigCat.
-
-## About
-
-Manage features and change your software configuration using <a href="https://configcat.com" target="_blank">ConfigCat feature flags</a>
-, without the need to re-deploy code. A <a href="https://app.configcat.com" target="_blank">10 minute trainable Dashboard</a> 
-allows even non-technical team members to manage features directly. Deploy anytime, release when confident. 
-Target a specific group of users first with new ideas. Supports A/B/n testing and soft launching.
-
-ConfigCat is a <a href="https://configcat.com" target="_blank">hosted feature flag service</a>. Manage feature toggles across frontend, backend, mobile, desktop apps. <a href="https://configcat.com" target="_blank">Alternative to LaunchDarkly</a>. Management app + feature flag SDKs.
 
 [![JS SDK CI](https://github.com/configcat/js-universal-sdk/actions/workflows/js-ci.yml/badge.svg?branch=master)](https://github.com/configcat/js-universal-sdk/actions/workflows/js-ci.yml) 
 [![Quality Gate Status](https://img.shields.io/sonar/quality_gate/configcat_js-universal-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-universal-sdk)
@@ -20,6 +8,8 @@ ConfigCat is a <a href="https://configcat.com" target="_blank">hosted feature fl
 ![License](https://img.shields.io/github/license/configcat/js-universal-sdk.svg) 
 [![](https://data.jsdelivr.com/v1/package/npm/@configcat/sdk/badge)](https://www.jsdelivr.com/package/npm/@configcat/sdk)
 [![NPM](https://nodei.co/npm/@configcat/sdk.png)](https://nodei.co/npm/@configcat/sdk/)
+
+ConfigCat SDK for JavaScript provides easy integration for your application to [ConfigCat](https://configcat.com).
 
 ## Getting Started
 
@@ -242,3 +232,13 @@ You might run into errors caused by the wrong version of Node.js. To make sure y
 1. Have nvm (Node Version Manager - https://github.com/nvm-sh/nvm ) installed:
 1. Run `nvm install`. This will install the compatible version of Node.js.
 1. Run `nvm use`. This will use the compatible version of Node.js.
+
+## About ConfigCat
+
+ConfigCat is a feature flag and configuration management service that lets you separate releases from deployments. You can turn your features ON/OFF using <a href="https://app.configcat.com" target="_blank">ConfigCat Dashboard</a> even after they are deployed. ConfigCat lets you target specific groups of users based on region, email or any other custom user attribute.
+
+ConfigCat is a <a href="https://configcat.com" target="_blank">hosted feature flag service</a>. Manage feature toggles across frontend, backend, mobile, desktop apps. <a href="https://configcat.com" target="_blank">Alternative to LaunchDarkly</a>. Management app + feature flag SDKs.
+
+- [Official ConfigCat SDKs for other platforms](https://github.com/configcat)
+- [Documentation](https://configcat.com/docs)
+- [Blog](https://configcat.com/blog)
