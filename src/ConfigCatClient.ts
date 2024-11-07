@@ -230,7 +230,7 @@ export class ConfigCatClientCache {
 
 const clientInstanceCache = new ConfigCatClientCache();
 
-type SettingsWithRemoteConfig = [{ [name: string]: Setting } | null, ProjectConfig | null];
+type SettingsWithRemoteConfig = [{ [key: string]: Setting } | null, ProjectConfig | null];
 
 export class ConfigCatClient implements IConfigCatClient {
   protected configService?: IConfigService;
@@ -374,7 +374,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: { [name: string]: Setting } | null;
+      let settings: { [key: string]: Setting } | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
       value = evaluationDetails.value;
@@ -399,7 +399,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: { [name: string]: Setting } | null;
+      let settings: { [key: string]: Setting } | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
     }
@@ -592,7 +592,7 @@ export class ConfigCatClient implements IConfigCatClient {
       return [settings, config];
     };
 
-    let remoteSettings: { [name: string]: Setting } | null;
+    let remoteSettings: { [key: string]: Setting } | null;
     let remoteConfig: ProjectConfig | null;
     const flagOverrides = this.options?.flagOverrides;
     if (flagOverrides) {
@@ -624,7 +624,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     const flagOverrides = this.options?.flagOverrides;
     if (flagOverrides) {
-      let remoteSettings: { [name: string]: Setting } | null;
+      let remoteSettings: { [key: string]: Setting } | null;
       let remoteConfig: ProjectConfig | null;
       const localSettings = await flagOverrides.dataSource.getOverrides();
       switch (flagOverrides.behaviour) {
@@ -694,7 +694,7 @@ class Snapshot implements IConfigCatClientSnapshot {
   private readonly options: ConfigCatClientOptions;
 
   constructor(
-    private readonly mergedSettings: { [name: string]: Setting } | null,
+    private readonly mergedSettings: { [key: string]: Setting } | null,
     private readonly remoteConfig: ProjectConfig | null,
     client: ConfigCatClient) {
 

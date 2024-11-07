@@ -32,7 +32,7 @@ export enum OverrideBehaviour {
   RemoteOverLocal = 2,
 }
 
-type SettingMap = { [name: string]: Setting };
+type SettingMap = { [key: string]: Setting };
 
 export interface IOverrideDataSource {
   getOverrides(): Promise<SettingMap>;
@@ -44,9 +44,9 @@ export interface IOverrideDataSource {
 
 export class MapOverrideDataSource implements IOverrideDataSource {
   private readonly initialSettings: SettingMap;
-  private readonly map?: { [name: string]: NonNullable<SettingValue> };
+  private readonly map?: { [key: string]: NonNullable<SettingValue> };
 
-  constructor(map: { [name: string]: NonNullable<SettingValue> }, watchChanges?: boolean) {
+  constructor(map: { [key: string]: NonNullable<SettingValue> }, watchChanges?: boolean) {
     this.initialSettings = getSettingsFromMap(map);
     if (watchChanges) {
       this.map = map;
@@ -64,7 +64,7 @@ export class MapOverrideDataSource implements IOverrideDataSource {
   }
 }
 
-function getSettingsFromMap(map: { [name: string]: NonNullable<SettingValue> }) {
+function getSettingsFromMap(map: { [key: string]: NonNullable<SettingValue> }) {
   const settings: SettingMap = {};
 
   for (const key in map) {
