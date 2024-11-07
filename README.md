@@ -25,6 +25,11 @@ npm i @configcat/sdk
 
 Then import it into your application:
 
+* Frontend applications running in the browser:
+  ```js
+  import * as configcat from "@configcat/sdk/browser";
+  ```
+
 * Node.js backend applications:
   ```js
   import * as configcat from "@configcat/sdk/node";
@@ -37,11 +42,6 @@ Then import it into your application:
 
   (To make this work, you may need to enable the [unstable-byonm](https://docs.deno.com/runtime/manual/tools/unstable_flags/#--unstable-byonm) feature or adjust your [import map](https://docs.deno.com/runtime/manual/basics/import_maps/).)
 
-* Frontend applications running in the browser:
-  ```js
-  import * as configcat from "@configcat/sdk/browser";
-  ```
-
 * Extensions for Chromium-based browsers (Chrome, Edge, etc.):
   ```js
   import * as configcat from "@configcat/sdk/chromium-extension";
@@ -52,12 +52,6 @@ Then import it into your application:
 #### *via CDN*
 
 Import the package directly from a CDN server into your application:
-
-* Deno backend applications:
-
-  ```js
-  import * as configcat from "https://cdn.skypack.dev/@configcat/sdk@1.0.0?dts";
-  ```
 
 * Frontend applications running in the browser:
 
@@ -71,6 +65,12 @@ Import the package directly from a CDN server into your application:
   <script type="module">
     import * as configcat from "https://cdn.jsdelivr.net/npm/@configcat/sdk@latest/dist/configcat.browser.esm.min.js";
   </script>
+  ```
+
+* Deno backend applications:
+
+  ```js
+  import * as configcat from "https://cdn.skypack.dev/@configcat/sdk@1.0.0?dts";
   ```
 
 * Extensions for Chromium-based browsers (Chrome, Edge, etc.):
@@ -135,6 +135,12 @@ if (value) {
 ```
 
 ## Sample/Demo apps
+  - [Plain HTML + JS](https://github.com/configcat/js-unified-sdk/tree/master/samples/html)
+  - [Plain HTML + JS using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/html-esm)
+  - [Sample Angular web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/angular-sample)
+  - [Sample React web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-sample)
+  - [Sample React Native application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-native-sample)
+  - [Sample Vue SSR web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/vue-ssr-sample)
   - [Sample Node.js console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-console)
   - [Sample Node.js console application using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-console-esm)
   - [Sample Node.js console application using TypeScript](https://github.com/configcat/js-unified-sdk/tree/master/samples/ts-node-console)
@@ -142,12 +148,6 @@ if (value) {
   - [Sample Node.js application using Express and Docker](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-expresswithdocker)
   - [Sample Node.js application on how to get real time updates on feature flag changes](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-realtimeupdate)
   - [Sample Deno console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/deno-console)
-  - [Plain HTML + JS](https://github.com/configcat/js-unified-sdk/tree/master/samples/html)
-  - [Plain HTML + JS using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/html-esm)
-  - [Sample Angular web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/angular-sample)
-  - [Sample React web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-sample)
-  - [Sample React Native application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-native-sample)
-  - [Sample Vue SSR web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/vue-ssr-sample)
   - [Sample Chrome extension](https://github.com/configcat/js-unified-sdk/tree/master/samples/chrome-extension)
 
 ## Polling Modes
@@ -187,7 +187,7 @@ Currently the `@configcat/sdk` NPM package includes the following builds of the 
   - Targets ES2017 and includes all required polyfills except for the `Promise` feature.
   - TypeScript type definitions are provided.
 
-> Please note that the `lib` builds target a relatively new version of the EcmaScript standard. According to [node.green](https://node.green/), this is fully compatible with [the supported Node.js versions](#platform-compatibility). However, if you use a bundler and want to target browsers that have no ES2017 support, please make sure that your bundler is configured to downlevel the language syntax. If you want to go all the way down to ES5, then you will need to include a polyfill for the `Promise` feature as well.
+> Please note that the `lib` builds target a relatively new version of the ECMAScript standard. According to [node.green](https://node.green/), this is fully compatible with [the supported Node.js versions](#platform-compatibility). However, if you use a bundler and want to target browsers that have no ES2017 support, please make sure that your bundler is configured to downlevel the language syntax. If you want to go all the way down to ES5, then you will need to include a polyfill for the `Promise` feature as well.
 
 ## Platform compatibility
 
