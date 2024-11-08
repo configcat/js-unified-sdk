@@ -8,7 +8,7 @@
     "start": "npm run build & node ../shared/server dist"
   },
   "dependencies": {
-    "@configcat/sdk": "^1.0.0"
+    "@configcat/sdk": "^0.0.1"
   },
   "devDependencies": {
     "browserify": "^17.0.0"

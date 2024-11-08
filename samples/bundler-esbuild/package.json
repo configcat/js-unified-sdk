@@ -9,7 +9,7 @@
     "start": "npm run build & node ../shared/server dist"
   },
   "dependencies": {
-    "@configcat/sdk": "^1.0.0"
+    "@configcat/sdk": "^0.0.1"
   },
   "devDependencies": {
     "esbuild": "0.20.2"

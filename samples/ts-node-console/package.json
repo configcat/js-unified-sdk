@@ -7,7 +7,7 @@
     "start": "ts-node index.ts"
   },
   "dependencies": {
-    "@configcat/sdk": "^1.0.0"
+    "@configcat/sdk": "^0.0.1"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
