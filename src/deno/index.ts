@@ -6,6 +6,8 @@ import { getClient as getClientCommon } from "../index.pubternals.core";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
 
+/* Package public API for Deno */
+
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.
  * @remarks This method returns a single, shared instance per each distinct SDK Key.

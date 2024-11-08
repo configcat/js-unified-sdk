@@ -8,6 +8,8 @@ import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { ChromeLocalStorageCache } from "./ChromeLocalStorageCache";
 
+/* Package public API for Chromium-based browser extensions */
+
 setupPolyfills();
 
 /**
@@ -31,6 +33,8 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";
+
+export type { IQueryStringProvider } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
 export interface IJSAutoPollOptions extends IAutoPollOptions {

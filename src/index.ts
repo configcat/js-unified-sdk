@@ -1,6 +1,6 @@
-/* Public types for end users */
+/* Package public API (common part) */
 
-// List types here which are part of the public API of platform-specific SDKs, thus, should be exposed to end users.
+// List types and functionality here which should be exposed to end users on EVERY platform.
 // These exports should be re-exported in the entry module of each platform-specific SDK!
 
 export { PollingMode } from "./ConfigCatClientOptions";
@@ -18,7 +18,10 @@ export { FormattableLogMessage } from "./ConfigCatLogger";
 export type { IConfigCatCache } from "./ConfigCatCache";
 
 export type {
-  ConditionTypeMap, ICondition, IConditionUnion, IConfig, IPercentageOption, IPrerequisiteFlagCondition, ISegment, ISegmentCondition, ISetting, ISettingUnion, ISettingValueContainer, ITargetingRule, IUserCondition, IUserConditionUnion, SettingTypeMap, SettingValue, UserConditionComparisonValueTypeMap, VariationIdValue
+  ConditionTypeMap, ICondition, IConditionUnion, IConfig, IPercentageOption, IPrerequisiteFlagCondition,
+  ISegment, ISegmentCondition, ISetting, ISettingUnion, ISettingValueContainer, ITargetingRule,
+  IUserCondition, IUserConditionUnion, SettingTypeMap, SettingValue, UserConditionComparisonValueTypeMap,
+  VariationIdValue
 } from "./ProjectConfig";
 
 export { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
@@ -41,4 +44,4 @@ export { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 
 export type { HookEvents, IProvidesHooks } from "./Hooks";
 
-export * as ConfigJson from "./ConfigJson";
+export { ConfigJson } from "./ProjectConfig";
