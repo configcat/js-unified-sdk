@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
-import { getClient as getClientCommon } from "../index.pubternals";
+import { getClient as getClientCommon } from "../index.pubternals.core";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { NodeHttpConfigFetcher } from "./NodeHttpConfigFetcher";
 
@@ -26,7 +26,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     });
 }
 
-export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals";
+export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
 export interface INodeAutoPollOptions extends IAutoPollOptions {

@@ -7,7 +7,7 @@
     "outDir": "./lib/cjs"
   },
   "files": [
-    "src/browser/index.full.ts",
-    "src/node/index.full.ts"
+    "src/browser/index.root.ts",
+    "src/node/index.root.ts"
   ]
 }

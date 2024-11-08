@@ -4,10 +4,11 @@ import "npm:mocha/browser-entry.js";
 import { DefaultEventEmitter } from "../../src/DefaultEventEmitter";
 import { initPlatform } from "../helpers/platform";
 import { isTestSpec } from "../index";
-import { ConfigCatClient } from "#lib/ConfigCatClient";
+import { ConfigCatClient, IConfigCatKernel } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
+import { IConfigFetcher } from "#lib/ConfigFetcher";
 import { IConfigCatClient, IDenoAutoPollOptions, IDenoLazyLoadingOptions, IDenoManualPollOptions, getClient } from "#lib/deno";
-import { FetchApiConfigFetcher, IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals.full";
+import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
 
 // Based on: https://dev.to/craigmorten/testing-your-deno-apps-with-mocha-4f35
 

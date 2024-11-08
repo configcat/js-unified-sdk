@@ -9,9 +9,9 @@
     "declaration": false
   },
   "files": [
-    "src/browser/index.full.ts",
+    "src/browser/index.root.ts",
     "src/chromium-extension/index.ts",
     "src/deno/index.ts",
-    "src/node/index.full.ts"
+    "src/node/index.root.ts"
   ]
 }

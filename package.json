@@ -2,21 +2,21 @@
   "name": "@configcat/sdk",
   "version": "1.0.0",
   "description": "ConfigCat is a configuration as a service that lets you manage your features and configurations without actually deploying new code.",
-  "main": "lib/cjs/node/index.full.js",
-  "types": "lib/cjs/node/index.full.d.ts",
-  "browser": "lib/cjs/browser/index.full.js",
+  "main": "lib/cjs/node/index.root.js",
+  "types": "lib/cjs/node/index.root.d.ts",
+  "browser": "lib/cjs/browser/index.root.js",
   "exports": {
     ".": {
       "types": {
         "deno": "./lib/esm/deno/index.d.ts",
-        "browser": "./lib/esm/browser/index.full.d.ts",
-        "import": "./lib/esm/node/index.full.d.ts",
-        "require": "./lib/cjs/node/index.full.d.ts"
+        "browser": "./lib/esm/browser/index.root.d.ts",
+        "import": "./lib/esm/node/index.root.d.ts",
+        "require": "./lib/cjs/node/index.root.d.ts"
       },
       "deno": "./lib/esm/deno/index.js",
-      "browser": "./lib/esm/browser/index.full.js",
-      "import": "./lib/esm/node/index.full.js",
-      "require": "./lib/cjs/node/index.full.js"
+      "browser": "./lib/esm/browser/index.root.js",
+      "import": "./lib/esm/node/index.root.js",
+      "require": "./lib/cjs/node/index.root.js"
     },
     "./browser": {
       "types": "./lib/esm/browser/index.d.ts",
@@ -43,13 +43,13 @@
   },
   "imports": {
     "#lib/browser": {
-      "browser": "./lib/esm/browser/index.full.js"
+      "browser": "./lib/esm/browser/index.js"
     },
     "#lib/chromium-extension": {
       "browser": "./lib/esm/chromium-extension/index.js"
     },
     "#lib/node": {
-      "require": "./lib/cjs/node/index.full.js"
+      "require": "./lib/cjs/node/index.js"
     },
     "#lib": {
       "browser": "./lib/esm/index.js",
