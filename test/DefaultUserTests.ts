@@ -1,9 +1,8 @@
 import { assert } from "chai";
-import "mocha";
-import { IConfigCatClient } from "../src/ConfigCatClient";
-import * as configcatClient from "../src/index";
-import { FakeConfigCatKernel, FakeConfigFetcherWithRules } from "./helpers/fakes";
-import { createClientWithAutoPoll } from "./helpers/utils";
+import { FakeConfigFetcherWithRules, createClientWithAutoPoll, createKernel } from "./helpers/fakes";
+import { LogLevel } from "#lib";
+import { IConfigCatClient } from "#lib/ConfigCatClient";
+import { createConsoleLogger } from "#lib/index.pubternals";
 
 describe("DefaultUser", () => {
 
@@ -11,8 +10,8 @@ describe("DefaultUser", () => {
     const redEyeColorUser = { identifier: "redIdentifier", custom: { "eyeColor": "red" } };
     const blueEyeColorUser = { identifier: "blueIdentifier", custom: { "eyeColor": "blue" } };
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcherWithRules(), sdkType: "common", sdkVersion: "1.0.0" };
-    const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: configcatClient.createConsoleLogger(configcatClient.LogLevel.Debug) });
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcherWithRules() });
+    const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: createConsoleLogger(LogLevel.Debug) });
 
     // Without passing the userobject, default values/variationids should be returned
     let value = await client.getValueAsync("debug", "N/A");
@@ -84,14 +83,16 @@ describe("DefaultUser", () => {
     assert.equal(values[0].settingValue, "defaultValue");
     variationIds = (await client.getAllValueDetailsAsync()).map(d => d.variationId);
     assert.equal(variationIds[0], "defaultVariationId");
+
+    client.dispose();
   });
 
   it("Default user set works with options", async () => {
     const redEyeColorUser = { identifier: "redIdentifier", custom: { "eyeColor": "red" } };
     const blueEyeColorUser = { identifier: "blueIdentifier", custom: { "eyeColor": "blue" } };
 
-    const configCatKernel: FakeConfigCatKernel = { configFetcher: new FakeConfigFetcherWithRules(), sdkType: "common", sdkVersion: "1.0.0" };
-    const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: configcatClient.createConsoleLogger(configcatClient.LogLevel.Debug), defaultUser: redEyeColorUser });
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcherWithRules() });
+    const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: createConsoleLogger(LogLevel.Debug), defaultUser: redEyeColorUser });
 
     // Without passing the userobject, default user from the constructor should be returned
     let value = await client.getValueAsync("debug", "N/A", redEyeColorUser);
@@ -152,6 +153,8 @@ describe("DefaultUser", () => {
     assert.equal(values[0].settingValue, "defaultValue");
     variationIds = (await client.getAllValueDetailsAsync()).map(d => d.variationId);
     assert.equal(variationIds[0], "defaultVariationId");
+
+    client.dispose();
   });
 
 });

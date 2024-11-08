@@ -2,11 +2,42 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug build",
+      "program": "${workspaceRoot}/node_modules/gulp/bin/gulp",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    {
+      "name": "Debug import-map generator",
+      "program": "${workspaceRoot}/deno.import-map.generator.js",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Attach to Karma test run (Chrome)",
+      "address": "localhost",
+      "port": 9333,
+      "pathMapping": {
+        "/": "${workspaceRoot}",
+        "/base/": "${workspaceRoot}/"
+      }
+    },
+    {
       "type": "node",
       "request": "launch",
-      "name": "Run tests",
+      "name": "Run tests (Node.js)",
       "cwd": "${workspaceRoot}",
-      "env": { "TS_NODE_PROJECT": "./tsconfig.mocha.json" },
+      "env": {
+        "TS_NODE_PROJECT": "./tsconfig.mocha.node.json"
+      },
       "runtimeArgs": [
         "--expose-gc"
       ],
@@ -14,7 +45,7 @@
       "args": [
         "--require",
         "ts-node/register",
-        "test/**/*.ts",
+        "test/node/index.ts",
         "--fgrep",
         "",
         "--color",
@@ -31,6 +62,25 @@
       "skipFiles": [
         "<node_internals>/**/*.js"
       ]
+    },
+    {
+      "type": "node",
+      "name": "Run tests (Deno)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "deno",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk",
+        "-A",
+        "test/deno/index.ts",
+        "--fgrep",
+        "",
+        "--timeout",
+        "30000"
+      ],
+      "attachSimplePort": 9229,
+      "outputCapture": "std"
     }
   ]
 }

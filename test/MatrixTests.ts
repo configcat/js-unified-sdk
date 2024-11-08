@@ -1,15 +1,13 @@
 import { assert } from "chai";
-import * as fs from "fs";
-import * as path from "path";
-import "mocha";
-import { LogLevel, SettingType, SettingValue, User } from "../src";
-import { createConsoleLogger } from "../src";
-import { LoggerWrapper } from "../src/ConfigCatLogger";
-import { RolloutEvaluator, evaluate } from "../src/RolloutEvaluator";
-import { getUserAttributes } from "../src/User";
 import { CdnConfigLocation, ConfigLocation } from "./helpers/ConfigLocation";
+import { platform } from "./helpers/platform";
+import { LogLevel, SettingType, SettingValue, User } from "#lib";
+import { LoggerWrapper } from "#lib/ConfigCatLogger";
+import { createConsoleLogger } from "#lib/index.pubternals";
+import { RolloutEvaluator, evaluate } from "#lib/RolloutEvaluator";
+import { getUserAttributes } from "#lib/User";
 
-const testDataBasePath = path.join("test", "data");
+const testDataBasePath = platform().pathJoin("test", "data");
 
 type MatrixTestCase = [key: string, user: User | undefined, userAttributesJson: string, expected: string];
 
@@ -80,15 +78,25 @@ describe("MatrixTests (config v2)", () => {
 function describeMatrixTest(title: string, configLocation: ConfigLocation, matrixFilePath: string, evaluator: RolloutEvaluator,
   runner: (configLocation: ConfigLocation, key: string, user: User | undefined, expected: string, evaluator: RolloutEvaluator) => void = runMatrixTest) {
 
-  for (const [key, user, userAttributesJson, expected] of getMatrixTestCases(matrixFilePath)) {
-    it(`${title} - ${configLocation} | ${key} | ${userAttributesJson}`, () => runner(configLocation, key, user, expected, evaluator));
+  const matrixFileData = platform().readFileUtf8(platform().pathJoin(testDataBasePath, matrixFilePath));
+  if (typeof matrixFileData === "string") {
+    for (const [key, user, userAttributesJson, expected] of getMatrixTestCases(matrixFileData)) {
+      it(`${title} - ${configLocation} | ${key} | ${userAttributesJson}`, () =>
+        runner(configLocation, key, user, expected, evaluator));
+    }
+  }
+  else {
+    it(`${title} - ${configLocation}`, async () => {
+      for (const [key, user, , expected] of getMatrixTestCases(await matrixFileData)) {
+        runner(configLocation, key, user, expected, evaluator);
+      }
+    });
   }
 }
 
-function* getMatrixTestCases(matrixFilePath: string): Generator<MatrixTestCase> {
-  const data = fs.readFileSync(path.join(testDataBasePath, matrixFilePath), "utf8");
+function* getMatrixTestCases(matrixFileData: string): Generator<MatrixTestCase> {
 
-  const lines: string[] = data.toString().split(/\r\n?|\n/);
+  const lines: string[] = matrixFileData.toString().split(/\r\n?|\n/);
   const header: string[] = lines.shift()?.split(";") ?? [];
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {

@@ -1,6 +1,13 @@
-import type * as ConfigJson from "./ConfigJson";
+import * as ConfigJson from "./ConfigJson";
 import type { PrerequisiteFlagComparator, RedirectMode, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import type { WellKnownUserObjectAttribute } from "./User";
+
+// NOTE: This is a hack which prevents the TS compiler from eliding the namespace import above.
+// TS wants to do this because it figures that the ConfigJson module contains types only.
+// However, since we enabled `preserveConstEnums`, this is not true. (TS provides the
+// `preserveValueImports` and `verbatimModuleSyntax` tsconfig options to handle such situations
+// but the former is deprecated and removed, and the latter doesn't work with CommonJS...)
+export { ConfigJson };
 
 export class ProjectConfig {
   static readonly serializationFormatVersion = "v2";
@@ -106,7 +113,7 @@ export class Config implements IConfig {
     this.preferences = json.p != null ? new Preferences(json.p) : void 0;
     this.segments = json.s?.map(item => new Segment(item)) ?? [];
     this.settings = json.f != null
-      ? Object.fromEntries(Object.entries(json.f).map(([key, value]) => [key, new Setting(value, this) as SettingUnion]))
+      ? Object.entries(json.f).reduce((acc, [key, value]) => (acc[key] = new Setting(value, this) as SettingUnion, acc), {})
       : {};
   }
 
@@ -381,4 +388,9 @@ export class SegmentCondition implements ISegmentCondition {
 
 function unwrapSettingValue(json: ConfigJson.SettingValue): NonNullable<SettingValue> {
   return (json.b ?? json.s ?? json.i ?? json.d)!;
+}
+
+export function nameOfSettingType(value: SettingType): string {
+  /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
+  return ConfigJson.SettingType[value];
 }

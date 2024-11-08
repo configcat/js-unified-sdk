@@ -146,7 +146,7 @@ export class EvaluateLogBuilder {
     }
   }
 
-  appendPrerequisiteFlagCondition(condition: PrerequisiteFlagCondition, settings: Readonly<{ [name: string]: Setting }>): this {
+  appendPrerequisiteFlagCondition(condition: PrerequisiteFlagCondition, settings: Readonly<{ [key: string]: Setting }>): this {
     const prerequisiteFlagKey =
       typeof condition.prerequisiteFlagKey !== "string" ? invalidNamePlaceholder :
       !(condition.prerequisiteFlagKey in settings) ? invalidReferencePlaceholder :

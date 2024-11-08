@@ -1,16 +1,15 @@
 import { assert } from "chai";
-import "mocha";
 import { EqualMatchingInjectorConfig, It, Mock, RejectedPromiseFactory, ResolvedPromiseFactory, Times } from "moq.ts";
 import { MimicsRejectedAsyncPresetFactory, MimicsResolvedAsyncPresetFactory, Presets, ReturnsAsyncPresetFactory, RootMockProvider, ThrowsAsyncPresetFactory } from "moq.ts/internal";
-import { AutoPollConfigService } from "../src/AutoPollConfigService";
-import { IConfigCache, InMemoryConfigCache } from "../src/ConfigCatCache";
-import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, OptionsBase } from "../src/ConfigCatClientOptions";
-import { FetchResult, IConfigFetcher, IFetchResponse } from "../src/ConfigFetcher";
-import { LazyLoadConfigService } from "../src/LazyLoadConfigService";
-import { ManualPollConfigService } from "../src/ManualPollConfigService";
-import { Config, ProjectConfig } from "../src/ProjectConfig";
-import { delay } from "../src/Utils";
-import { FakeCache } from "./helpers/fakes";
+import { FakeCache, createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions } from "./helpers/fakes";
+import { AutoPollConfigService, POLL_EXPIRATION_TOLERANCE_MS } from "#lib/AutoPollConfigService";
+import { IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
+import { OptionsBase } from "#lib/ConfigCatClientOptions";
+import { FetchResult, IConfigFetcher, IFetchResponse } from "#lib/ConfigFetcher";
+import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
+import { ManualPollConfigService } from "#lib/ManualPollConfigService";
+import { Config, ProjectConfig } from "#lib/ProjectConfig";
+import { delay } from "#lib/Utils";
 
 describe("ConfigServiceBaseTests", () => {
 
@@ -46,7 +45,9 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.get(It.IsAny<string>()))
       .callback(() => { return callNo++ === 1 ? ProjectConfig.empty : pc; })
       .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
-      .returns();
+      .returns()
+      .setup(m => m.getInMemory())
+      .returns(ProjectConfig.empty);
 
     const pollIntervalSeconds = 1;
 
@@ -54,10 +55,11 @@ describe("ConfigServiceBaseTests", () => {
 
     const service: AutoPollConfigService = new AutoPollConfigService(
       fetcherMock.object(),
-      new AutoPollOptions(
-        "APIKEY", "common", "1.0.0",
+      createAutoPollOptions(
+        "APIKEY",
         { pollIntervalSeconds },
-        () => cacheMock.object()));
+        createKernel({ defaultCacheFactory: () => cacheMock.object() })
+      ));
 
     await delay(2.5 * pollIntervalSeconds * 1000);
 
@@ -86,7 +88,9 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.get(It.IsAny<string>()))
       .callback((_) => { return callNo++ === 1 ? ProjectConfig.empty : pc; })
       .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
-      .returns();
+      .returns()
+      .setup(m => m.getInMemory())
+      .returns(ProjectConfig.empty);
 
     const pollIntervalSeconds = 1;
 
@@ -94,10 +98,11 @@ describe("ConfigServiceBaseTests", () => {
 
     const service: AutoPollConfigService = new AutoPollConfigService(
       fetcherMock.object(),
-      new AutoPollOptions(
-        "APIKEY", "common", "1.0.0",
+      createAutoPollOptions(
+        "APIKEY",
         { pollIntervalSeconds },
-        () => cacheMock.object()));
+        createKernel({ defaultCacheFactory: () => cacheMock.object() })
+      ));
 
     await delay(0.5 * pollIntervalSeconds * 1000);
 
@@ -130,7 +135,9 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.get(It.IsAny<string>()))
       .returns(pc)
       .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
-      .returns();
+      .returns()
+      .setup(m => m.getInMemory())
+      .returns(ProjectConfig.empty);
 
     const pollIntervalSeconds = 1;
 
@@ -138,10 +145,11 @@ describe("ConfigServiceBaseTests", () => {
 
     const service: AutoPollConfigService = new AutoPollConfigService(
       fetcherMock.object(),
-      new AutoPollOptions(
-        "APIKEY", "common", "1.0.0",
+      createAutoPollOptions(
+        "APIKEY",
         { pollIntervalSeconds },
-        () => cacheMock.object()));
+        createKernel({ defaultCacheFactory: () => cacheMock.object() })
+      ));
 
     await delay(2.5 * pollIntervalSeconds * 1000);
 
@@ -167,17 +175,18 @@ describe("ConfigServiceBaseTests", () => {
     const projectConfigNew: ProjectConfig = createConfigFromFetchResult(frNew);
 
     const time: number = new Date().getTime();
-    const projectConfigOld: ProjectConfig = createConfigFromFetchResult(frOld).with(time - (1.5 * pollInterval * 1000));
+    const projectConfigOld: ProjectConfig = createConfigFromFetchResult(frOld).with(time - (1.5 * pollInterval * 1000) + 0.5 * POLL_EXPIRATION_TOLERANCE_MS);
 
     const cache = new InMemoryConfigCache();
 
-    const options: AutoPollOptions = new AutoPollOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createAutoPollOptions(
+      "APIKEY",
       {
         pollIntervalSeconds: pollInterval,
         maxInitWaitTimeSeconds: 100
       },
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     await cache.set(options.getCacheKey(), projectConfigOld);
 
@@ -214,17 +223,18 @@ describe("ConfigServiceBaseTests", () => {
     const pollInterval = 10;
 
     const time: number = new Date().getTime();
-    const projectConfigOld = createConfigFromFetchResult(frOld).with(time - (pollInterval * 1000) + 50); // 50ms for tolerance
+    const projectConfigOld = createConfigFromFetchResult(frOld).with(time - (pollInterval * 1000) + 0.5 * POLL_EXPIRATION_TOLERANCE_MS);
 
     const cache = new InMemoryConfigCache();
 
-    const options: AutoPollOptions = new AutoPollOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createAutoPollOptions(
+      "APIKEY",
       {
         pollIntervalSeconds: pollInterval,
         maxInitWaitTimeSeconds: 100
       },
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     await cache.set(options.getCacheKey(), projectConfigOld);
 
@@ -264,13 +274,14 @@ describe("ConfigServiceBaseTests", () => {
 
     const cache = new InMemoryConfigCache();
 
-    const options: AutoPollOptions = new AutoPollOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createAutoPollOptions(
+      "APIKEY",
       {
         pollIntervalSeconds: pollIntervalSeconds,
         maxInitWaitTimeSeconds: 1
       },
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     await cache.set(options.getCacheKey(), projectConfigOld);
 
@@ -316,14 +327,17 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.get(It.IsAny<string>()))
       .returns(oldConfig)
       .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
-      .returns();
+      .returns()
+      .setup(m => m.getInMemory())
+      .returns(ProjectConfig.empty);
 
     const service: LazyLoadConfigService = new LazyLoadConfigService(
       fetcherMock.object(),
-      new LazyLoadOptions(
-        "APIKEY", "common", "1.0.0",
+      createLazyLoadOptions(
+        "APIKEY",
         { cacheTimeToLiveSeconds: cacheTimeToLiveSeconds },
-        () => cacheMock.object()));
+        createKernel({ defaultCacheFactory: () => cacheMock.object() })
+      ));
 
     // Act
 
@@ -348,14 +362,17 @@ describe("ConfigServiceBaseTests", () => {
 
     const cacheMock = new Mock<IConfigCache>()
       .setup(m => m.get(It.IsAny<string>()))
-      .returns(config);
+      .returns(config)
+      .setup(m => m.getInMemory())
+      .returns(ProjectConfig.empty);
 
     const service: LazyLoadConfigService = new LazyLoadConfigService(
       fetcherMock.object(),
-      new LazyLoadOptions(
-        "APIKEY", "common", "1.0.0",
+      createLazyLoadOptions(
+        "APIKEY",
         {},
-        () => cacheMock.object()));
+        createKernel({ defaultCacheFactory: () => cacheMock.object() })
+      ));
 
     // Act
 
@@ -385,14 +402,17 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.get(It.IsAny<string>()))
       .returns(config)
       .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
-      .returns();
+      .returns()
+      .setup(m => m.getInMemory())
+      .returns(ProjectConfig.empty);
 
     const service: LazyLoadConfigService = new LazyLoadConfigService(
       fetcherMock.object(),
-      new LazyLoadOptions(
-        "APIKEY", "common", "1.0.0",
+      createLazyLoadOptions(
+        "APIKEY",
         {},
-        () => cacheMock.object()));
+        createKernel({ defaultCacheFactory: () => cacheMock.object() })
+      ));
 
     // Act
 
@@ -423,14 +443,17 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.get(It.IsAny<string>()))
       .returns(Promise.resolve(config))
       .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
-      .returns(Promise.resolve());
+      .returns(Promise.resolve())
+      .setup(m => m.getInMemory())
+      .returns(ProjectConfig.empty);
 
     const service: LazyLoadConfigService = new LazyLoadConfigService(
       fetcherMock.object(),
-      new LazyLoadOptions(
-        "APIKEY", "common", "1.0.0",
+      createLazyLoadOptions(
+        "APIKEY",
         {},
-        () => cacheMock.object()));
+        createKernel({ defaultCacheFactory: () => cacheMock.object() })
+      ));
 
     // Act
 
@@ -453,7 +476,7 @@ describe("ConfigServiceBaseTests", () => {
     const fr: FetchResult = createFetchResult();
 
     let cachedPc: ProjectConfig = createConfigFromFetchResult(fr);
-    cachedPc = cachedPc.with(cachedPc.timestamp - 0.5 * pollIntervalSeconds * 1000);
+    cachedPc = cachedPc.with(cachedPc.timestamp - pollIntervalSeconds * 1000 + 1.5 * POLL_EXPIRATION_TOLERANCE_MS);
 
     const cache = new FakeCache();
     cache.set("", cachedPc);
@@ -462,17 +485,21 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.fetchLogic(It.IsAny<OptionsBase>(), It.IsAny<string>()))
       .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
 
-    const options = new AutoPollOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createAutoPollOptions(
+      "APIKEY",
       {
         pollIntervalSeconds,
         maxInitWaitTimeSeconds: 500
       },
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     // Act
 
     const service = new AutoPollConfigService(fetcherMock.object(), options);
+
+    // Give a bit of time to the polling loop to do the first iteration.
+    await delay(pollIntervalSeconds / 4 * 1000);
 
     const actualPc = await service.getConfig();
 
@@ -481,6 +508,8 @@ describe("ConfigServiceBaseTests", () => {
     assert.strictEqual(cachedPc, actualPc);
 
     fetcherMock.verify(v => v.fetchLogic(It.IsAny<OptionsBase>(), It.IsAny<string>()), Times.Never());
+
+    service.dispose();
   });
 
   it("AutoPollConfigService - getConfig() should wait for fetch when cached config is expired", async () => {
@@ -491,29 +520,30 @@ describe("ConfigServiceBaseTests", () => {
     const fr: FetchResult = createFetchResult();
 
     let cachedPc: ProjectConfig = createConfigFromFetchResult(fr);
-    cachedPc = cachedPc.with(cachedPc.timestamp - 1.5 * pollIntervalSeconds * 1000);
+    cachedPc = cachedPc.with(cachedPc.timestamp - pollIntervalSeconds * 1000 + 0.5 * POLL_EXPIRATION_TOLERANCE_MS);
 
     const cache = new FakeCache();
     cache.set("", cachedPc);
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchLogic(It.IsAny<OptionsBase>(), It.IsAny<string>()))
-      .callback(async () => {
-        await delay(500);
-        return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
-      });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
 
-    const options = new AutoPollOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createAutoPollOptions(
+      "APIKEY",
       {
         pollIntervalSeconds,
         maxInitWaitTimeSeconds: 1000
       },
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     // Act
 
     const service = new AutoPollConfigService(fetcherMock.object(), options);
+
+    // Give a bit of time to the polling loop to do the first iteration.
+    await delay(pollIntervalSeconds / 4 * 1000);
 
     const actualPc = await service.getConfig();
 
@@ -524,6 +554,8 @@ describe("ConfigServiceBaseTests", () => {
     assert.equal(fr.config.configJson, actualPc.configJson);
 
     fetcherMock.verify(v => v.fetchLogic(It.IsAny<OptionsBase>(), It.IsAny<string>()), Times.Once());
+
+    service.dispose();
   });
 
   it("LazyLoadConfigService - getConfig() should return cached config when cached config is not expired", async () => {
@@ -543,12 +575,13 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.fetchLogic(It.IsAny<OptionsBase>(), It.IsAny<string>()))
       .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
 
-    const options = new LazyLoadOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createLazyLoadOptions(
+      "APIKEY",
       {
         cacheTimeToLiveSeconds
       },
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     // Act
 
@@ -583,12 +616,13 @@ describe("ConfigServiceBaseTests", () => {
         return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
       });
 
-    const options = new LazyLoadOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createLazyLoadOptions(
+      "APIKEY",
       {
         cacheTimeToLiveSeconds
       },
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     // Act
 
@@ -620,11 +654,11 @@ describe("ConfigServiceBaseTests", () => {
         return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
       });
 
-    const options = new ManualPollOptions(
-      "APIKEY", "common", "1.0.0",
-      {
-      },
-      () => cache);
+    const options = createManualPollOptions(
+      "APIKEY",
+      {},
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     const service = new ManualPollConfigService(fetcherMock.object(), options);
 
@@ -656,11 +690,11 @@ describe("ConfigServiceBaseTests", () => {
         return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
       });
 
-    const options = new ManualPollOptions(
-      "APIKEY", "common", "1.0.0",
-      {
-      },
-      () => cache);
+    const options = createManualPollOptions(
+      "APIKEY",
+      {},
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     const service = new ManualPollConfigService(fetcherMock.object(), options);
 
@@ -690,10 +724,11 @@ describe("ConfigServiceBaseTests", () => {
 
     const cache = new InMemoryConfigCache();
 
-    const options = new ManualPollOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createManualPollOptions(
+      "APIKEY",
       {},
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     const service = new ManualPollConfigService(fetcherMock.object(), options);
 
@@ -719,10 +754,11 @@ describe("ConfigServiceBaseTests", () => {
 
     const cache = new InMemoryConfigCache();
 
-    const options = new ManualPollOptions(
-      "APIKEY", "common", "1.0.0",
+    const options = createManualPollOptions(
+      "APIKEY",
       {},
-      () => cache);
+      createKernel({ defaultCacheFactory: () => cache })
+    );
 
     cache.set(options.getCacheKey(), cachedPc);
 

@@ -7,7 +7,7 @@ import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
-import { OverrideBehaviour } from "./FlagOverrides";
+import { OverrideBehaviour, nameOfOverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
@@ -230,7 +230,7 @@ export class ConfigCatClientCache {
 
 const clientInstanceCache = new ConfigCatClientCache();
 
-type SettingsWithRemoteConfig = [{ [name: string]: Setting } | null, ProjectConfig | null];
+type SettingsWithRemoteConfig = [{ [key: string]: Setting } | null, ProjectConfig | null];
 
 export class ConfigCatClient implements IConfigCatClient {
   protected configService?: IConfigService;
@@ -374,7 +374,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: { [name: string]: Setting } | null;
+      let settings: { [key: string]: Setting } | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
       value = evaluationDetails.value;
@@ -399,7 +399,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: { [name: string]: Setting } | null;
+      let settings: { [key: string]: Setting } | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
     }
@@ -572,7 +572,7 @@ export class ConfigCatClient implements IConfigCatClient {
       this.configService.setOnline();
     }
     else {
-      this.options.logger.configServiceMethodHasNoEffectDueToOverrideBehavior(OverrideBehaviour[OverrideBehaviour.LocalOnly], "setOnline");
+      this.options.logger.configServiceMethodHasNoEffectDueToOverrideBehavior(nameOfOverrideBehaviour(OverrideBehaviour.LocalOnly), "setOnline");
     }
   }
 
@@ -592,7 +592,7 @@ export class ConfigCatClient implements IConfigCatClient {
       return [settings, config];
     };
 
-    let remoteSettings: { [name: string]: Setting } | null;
+    let remoteSettings: { [key: string]: Setting } | null;
     let remoteConfig: ProjectConfig | null;
     const flagOverrides = this.options?.flagOverrides;
     if (flagOverrides) {
@@ -624,7 +624,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     const flagOverrides = this.options?.flagOverrides;
     if (flagOverrides) {
-      let remoteSettings: { [name: string]: Setting } | null;
+      let remoteSettings: { [key: string]: Setting } | null;
       let remoteConfig: ProjectConfig | null;
       const localSettings = await flagOverrides.dataSource.getOverrides();
       switch (flagOverrides.behaviour) {
@@ -694,7 +694,7 @@ class Snapshot implements IConfigCatClientSnapshot {
   private readonly options: ConfigCatClientOptions;
 
   constructor(
-    private readonly mergedSettings: { [name: string]: Setting } | null,
+    private readonly mergedSettings: { [key: string]: Setting } | null,
     private readonly remoteConfig: ProjectConfig | null,
     client: ConfigCatClient) {
 
@@ -820,8 +820,7 @@ let registerForFinalization = function(client: ConfigCatClient, data: IFinalizat
   // If FinalizationRegistry is unavailable, we can't really track finalization.
   // (Although we could implement something which resembles finalization callbacks using a weak map + a timer,
   // since ConfigCatClientCache also needs to keep (weak) references to the created client instances,
-  // this hypothetical approach wouldn't work without a complete WeakRef polyfill,
-  // which is kind of impossible (for more details, see Polyfills.ts).
+  // this hypothetical approach wouldn't work without a complete WeakRef polyfill, which is kind of impossible.
   else {
     registerForFinalization = () => () => { /* Intentional no-op */ };
   }

@@ -1,6 +1,6 @@
-import { ConfigCatClientCache } from "../../src/ConfigCatClient";
+import { ConfigCatClientCache } from "#lib/ConfigCatClient";
 
-declare module "../../src/ConfigCatClient" {
+declare module "#lib/ConfigCatClient" {
   interface ConfigCatClientCache {
     getSize(): number;
     getAliveCount(): number;
@@ -12,5 +12,5 @@ ConfigCatClientCache.prototype.getSize = function(this: ConfigCatClientCache) {
 };
 
 ConfigCatClientCache.prototype.getAliveCount = function(this: ConfigCatClientCache) {
-  return Object.values(this["instances"]).filter(([weakRef]) => !!weakRef.deref()).length;
+  return Object.values(this["instances"] as Record<string, [WeakRef<any>, object]>).filter(([weakRef]) => !!weakRef.deref()).length;
 };

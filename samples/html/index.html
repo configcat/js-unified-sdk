@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>ConfigCat client sample</title>
+  <meta charset="utf-8">
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@configcat/sdk@latest/dist/configcat.browser.umd.min.js"></script>
+
+  <script type="text/javascript">
+    // Setting log level to Info to show detailed feature flag evaluation
+    var logger = configcat.createConsoleLogger(configcat.LogLevel.Info);
+
+    var configCatClient = configcat.getClient('PKDVCLf-Hq-h-kCzMp-L7Q/HhOWfwVtZ0mb30i9wi17GQ', configcat.PollingMode.AutoPoll, {
+      pollIntervalSeconds: 2,
+      logger: logger
+    });
+    // You can instantiate the client with different polling modes. See the Docs: https://configcat.com/docs/sdk-reference/js/#polling-modes
+
+    configCatClient.getValueAsync("isAwesomeFeatureEnabled", false).then(function (value) {
+      console.log("isAwesomeFeatureEnabled: " + value);
+    });
+
+    var userObject = new configcat.User("#SOME-USER-ID#", "configcat@example.com");
+    // Read more about the User Object: https://configcat.com/docs/sdk-reference/js/#user-object
+    configCatClient.getValueAsync("isPOCFeatureEnabled", false, userObject).then(function (value) {
+      console.log("isPOCFeatureEnabled: " + value);
+    });
+  </script>
+</head>
+
+<body>
+  Open Console (F12) to see the results!
+</body>
+
+</html>

@@ -1,6 +1,5 @@
 import { assert } from "chai";
-import "mocha";
-import { Config, ProjectConfig } from "../src/ProjectConfig";
+import { Config, ProjectConfig } from "#lib/ProjectConfig";
 
 describe("ProjectConfig", () => {
   it("isEmpty - empty instance should be empty", () => {

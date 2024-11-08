@@ -8,11 +8,6 @@ export function setupPolyfills(): void {
   if (typeof Object.entries === "undefined") {
     Object.entries = ObjectEntriesPolyfill;
   }
-
-  // Object.fromEntries
-  if (typeof Object.fromEntries === "undefined") {
-    Object.fromEntries = ObjectFromEntriesPolyfill;
-  }
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -29,30 +24,6 @@ export function ObjectEntriesPolyfill<T>(o: { [s: string]: T } | ArrayLike<T>): 
   const result: [string, T][] = [];
   for (const key of Object.keys(o)) {
     result.push([key, (o as any)[key]]);
-  }
-  return result;
-}
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export function ObjectFromEntriesPolyfill<T>(entries: Iterable<readonly [PropertyKey, T]>): { [k: string]: T } {
-  // TODO: change `k: string` to `k: PropertyKey` in the following line and remove `as string` below
-  // when updating to TypeScript 4.4 or newer (https://stackoverflow.com/a/64943542/8656352)
-  const result: { [k: string]: T } = {};
-  if (Array.isArray(entries)) {
-    for (const [key, value] of entries) {
-      result[key] = value;
-    }
-  }
-  else if (typeof Symbol !== "undefined" && entries?.[Symbol.iterator]) {
-    const iterator = entries[Symbol.iterator]();
-    let element: readonly [PropertyKey, T], done: boolean | undefined;
-    while (({ value: element, done } = iterator.next(), !done)) {
-      const [key, value] = element;
-      result[key as string] = value;
-    }
-  }
-  else {
-    throw new TypeError("Object.fromEntries() requires a single iterable argument");
   }
   return result;
 }

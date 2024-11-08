@@ -1,6 +1,5 @@
 import { assert } from "chai";
-import "mocha";
-import { formatStringList, parseFloatStrict, utf8Encode } from "../src/Utils";
+import { formatStringList, parseFloatStrict, utf8Encode } from "#lib/Utils";
 
 describe("Utils", () => {
 

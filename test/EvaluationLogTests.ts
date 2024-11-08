@@ -1,19 +1,16 @@
 import { assert } from "chai";
-import * as fs from "fs";
-import * as path from "path";
-import * as util from "util";
-import "mocha";
-import { User } from "../src";
-import { LogLevel, LoggerWrapper } from "../src/ConfigCatLogger";
-import { SettingValue } from "../src/ProjectConfig";
-import { RolloutEvaluator, evaluate } from "../src/RolloutEvaluator";
-import { WellKnownUserObjectAttribute } from "../src/User";
-import { errorToString } from "../src/Utils";
 import { CdnConfigLocation, ConfigLocation, LocalFileConfigLocation } from "./helpers/ConfigLocation";
 import { FakeLogger } from "./helpers/fakes";
+import { platform } from "./helpers/platform";
 import { normalizeLineEndings } from "./helpers/utils";
+import { User } from "#lib";
+import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { SettingValue } from "#lib/ProjectConfig";
+import { RolloutEvaluator, evaluate } from "#lib/RolloutEvaluator";
+import { WellKnownUserObjectAttribute } from "#lib/User";
+import { errorToString } from "#lib/Utils";
 
-const testDataBasePath = path.join("test", "data", "evaluationlog");
+const testDataBasePath = () => platform().pathJoin("test", "data", "evaluationlog");
 
 type TestSet = {
   sdkKey: string;
@@ -49,19 +46,29 @@ describe("Evaluation log", () => {
 });
 
 function describeTestSet(testSetName: string) {
-  for (const [configLocation, testCase] of getTestCases(testSetName)) {
-    const userJson = JSON.stringify(testCase.user ?? null).replace(/"/g, "'");
-    it(`${testSetName} - ${configLocation} | ${testCase.key} | ${testCase.defaultValue} | ${userJson}`, () => runTest(testSetName, configLocation, testCase));
+  const testSetData = platform().readFileUtf8(platform().pathJoin(testDataBasePath(), testSetName + ".json"));
+  if (typeof testSetData === "string") {
+    for (const [configLocation, testCase] of getTestCases(testSetData)) {
+      const userJson = JSON.stringify(testCase.user ?? null).replace(/"/g, "'");
+      it(`${testSetName} - ${configLocation} | ${testCase.key} | ${testCase.defaultValue} | ${userJson}`, () =>
+        runTest(testSetName, configLocation, testCase));
+    }
+  }
+  else {
+    it(`${testSetName}`, async () => {
+      for (const [configLocation, testCase] of getTestCases(await testSetData)) {
+        runTest(testSetName, configLocation, testCase);
+      }
+    });
   }
 }
 
-function* getTestCases(testSetName: string): Generator<[ConfigLocation, TestCase], void, undefined> {
-  const data = fs.readFileSync(path.join(testDataBasePath, testSetName + ".json"), "utf8");
-  const testSet: TestSet = JSON.parse(data);
+function* getTestCases(testSetData: string): Generator<[ConfigLocation, TestCase], void, undefined> {
+  const testSet: TestSet = JSON.parse(testSetData);
 
   const configLocation = testSet.sdkKey
     ? new CdnConfigLocation(testSet.sdkKey, testSet.baseUrl)
-    : new LocalFileConfigLocation(testDataBasePath, "_overrides", testSet.jsonOverride!);
+    : new LocalFileConfigLocation(testDataBasePath(), "_overrides", testSet.jsonOverride!);
 
   for (const testCase of testSet.tests ?? []) {
     yield [configLocation, testCase];
@@ -127,8 +134,8 @@ async function runTest(testSetName: string, configLocation: ConfigLocation, test
 
   assert.strictEqual(actualReturnValue, testCase.returnValue);
 
-  const expectedLogFilePath = path.join(testDataBasePath, testSetName, testCase.expectedLog);
-  const expectedLogText = normalizeLineEndings(await util.promisify(fs.readFile)(expectedLogFilePath, "utf8")).replace(/(\r|\n)*$/, "");
+  const expectedLogFilePath = platform().pathJoin(testDataBasePath(), testSetName, testCase.expectedLog);
+  const expectedLogText = normalizeLineEndings(await platform().readFileUtf8(expectedLogFilePath)).replace(/(\r|\n)*$/, "");
   const actualLogText = fakeLogger.events.map(e => formatLogEvent(e)).join("\n");
 
   assert.strictEqual(actualLogText, expectedLogText);

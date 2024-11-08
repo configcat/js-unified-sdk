@@ -147,14 +147,14 @@ export type ServedValue<TSetting extends SettingType = SettingType> = {
   i: string;
 }
 
-export enum RedirectMode {
+export const enum RedirectMode {
   No = 0,
   Should = 1,
   Force = 2,
 }
 
 /** Setting type. */
-export enum SettingType {
+export const enum SettingType {
   /** On/off type (feature flag). */
   Boolean = 0,
   /** Text type. */
@@ -166,7 +166,7 @@ export enum SettingType {
 }
 
 /** User Object attribute comparison operator used during the evaluation process. */
-export enum UserComparator {
+export const enum UserComparator {
   /** IS ONE OF (cleartext) - Checks whether the comparison attribute is equal to any of the comparison values. */
   TextIsOneOf = 0,
   /** IS NOT ONE OF (cleartext) - Checks whether the comparison attribute is not equal to any of the comparison values. */
@@ -242,7 +242,7 @@ export enum UserComparator {
 }
 
 /** Prerequisite flag comparison operator used during the evaluation process. */
-export enum PrerequisiteFlagComparator {
+export const enum PrerequisiteFlagComparator {
   /** EQUALS - Checks whether the evaluated value of the specified prerequisite flag is equal to the comparison value. */
   Equals = 0,
   /** NOT EQUALS - Checks whether the evaluated value of the specified prerequisite flag is not equal to the comparison value. */
@@ -250,7 +250,7 @@ export enum PrerequisiteFlagComparator {
 }
 
 /** Segment comparison operator used during the evaluation process. */
-export enum SegmentComparator {
+export const enum SegmentComparator {
   /** IS IN SEGMENT - Checks whether the conditions of the specified segment are evaluated to true. */
   IsIn = 0,
   /** IS NOT IN SEGMENT - Checks whether the conditions of the specified segment are evaluated to false. */

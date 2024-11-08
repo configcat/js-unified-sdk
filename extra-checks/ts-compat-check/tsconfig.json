@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "module": "ES2015",
+    "moduleResolution": "Node",
+    "noEmit": true,
+    "strict": true,
+    "types": [] // see https://stackoverflow.com/a/54277766/8656352
+  }
+}

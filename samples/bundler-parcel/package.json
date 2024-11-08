@@ -1,0 +1,17 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Sample application for ConfigCat JS SDK",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "parcel build src/index.js --dist-dir=dist --no-optimize --no-source-maps",
+    "start": "npm run build & node ../shared/server dist"
+  },
+  "dependencies": {
+    "@configcat/sdk": "^0.0.1"
+  },
+  "devDependencies": {
+    "parcel": "^2.12.0"
+  }
+}

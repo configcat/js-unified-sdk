@@ -1,10 +1,9 @@
 import { assert } from "chai";
-import "mocha";
-import { DataGovernance, OptionsBase } from "../src/ConfigCatClientOptions";
-import { FetchResult, IConfigFetcher, IFetchResponse } from "../src/ConfigFetcher";
-import type * as ConfigJson from "../src/ConfigJson";
-import { ClientCacheState, ConfigServiceBase } from "../src/ConfigServiceBase";
-import { Config, ProjectConfig } from "../src/ProjectConfig";
+import { DataGovernance, OptionsBase } from "#lib/ConfigCatClientOptions";
+import { FetchResult, IConfigFetcher, IFetchResponse } from "#lib/ConfigFetcher";
+import type * as ConfigJson from "#lib/ConfigJson";
+import { ClientCacheState, ConfigServiceBase } from "#lib/ConfigServiceBase";
+import { Config, ProjectConfig } from "#lib/ProjectConfig";
 
 const globalUrl = "https://cdn-global.configcat.com";
 const euOnlyUrl = "https://cdn-eu.configcat.com";

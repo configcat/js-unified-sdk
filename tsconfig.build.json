@@ -1,12 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "sourceMap": false,
+    "esModuleInterop": true,
     "declaration": true,
-    "declarationMap": true,
-    "declarationDir": "./lib"
-  },
-  "include": [
-    "src/**/*.ts",
-  ]
+    "sourceMap": true,
+    "removeComments": true
+  }
 }

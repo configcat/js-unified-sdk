@@ -1,6 +1,5 @@
 import { assert } from "chai";
-import "mocha";
-import { IConfigCatLogger, LogEventId, LogLevel, LogMessage, LoggerWrapper } from "../src/ConfigCatLogger";
+import { IConfigCatLogger, LogEventId, LogLevel, LogMessage, LoggerWrapper } from "#lib/ConfigCatLogger";
 
 describe("ConfigCatLogger", () => {
   for (const level of Object.values(LogLevel).filter(key => typeof key === "number") as LogLevel[]) {

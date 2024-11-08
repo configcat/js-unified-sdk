@@ -4,6 +4,7 @@ import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserCompara
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
 import type { ConditionUnion, IPercentageOption, ITargetingRule, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingValue, SettingValueContainer, TargetingRule, UserConditionUnion, VariationIdValue } from "./ProjectConfig";
+import { nameOfSettingType } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
 import type { User, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
@@ -23,7 +24,7 @@ export class EvaluateContext {
     readonly key: string,
     readonly setting: Setting,
     readonly user: User | undefined,
-    readonly settings: Readonly<{ [name: string]: Setting }>,
+    readonly settings: Readonly<{ [key: string]: Setting }>,
   ) {
   }
 
@@ -83,10 +84,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         const settingType = context.setting.type;
         // A negative setting type indicates a setting which comes from a flag override (see also Setting.fromValue).
         if (settingType >= 0 && !isCompatibleValue(defaultValue, settingType)) {
+          const settingTypeName: string = nameOfSettingType(settingType);
           throw new TypeError(
             "The type of a setting must match the type of the specified default value. "
-            + `Setting's type was ${SettingType[settingType]} but the default value's type was ${typeof defaultValue}. `
-            + `Please use a default value which corresponds to the setting type ${SettingType[settingType]}. `
+            + `Setting's type was ${settingTypeName} but the default value's type was ${typeof defaultValue}. `
+            + `Please use a default value which corresponds to the setting type ${settingTypeName}. `
             + "Learn more: https://configcat.com/docs/sdk-reference/js/#setting-type-mapping");
         }
 
@@ -865,7 +867,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
   };
 }
 
-export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: Readonly<{ [name: string]: Setting }> | null, key: string, defaultValue: T,
+export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: Readonly<{ [key: string]: Setting }> | null, key: string, defaultValue: T,
   user: User | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper): IEvaluationDetails<SettingTypeOf<T>> {
 
   let errorMessage: string;
@@ -885,7 +887,7 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
   return evaluationDetailsFromEvaluateResult<T>(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
 }
 
-export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [name: string]: Setting }> | null,
+export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [key: string]: Setting }> | null,
   user: User | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string): [IEvaluationDetails[], any[] | undefined] {
 
   let errors: any[] | undefined;
@@ -914,7 +916,7 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [
   return [evaluationDetailsArray, errors];
 }
 
-export function checkSettingsAvailable(settings: Readonly<{ [name: string]: Setting }> | null, logger: LoggerWrapper, defaultReturnValue: string): settings is Readonly<{ [name: string]: Setting }> {
+export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setting }> | null, logger: LoggerWrapper, defaultReturnValue: string): settings is Readonly<{ [key: string]: Setting }> {
   if (!settings) {
     logger.configJsonIsNotPresent(defaultReturnValue);
     return false;

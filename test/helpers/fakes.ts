@@ -1,11 +1,42 @@
-import { IConfigCatCache, LogEventId } from "../../src";
-import { IConfigCache } from "../../src/ConfigCatCache";
-import { IConfigCatKernel } from "../../src/ConfigCatClient";
-import { OptionsBase } from "../../src/ConfigCatClientOptions";
-import { IConfigCatLogger, LogLevel, LogMessage } from "../../src/ConfigCatLogger";
-import { IConfigFetcher, IFetchResponse } from "../../src/ConfigFetcher";
-import { ProjectConfig } from "../../src/ProjectConfig";
-import { delay } from "../../src/Utils";
+import { platform } from "./platform";
+import { IConfigCache, IConfigCatCache } from "#lib/ConfigCatCache";
+import { IConfigCatClient } from "#lib/ConfigCatClient";
+import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, LazyLoadOptions, ManualPollOptions, OptionsBase } from "#lib/ConfigCatClientOptions";
+import { IConfigCatLogger, LogEventId, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
+import { IConfigFetcher, IFetchResponse } from "#lib/ConfigFetcher";
+import { IConfigCatKernel } from "#lib/index.pubternals";
+import { ProjectConfig } from "#lib/ProjectConfig";
+import { delay } from "#lib/Utils";
+
+export function createKernel(kernelOverride?: Partial<IConfigCatKernel>): IConfigCatKernel {
+  return platform().createKernel(kernel => Object.assign(kernel, kernelOverride));
+}
+
+export function createAutoPollOptions(sdkKey: string, options?: IAutoPollOptions, kernel?: IConfigCatKernel): AutoPollOptions {
+  kernel ??= createKernel();
+  return new AutoPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+}
+
+export function createManualPollOptions(sdkKey: string, options?: IManualPollOptions, kernel?: IConfigCatKernel): ManualPollOptions {
+  kernel ??= createKernel();
+  return new ManualPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+}
+
+export function createLazyLoadOptions(sdkKey: string, options?: ILazyLoadingOptions, kernel?: IConfigCatKernel): LazyLoadOptions {
+  kernel ??= createKernel();
+  return new LazyLoadOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+}
+export function createClientWithAutoPoll(sdkKey: string, kernelOverride?: Partial<IConfigCatKernel>, options?: IAutoPollOptions): IConfigCatClient {
+  return platform().createClientWithAutoPoll(sdkKey, options, kernel => Object.assign(kernel, kernelOverride));
+}
+
+export function createClientWithManualPoll(sdkKey: string, kernelOverride?: Partial<IConfigCatKernel>, options?: IManualPollOptions): IConfigCatClient {
+  return platform().createClientWithManualPoll(sdkKey, options, kernel => Object.assign(kernel, kernelOverride));
+}
+
+export function createClientWithLazyLoad(sdkKey: string, kernelOverride?: IConfigCatKernel, options?: ILazyLoadingOptions): IConfigCatClient {
+  return platform().createClientWithLazyLoad(sdkKey, options, kernel => Object.assign(kernel, kernelOverride));
+}
 
 export class FakeLogger implements IConfigCatLogger {
   events: [LogLevel, LogEventId, LogMessage, any?][] = [];
@@ -17,13 +48,6 @@ export class FakeLogger implements IConfigCatLogger {
   log(level: LogLevel, eventId: number, message: LogMessage, exception?: any): void {
     this.events.push([level, eventId, message, exception]);
   }
-}
-
-export class FakeConfigCatKernel implements IConfigCatKernel {
-  configFetcher!: IConfigFetcher;
-  sdkType = "common";
-  sdkVersion = "1.0.0";
-  defaultCacheFactory?: (options: OptionsBase) => IConfigCache;
 }
 
 export class FakeCache implements IConfigCache {
@@ -135,9 +159,7 @@ export class FakeConfigFetcher extends FakeConfigFetcherBase {
     return '{"f":{"debug":{"t":0,"v":{"b":true},"i":"abcdefgh"}}}';
   }
 
-  ["constructor"]!: typeof FakeConfigFetcher;
-
-  protected get defaultConfigJson(): string | null { return this.constructor.configJson; }
+  get defaultConfigJson(): string | null { return (this.constructor as typeof FakeConfigFetcher).configJson; }
 
   constructor(callbackDelayInMilliseconds = 0) {
     super(null, callbackDelayInMilliseconds);
@@ -185,8 +207,10 @@ export class FakeConfigFetcherWithAlwaysVariableEtag extends FakeConfigFetcher {
     return '{"f":{"debug":{"t":0,"v":{"b":true},"i":"abcdefgh"}}}';
   }
 
+  private eTag = 0;
+
   getEtag(): string {
-    return Math.random().toString();
+    return `"${(this.eTag++).toString(16).padStart(8, "0")}"`;
   }
 }
 

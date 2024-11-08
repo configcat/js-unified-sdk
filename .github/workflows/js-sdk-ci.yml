@@ -1,0 +1,247 @@
+name: JS SDK CI
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches: [ master ]
+    tags: [ 'v[0-9]+.[0-9]+.[0-9]+' ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  check-ts-compat:
+    runs-on: ubuntu-latest
+    name: TypeScript v4.0.2 compatibility check
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Run check
+        run: npm run check:ts-compat
+
+  test-node:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x, 20.x, 22.x]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        exclude:
+          - node-version: 14.x
+            os: macOS-latest
+    name: Node.js ${{ matrix.node-version }} (${{ matrix.os }}) test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run test:node
+
+  test-browser-chrome:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chrome: ["beta", "stable"]
+    name: Browser - Chrome ${{ matrix.chrome }} test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: ${{ matrix.chrome }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: CHROME_BIN=$(which chrome) npm run test:browser:chrome
+
+  test-browser-chromium:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        chrome: ["520847", "612434", "722278"]
+    name: Browser - Chromium ${{ matrix.chrome }} test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: ${{ matrix.chrome }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: CHROMIUM_BIN=$(which chrome) npm run test:browser:chromium
+
+  test-browser-firefox:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        firefox: ["84.0", "latest-beta", "latest"]
+    name: Browser - Firefox ${{ matrix.firefox }} test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+
+      - name: Setup firefox
+        uses: browser-actions/setup-firefox@latest
+        with:
+          firefox-version: ${{ matrix.firefox }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run test:browser:firefox
+
+  test-chromium-extension-chrome:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chrome: ["beta", "stable"]
+    name: Chromium Extension - Chrome ${{ matrix.chrome }} test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: ${{ matrix.chrome }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: CHROME_BIN=$(which chrome) npm run test:chromium-extension:chrome
+
+  test-chromium-extension-chromium:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        chrome: ["612434", "722278"]
+    name: Chromium Extension - Chromium ${{ matrix.chrome }} test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: ${{ matrix.chrome }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: CHROMIUM_BIN=$(which chrome) npm run test:chromium-extension:chromium
+
+  test-deno:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        deno-version: [~1.31, ~1.46, vx.x.x]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    name: Deno ${{ matrix.deno-version }} (${{ matrix.os }}) test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ matrix.deno-version }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run test:deno
+
+  coverage:
+    needs: [
+      check-ts-compat,
+      test-node,
+      test-browser-chrome, test-browser-chromium, test-browser-firefox,
+      test-chromium-extension-chrome, test-chromium-extension-chromium,
+      test-deno
+    ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run coverage
+
+      - name: Upload coverage folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  publish:
+    needs: coverage
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: 🚀Publish
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_API_KEY }}

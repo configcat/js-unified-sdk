@@ -1,6 +1,5 @@
 import { assert } from "chai";
-import "mocha";
-import { DefaultEventEmitter } from "../src/DefaultEventEmitter";
+import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 
 function createHandler(eventName: string, capturedArgs: any[][]) {
   return (...args: any[]) => capturedArgs.push([eventName, args]);
@@ -8,7 +7,7 @@ function createHandler(eventName: string, capturedArgs: any[][]) {
 
 describe("DefaultEventEmitter", () => {
   for (const subscriberMethod of ["on", "addListener"] as ("on" | "addListener")[]) {
-    it(`emit() should call single listener added by ${subscriberMethod}()`, (done) => {
+    it(`emit() should call single listener added by ${subscriberMethod}()`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -39,11 +38,9 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt1", "evt2"]);
-
-      done();
     });
 
-    it(`emit() should call multiple listeners added by ${subscriberMethod}() when a listener is added multiple times`, (done) => {
+    it(`emit() should call multiple listeners added by ${subscriberMethod}() when a listener is added multiple times`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -63,7 +60,9 @@ describe("DefaultEventEmitter", () => {
 
       // Assert
 
-      assert.deepEqual(capturedArgs1, emittedArgs.map(item => [item, item]).flat());
+      assert.deepEqual(capturedArgs1, emittedArgs
+        .map(item => [item, item])
+        .reduce((acc, item) => (Array.isArray(item) ? acc.push(...item) : acc.push(item), acc), []));
       assert.deepEqual(capturedArgs2, []);
 
       assert.strictEqual(2, ee.listenerCount("evt1"));
@@ -73,11 +72,9 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt1", "evt2"]);
-
-      done();
     });
 
-    it(`emit() should call multiple listeners added by ${subscriberMethod}() when no listeners are added multiple times`, (done) => {
+    it(`emit() should call multiple listeners added by ${subscriberMethod}() when no listeners are added multiple times`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -109,12 +106,10 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt1", "evt2"]);
-
-      done();
     });
   }
 
-  it("emit() should call listener added by once() only a single time", (done) => {
+  it("emit() should call listener added by once() only a single time", () => {
     // Arrange
 
     const ee = new DefaultEventEmitter();
@@ -143,12 +138,10 @@ describe("DefaultEventEmitter", () => {
     assert.deepEqual([handler2], ee.listeners("evt2"));
 
     assert.deepEqual(ee.eventNames(), ["evt2"]);
-
-    done();
   });
 
   for (const unsubscriberMethod of ["off", "removeListener"] as ("off" | "removeListener")[]) {
-    it(`emit() should not call listener removed by ${unsubscriberMethod}() when multiple listeners are left and a listener is added multiple times`, (done) => {
+    it(`emit() should not call listener removed by ${unsubscriberMethod}() when multiple listeners are left and a listener is added multiple times`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -184,11 +177,9 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt1", "evt2"]);
-
-      done();
     });
 
-    it(`emit() should not call listener removed by ${unsubscriberMethod}() when multiple listeners are left and no listeners are added multiple times`, (done) => {
+    it(`emit() should not call listener removed by ${unsubscriberMethod}() when multiple listeners are left and no listeners are added multiple times`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -226,11 +217,9 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt1", "evt2"]);
-
-      done();
     });
 
-    it(`emit() should not call listener removed by ${unsubscriberMethod}() when a single listener is left`, (done) => {
+    it(`emit() should not call listener removed by ${unsubscriberMethod}() when a single listener is left`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -265,11 +254,9 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt1", "evt2"]);
-
-      done();
     });
 
-    it(`emit() should not call listeners removed by ${unsubscriberMethod}() when no listeners are left`, (done) => {
+    it(`emit() should not call listeners removed by ${unsubscriberMethod}() when no listeners are left`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -305,11 +292,9 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt2"]);
-
-      done();
     });
 
-    it(`${unsubscriberMethod}() should not remove listeners which are added to another event`, (done) => {
+    it(`${unsubscriberMethod}() should not remove listeners which are added to another event`, () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
@@ -342,12 +327,10 @@ describe("DefaultEventEmitter", () => {
       assert.deepEqual([handler2], ee.listeners("evt2"));
 
       assert.deepEqual(ee.eventNames(), ["evt1", "evt2"]);
-
-      done();
     });
   }
 
-  it("emit() should not call listeners removed by removeAllListeners() when listeners of a specific event are removed", (done) => {
+  it("emit() should not call listeners removed by removeAllListeners() when listeners of a specific event are removed", () => {
     // Arrange
 
     const ee = new DefaultEventEmitter();
@@ -379,114 +362,108 @@ describe("DefaultEventEmitter", () => {
     assert.deepEqual([], ee.listeners("evt2"));
 
     assert.deepEqual(ee.eventNames(), ["evt1"]);
-
-    done();
   });
-});
 
-it("emit() should not call listeners removed by removeAllListeners() when listeners of all events are removed", (done) => {
-  // Arrange
+  it("emit() should not call listeners removed by removeAllListeners() when listeners of all events are removed", () => {
+    // Arrange
 
-  const ee = new DefaultEventEmitter();
-  const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const ee = new DefaultEventEmitter();
+    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
-  const
-    capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
-    capturedArgs2: any[][] = [], handler2 = createHandler("evt2", capturedArgs2);
+    const
+      capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
+      capturedArgs2: any[][] = [], handler2 = createHandler("evt2", capturedArgs2);
 
-  ee
-    .on("evt1", handler1)
-    .on("evt2", handler2);
+    ee
+      .on("evt1", handler1)
+      .on("evt2", handler2);
 
-  ee.removeAllListeners();
+    ee.removeAllListeners();
 
-  // Act
+    // Act
 
-  for (const [, args] of emittedArgs) { ee.emit("evt1", ...args); }
+    for (const [, args] of emittedArgs) { ee.emit("evt1", ...args); }
 
-  // Assert
+    // Assert
 
-  assert.deepEqual(capturedArgs1, []);
-  assert.deepEqual(capturedArgs2, []);
+    assert.deepEqual(capturedArgs1, []);
+    assert.deepEqual(capturedArgs2, []);
 
-  assert.strictEqual(0, ee.listenerCount("evt1"));
-  assert.deepEqual([], ee.listeners("evt1"));
+    assert.strictEqual(0, ee.listenerCount("evt1"));
+    assert.deepEqual([], ee.listeners("evt1"));
 
-  assert.strictEqual(0, ee.listenerCount("evt2"));
-  assert.deepEqual([], ee.listeners("evt2"));
+    assert.strictEqual(0, ee.listenerCount("evt2"));
+    assert.deepEqual([], ee.listeners("evt2"));
 
-  assert.deepEqual(ee.eventNames(), []);
+    assert.deepEqual(ee.eventNames(), []);
+  });
 
-  done();
-});
+  it("Adding/removing listeners during an emit() call should not affect the list of notified listeners when a single listener is added initially", () => {
+    // Arrange
 
-it("Adding/removing listeners during an emit() call should not affect the list of notified listeners when a single listener is added initially", (done) => {
-  // Arrange
+    const ee = new DefaultEventEmitter();
+    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
-  const ee = new DefaultEventEmitter();
-  const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const
+      capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
+      capturedArgs1b: any[][] = [], handler1b = createHandler("evt1", capturedArgs1b);
 
-  const
-    capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
-    capturedArgs1b: any[][] = [], handler1b = createHandler("evt1", capturedArgs1b);
+    const handler = (...args: any[]) => {
+      handler1a(...args);
+      ee.on("evt1", handler1b);
+      ee.off("evt1", handler);
+    };
+    ee.on("evt1", handler);
 
-  const handler = (...args: any[]) => {
-    handler1a(...args);
-    ee.on("evt1", handler1b);
-    ee.off("evt1", handler);
-  };
-  ee.on("evt1", handler);
+    // Act
 
-  // Act
+    const [, args] = emittedArgs[0];
+    ee.emit("evt1", ...args);
 
-  const [, args] = emittedArgs[0];
-  ee.emit("evt1", ...args);
+    // Assert
 
-  // Assert
+    assert.deepEqual(capturedArgs1a, emittedArgs.slice(0, 1));
+    assert.deepEqual(capturedArgs1b, []);
 
-  assert.deepEqual(capturedArgs1a, emittedArgs.slice(0, 1));
-  assert.deepEqual(capturedArgs1b, []);
+    assert.strictEqual(1, ee.listenerCount("evt1"));
+    assert.deepEqual([handler1b], ee.listeners("evt1"));
 
-  assert.strictEqual(1, ee.listenerCount("evt1"));
-  assert.deepEqual([handler1b], ee.listeners("evt1"));
+    assert.deepEqual(ee.eventNames(), ["evt1"]);
+  });
 
-  assert.deepEqual(ee.eventNames(), ["evt1"]);
+  it("Adding/removing listeners during an emit() call should not affect the list of notified listeners when multiple listeners are added initially", () => {
+    // Arrange
 
-  done();
-});
+    const ee = new DefaultEventEmitter();
+    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
-it("Adding/removing listeners during an emit() call should not affect the list of notified listeners when multiple listeners are added initially", (done) => {
-  // Arrange
+    const
+      capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
+      capturedArgs1b: any[][] = [], handler1b = createHandler("evt1", capturedArgs1b);
 
-  const ee = new DefaultEventEmitter();
-  const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const handler = (...args: any[]) => {
+      handler1a(...args);
+      ee.on("evt1", handler1b);
+      ee.off("evt1", handler);
+    };
+    ee.on("evt1", handler);
+    ee.on("evt1", handler);
 
-  const
-    capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
-    capturedArgs1b: any[][] = [], handler1b = createHandler("evt1", capturedArgs1b);
+    // Act
 
-  const handler = (...args: any[]) => {
-    handler1a(...args);
-    ee.on("evt1", handler1b);
-    ee.off("evt1", handler);
-  };
-  ee.on("evt1", handler);
-  ee.on("evt1", handler);
+    const [, args] = emittedArgs[0];
+    ee.emit("evt1", ...args);
 
-  // Act
+    // Assert
 
-  const [, args] = emittedArgs[0];
-  ee.emit("evt1", ...args);
+    assert.deepEqual(capturedArgs1a, emittedArgs.slice(0, 1)
+      .map(item => [item, item])
+      .reduce((acc, item) => (Array.isArray(item) ? acc.push(...item) : acc.push(item), acc), []));
+    assert.deepEqual(capturedArgs1b, []);
 
-  // Assert
+    assert.strictEqual(2, ee.listenerCount("evt1"));
+    assert.deepEqual([handler1b, handler1b], ee.listeners("evt1"));
 
-  assert.deepEqual(capturedArgs1a, emittedArgs.slice(0, 1).map(item => [item, item]).flat());
-  assert.deepEqual(capturedArgs1b, []);
-
-  assert.strictEqual(2, ee.listenerCount("evt1"));
-  assert.deepEqual([handler1b, handler1b], ee.listeners("evt1"));
-
-  assert.deepEqual(ee.eventNames(), ["evt1"]);
-
-  done();
+    assert.deepEqual(ee.eventNames(), ["evt1"]);
+  });
 });

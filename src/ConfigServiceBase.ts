@@ -35,7 +35,7 @@ export class RefreshResult {
 }
 
 /** Specifies the possible states of the local cache. */
-export enum ClientCacheState {
+export const enum ClientCacheState {
   NoFlagData,
   HasLocalOverrideFlagDataOnly,
   HasCachedFlagDataOnly,
@@ -60,10 +60,15 @@ export interface IConfigService {
   dispose(): void;
 }
 
-enum ConfigServiceStatus {
+const enum ConfigServiceStatus {
   Online,
   Offline,
   Disposed,
+}
+
+function nameOfConfigServiceStatus(value: ConfigServiceStatus): string {
+  /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
+  return ConfigServiceStatus[value];
 }
 
 export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
@@ -279,7 +284,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     if (this.status === ConfigServiceStatus.Offline) {
       this.setOnlineCore();
       this.status = ConfigServiceStatus.Online;
-      this.options.logger.configServiceStatusChanged(ConfigServiceStatus[this.status]);
+      this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
     }
     else if (this.disposed) {
       this.options.logger.configServiceMethodHasNoEffectDueToDisposedClient("setOnline");
@@ -292,7 +297,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     if (this.status === ConfigServiceStatus.Online) {
       this.setOfflineCore();
       this.status = ConfigServiceStatus.Offline;
-      this.options.logger.configServiceStatusChanged(ConfigServiceStatus[this.status]);
+      this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
     }
     else if (this.disposed) {
       this.options.logger.configServiceMethodHasNoEffectDueToDisposedClient("setOffline");

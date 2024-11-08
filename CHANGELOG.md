@@ -1,1 +1,1 @@
-Please check the [Github Releases](https://github.com/configcat/common-js/releases) page for the changelog of the ConfigCat Common library for JavaScript.
+Please check the [Github Releases](https://github.com/configcat/js-unified-sdk/releases) page for the changelog of the ConfigCat SDK for JavaScript.

@@ -1,18 +1,84 @@
 {
-  "name": "configcat-common",
-  "version": "9.3.0",
+  "name": "@configcat/sdk",
+  "version": "0.0.1",
   "description": "ConfigCat is a configuration as a service that lets you manage your features and configurations without actually deploying new code.",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "module": "lib/esm/index.js",
+  "main": "lib/cjs/node/index.root.js",
+  "types": "lib/cjs/node/index.root.d.ts",
+  "browser": "lib/cjs/browser/index.root.js",
+  "exports": {
+    ".": {
+      "types": {
+        "deno": "./lib/esm/deno/index.d.ts",
+        "browser": "./lib/esm/browser/index.root.d.ts",
+        "import": "./lib/esm/node/index.root.d.ts",
+        "require": "./lib/cjs/node/index.root.d.ts"
+      },
+      "deno": "./lib/esm/deno/index.js",
+      "browser": "./lib/esm/browser/index.root.js",
+      "import": "./lib/esm/node/index.root.js",
+      "require": "./lib/cjs/node/index.root.js"
+    },
+    "./browser": {
+      "types": "./lib/esm/browser/index.d.ts",
+      "import": "./lib/esm/browser/index.js"
+    },
+    "./chromium-extension": {
+      "types": "./lib/esm/chromium-extension/index.d.ts",
+      "import": "./lib/esm/chromium-extension/index.js"
+    },
+    "./deno": {
+      "types": "./lib/esm/deno/index.d.ts",
+      "deno": "./lib/esm/deno/index.js"
+    },
+    "./node": {
+      "types": {
+        "import": "./lib/esm/node/index.d.ts",
+        "require": "./lib/cjs/node/index.d.ts"
+      },
+      "import": "./lib/esm/node/index.js",
+      "require": "./lib/cjs/node/index.js"
+    },
+    "./lib/*": "./lib/*",
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#lib/browser": {
+      "browser": "./lib/esm/browser/index.js"
+    },
+    "#lib/chromium-extension": {
+      "browser": "./lib/esm/chromium-extension/index.js"
+    },
+    "#lib/node": {
+      "require": "./lib/cjs/node/index.js"
+    },
+    "#lib": {
+      "browser": "./lib/esm/index.js",
+      "require": "./lib/cjs/index.js"
+    },
+    "#lib/*": {
+      "browser": "./lib/esm/*.js",
+      "require": "./lib/cjs/*.js"
+    }
+  },
   "scripts": {
-    "coverage": "cross-env nyc npm run test",
-    "build": "tsc -p tsconfig.build.cjs.json && tsc -p tsconfig.build.esm.json",
-    "prepare": "npm run build",
-    "test": "cross-env TS_NODE_PROJECT=./tsconfig.mocha.json node --expose-gc node_modules/mocha/bin/_mocha --require ts-node/register 'test/**/*.ts' --exit --timeout 30000",
-    "test-debug": "cross-env TS_NODE_PROJECT=./tsconfig.mocha.json node --expose-gc node_modules/mocha/bin/_mocha --fgrep \"TITLE_OF_TEST\" --require ts-node/register 'test/**/*.ts' --exit --timeout 30000",
+    "build": "gulp",
+    "check:ts-compat": "npm --prefix extra-checks/ts-compat-check run check",
+    "coverage:browser": "cross-env TEST_BROWSER_COVERAGE=true npm run test:browser:chrome",
+    "coverage:chromium-extension": "cross-env TEST_CHROMIUM_EXTENSION_COVERAGE=true npm run test:chromium-extension:chrome",
+    "coverage:node": "nyc --include 'src/**' --include 'lib/cjs/**' --exclude 'lib/cjs/**/*.d.ts' --source-map --relative=true --report-dir coverage/node npm run test:node",
+    "coverage": "npm run coverage:node && npm run coverage:browser && npm run coverage:chromium-extension && lcov-result-merger './coverage/*/**/lcov.info' './coverage/lcov.info'",
+    "lint:fix": "eslint . --ext .ts --fix",
     "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "prepare": "npm run build",
+    "pretest": "npm run build",
+    "test:browser:chrome": "karma start karma.browser.chrome.conf.js",
+    "test:browser:chromium": "karma start karma.browser.chromium.conf.js",
+    "test:browser:firefox": "karma start karma.browser.firefox.conf.js",
+    "test:chromium-extension:chrome": "karma start karma.chromium-extension.chrome.conf.js",
+    "test:chromium-extension:chromium": "karma start karma.chromium-extension.chromium.conf.js",
+    "test:deno": "node deno.import-map.generator.js && node deno.set-env.js deno run $DENO_NODE_MODULES_DIR -A test/deno/index.ts --timeout 30000",
+    "test:node": "cross-env NODE_EXTRA_CA_CERTS=./test/node/cert/testCA.pem TS_NODE_PROJECT=./tsconfig.mocha.node.json node --expose-gc --require ts-node/register node_modules/mocha/bin/_mocha 'test/node/index.ts' --exit --timeout 30000",
+    "test": "npm run check:ts-compat && npm run test:node && npm run test:browser:chrome && npm run test:chromium-extension:chrome && npm run test:deno"
   },
   "keywords": [
     "configcat",
@@ -31,30 +97,57 @@
   "license": "MIT",
   "homepage": "https://configcat.com",
   "dependencies": {
-    "tslib": "^2.4.1"
+    "tunnel": "^0.0.6"
   },
   "devDependencies": {
-    "@types/chai": "4.3.4",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "^18.11.18",
-    "@types/tunnel": "^0.0.5",
+    "@babel/preset-env": "^7.20.2",
+    "@types/chai": "~4.3.4",
+    "@types/chrome": "~0.0.270",
+    "@types/mocha": "~10.0.1",
+    "@types/node": "~18.19.7",
+    "@types/tunnel": "~0.0.7",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
+    "babel-loader": "^9.1.0",
     "chai": "^4.3.7",
+    "core-js": "^3.38.1",
+    "coverage-istanbul-loader": "^3.0.5",
     "cross-env": "^7.0.3",
     "eslint": "^8.34.0",
     "eslint-plugin-import": "^2.27.5",
+    "fetch-mock": "^11.1.5",
+    "glob": "^10.4.5",
+    "gulp": "^5.0.0",
+    "karma": "^6.4.4",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-cli": "^2.0.0",
+    "karma-coverage": "^2.2.0",
+    "karma-coverage-istanbul-reporter": "^3.0.3",
+    "karma-firefox-launcher": "^2.1.2",
+    "karma-mocha": "^2.0.1",
+    "karma-sourcemap-loader": "^0.3.8",
+    "karma-webpack": "5.0.0",
+    "lcov-result-merger": "^5.0.1",
     "mocha": "^10.2.0",
+    "mock-xmlhttprequest": "^8.1.0",
+    "mockttp": "^3.15.3",
     "moq.ts": "^7.4.1",
-    "nyc": "^14.1.1",
-    "source-map-support": "^0.5.21",
-    "ts-node": "^10.9.1",
-    "tunnel": "^0.0.6",
-    "typescript": "^4.0.2"
+    "nyc": "^15.0.0",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths-webpack-plugin": "^4.1.0",
+    "tslib": "^2.7.0",
+    "typescript": "^5.5.4",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "overrides": {
+    "cookie": "0.7.2"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/configcat/common-js"
+    "url": "https://github.com/configcat/js-unified-sdk"
   },
   "nyc": {
     "extension": [
@@ -68,10 +161,6 @@
     "all": true,
     "include": [
       "src"
-    ],
-    "exclude": [
-      "src/Hash.ts",
-      "src/Semver.ts"
     ]
   },
   "sideEffects": false

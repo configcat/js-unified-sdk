@@ -1,0 +1,16 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Sample application for ConfigCat JS SDK",
+  "private": true,
+  "scripts": {
+    "build": "browserify src/index.js -o dist/main.js",
+    "start": "npm run build & node ../shared/server dist"
+  },
+  "dependencies": {
+    "@configcat/sdk": "^0.0.1"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.0"
+  }
+}

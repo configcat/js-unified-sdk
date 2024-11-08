@@ -1,23 +1,33 @@
 {
   /* Common TS compiler settings for compilation outputs, IDEs (like VSCode) and test runner (Mocha) */
   "compilerOptions": {
-    "strict": true,
     "target": "ESNext",
-    "importHelpers": true,
+    "module": "ESNext",
     "moduleResolution": "Node",
+    // We only use const enums internally (to reduce build output size) but we want to provide
+    // normal enums for consumers, so we strip const from enums during build (see gulpfile.js).
+    "preserveConstEnums": true,
     "lib": [
-      "ES2015", // APIs used: Promise (.race)
       "DOM", // APIs used: setTimeout, clearTimeout
+      "ES2015", // APIs used: Promise (.race) (polyfilled)
       "ES2017.Object", // APIs used: Object.values (polyfilled), Object.entries (polyfilled)
-      "ES2019.Object", // APIs used: Object.fromEntries (polyfilled)
-      // TODO: use the following built-in libs instead of the manually included lib.*.d.ts files when upgrading TypeScript to v4.3 or newer
-      //"ES2021.WeakRef", // APIs used: WeakRef (only used if available)
-      //"ES2021.Promise" // APIs used: AggregateError (only used if available)
-    ]
+      "ES2021.WeakRef", // APIs used: WeakRef (only used if available)
+      "ES2021.Promise" // APIs used: AggregateError (only used if available)
+    ],
+    "paths": {
+      "#lib/browser": ["./lib/esm/browser/index.root"],
+      "#lib/chromium-extension": ["./lib/esm/chromium-extension/index"],
+      "#lib/deno": ["./lib/esm/deno/index"],
+      "#lib/node": ["./lib/esm/node/index.root"],
+      "#lib": ["./lib/esm/index"],
+      "#lib/*": ["./lib/esm/*"]
+    }
   },
   "exclude": [
     "**/node_modules/",
+    "dist/",
+    "extra-checks/",
     "lib/",
     "samples/"
-  ],
+  ]
 }

@@ -1,0 +1,15 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Dummy package for checking compatibility with targeted TypeScript version (see below)",
+  "main": "index.ts",
+  "scripts": {
+    "check": "npm i && tsc"
+  },
+  "devDependencies": {
+    "typescript": "4.0.2"
+  },
+  "dependencies": {
+    "app": "file:"
+  }
+}

@@ -1,8 +1,17 @@
 {
   "extends": "./tsconfig.build.json",
   "compilerOptions": {
-    "target": "ES5",
+    "target": "ES2017",
     "module": "ES2015",
+    "moduleResolution": "Bundler",
     "outDir": "./lib/esm",
-  }
+    // See also: https://github.com/microsoft/TypeScript/issues/14619#issuecomment-2203844244
+    "declaration": false
+  },
+  "files": [
+    "src/browser/index.root.ts",
+    "src/chromium-extension/index.ts",
+    "src/deno/index.ts",
+    "src/node/index.root.ts"
+  ]
 }

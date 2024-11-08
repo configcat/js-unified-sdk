@@ -2,7 +2,6 @@ import type { IConfigCache, IConfigCatCache } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { IConfigCatLogger } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger, LoggerWrapper } from "./ConfigCatLogger";
-import { DefaultEventEmitter } from "./DefaultEventEmitter";
 import type { IEventEmitter } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { FlagOverrides } from "./FlagOverrides";
@@ -14,7 +13,7 @@ import { ProjectConfig } from "./ProjectConfig";
 import type { User } from "./User";
 
 /** Specifies the supported polling modes. */
-export enum PollingMode {
+export const enum PollingMode {
   /** The ConfigCat SDK downloads the latest values automatically and stores them in the local cache. */
   AutoPoll = 0,
   /** The ConfigCat SDK downloads the latest setting values only if they are not present in the local cache, or if the cache entry has expired. */
@@ -24,7 +23,7 @@ export enum PollingMode {
 }
 
 /** Controls the location of the config JSON files containing your feature flags and settings within the ConfigCat CDN. */
-export enum DataGovernance {
+export const enum DataGovernance {
   /** Choose this option if your config JSON files are published to all global CDN nodes. */
   Global = 0,
   /** Choose this option if your config JSON files are published to CDN nodes only in the EU. */
@@ -120,10 +119,11 @@ export interface ILazyLoadingOptions extends IOptions {
   cacheTimeToLiveSeconds?: number;
 }
 
-export type OptionsForPollingMode<TMode extends PollingMode> =
+export type OptionsForPollingMode<TMode extends PollingMode | unknown> =
   TMode extends PollingMode.AutoPoll ? IAutoPollOptions :
   TMode extends PollingMode.ManualPoll ? IManualPollOptions :
   TMode extends PollingMode.LazyLoad ? ILazyLoadingOptions :
+  TMode extends undefined ? IAutoPollOptions :
   never;
 
 /* eslint-disable @typescript-eslint/no-inferrable-types */
@@ -179,7 +179,7 @@ export abstract class OptionsBase {
         break;
     }
 
-    const eventEmitter = eventEmitterFactory?.() ?? new DefaultEventEmitter();
+    const eventEmitter = eventEmitterFactory?.() ?? new NullEventEmitter();
     const hooks = new Hooks(eventEmitter);
     const hooksWeakRef = new (isWeakRefAvailable() ? WeakRef : getWeakRefStub())(hooks);
     this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{

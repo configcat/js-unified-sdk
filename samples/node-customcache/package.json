@@ -1,0 +1,16 @@
+{
+  "name": "customcache",
+  "version": "1.0.0",
+  "description": "Sample application to implement custom cache for ConfigCat JS SDK",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "author": "configcat",
+  "license": "MIT",
+  "dependencies": {
+    "@configcat/sdk": "^0.0.1",
+    "redis": "^3.1.2"
+  }
+}

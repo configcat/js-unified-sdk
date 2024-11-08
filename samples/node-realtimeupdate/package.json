@@ -1,0 +1,15 @@
+{
+  "name": "realtimeupdate",
+  "version": "1.0.0",
+  "description": "Sample application for ConfigCat JS SDK to use real time notification with PubNub",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "developer@configcat.com",
+  "license": "MIT",
+  "dependencies": {
+    "@configcat/sdk": "^0.0.1",
+    "pubnub": "^4.32.1"
+  }
+}

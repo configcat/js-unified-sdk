@@ -1,7 +1,6 @@
 import { assert } from "chai";
-import "mocha";
-import { sha1, sha256 } from "../src/Hash";
-import { utf8Encode } from "../src/Utils";
+import { sha1, sha256 } from "#lib/Hash";
+import { utf8Encode } from "#lib/Utils";
 
 describe("Hash functions", () => {
   for (const [input, expectedOutput] of [
