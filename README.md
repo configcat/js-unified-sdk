@@ -1,6 +1,6 @@
 # ConfigCat SDK for JavaScript
 
-[![JS SDK CI](https://github.com/configcat/js-unified-sdk/actions/workflows/js-ci.yml/badge.svg?branch=master)](https://github.com/configcat/js-unified-sdk/actions/workflows/js-ci.yml) 
+[![JS SDK CI](https://github.com/configcat/js-unified-sdk/actions/workflows/js-sdk-ci.yml/badge.svg?branch=master)](https://github.com/configcat/js-unified-sdk/actions/workflows/js-sdk-ci.yml) 
 [![Quality Gate Status](https://img.shields.io/sonar/quality_gate/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
 [![SonarCloud Coverage](https://img.shields.io/sonar/coverage/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
 [![Known Vulnerabilities](https://snyk.io/test/github/configcat/js-unified-sdk/badge.svg?targetFile=package.json)](https://snyk.io/test/github/configcat/js-unified-sdk?targetFile=package.json) 
@@ -193,7 +193,7 @@ Currently the `@configcat/sdk` NPM package includes the following builds of the 
 
 This SDK should be compatible with all modern, widely used JS runtimes (execution engines) and bundlers.
 
-The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.github/workflows/js-ci.yml) against the following runtimes:
+The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.github/workflows/js-sdk-ci.yml) against the following runtimes:
 - @configcat/sdk/browser:
   - Chrome (stable, latest, beta)
   - Chromium (64.0.3282.0, 72.0.3626.0, 80.0.3987.0)
@@ -210,7 +210,7 @@ The SDK should be compatible with TypeScript v4.0.2 or newer. Earlier versions m
 
 These tests are running on each pull request, before each deploy, and on a daily basis.
 
-You can view a sample run [here](https://github.com/configcat/js-unified-sdk/actions/runs/TODO).
+You can view a sample run [here](https://github.com/configcat/js-unified-sdk/actions/runs/11745259578).
 
 > We strive to provide an extensive support for the various JS runtimes and build tools. If you still encounter an issue with the SDK on some platform, please open a [GitHub issue](https://github.com/configcat/js-unified-sdk/issues/new/choose) or [contact support](https://configcat.com/support).
 

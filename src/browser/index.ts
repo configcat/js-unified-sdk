@@ -8,6 +8,8 @@ import CONFIGCAT_SDK_VERSION from "../Version";
 import { LocalStorageCache } from "./LocalStorageCache";
 import { XmlHttpRequestConfigFetcher } from "./XmlHttpRequestConfigFetcher";
 
+/* Package public API for browsers */
+
 setupPolyfills();
 
 /**
@@ -31,6 +33,8 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";
+
+export type { IQueryStringProvider } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
 export interface IJSAutoPollOptions extends IAutoPollOptions {

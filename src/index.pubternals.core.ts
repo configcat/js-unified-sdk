@@ -7,6 +7,11 @@ import type { IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
 import { FlagOverrides, MapOverrideDataSource, QueryParamsOverrideDataSource } from "./FlagOverrides";
 import type { SettingValue } from "./ProjectConfig";
 
+/* Package "pubternal" API (core part) */
+
+// List types and functionality here which are considered internal but may be
+// used or exposed to end users on some of the platforms.
+
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.
  * @remarks This method returns a single, shared instance per each distinct SDK Key.
@@ -70,21 +75,3 @@ export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
 }
 
 export type { IQueryStringProvider };
-
-/* Public types for platform-specific SDKs */
-
-// List types here which are required to implement the platform-specific SDKs but shouldn't be exposed to end users.
-
-export type { IConfigCatKernel };
-
-export type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
-
-export { FetchError, FetchResult, FetchStatus } from "./ConfigFetcher";
-
-export type { OptionsBase } from "./ConfigCatClientOptions";
-
-export type { IConfigCache } from "./ConfigCatCache";
-
-export { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
-
-export type { IEventEmitter, IEventProvider } from "./EventEmitter";
