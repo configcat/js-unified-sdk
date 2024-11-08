@@ -58,11 +58,11 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
       if (isDts) {
         if (skipTypes) continue;
 
-        // According to our tests, the best compatibility with various build tools can be achieved when each source file has
-        // the corresponding .d.ts file in the same directory. However, we don't want to duplicate the type definitions
-        // (because that could lead to other subtle issues), so we replace the content of the CJS build's .d.ts files so
-        // they just reexport the type definitions from the corresponding files of the ESM build.
         if (reexportTypesFrom != null) {
+          // According to our tests, the best compatibility with various build tools can be achieved when each source file has
+          // the corresponding .d.ts file in the same directory. However, we don't want to duplicate the type definitions
+          // (because that could lead to other subtle issues), so we replace the content of the CJS build's .d.ts files so
+          // they just reexport the type definitions from the corresponding files of the ESM build.
           const importDirRelative = path.relative(path.dirname(file), importDir);
           let importFile = path.join(importDirRelative, path.relative(targetDir, file));
           importFile = changeExtension(changeExtension(importFile, ""), importExtension ?? "");
@@ -70,8 +70,17 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
           await fsp.writeFile(file, fileContent, "utf8", { flush: true });
           continue;
         }
-        else if (importExtension == null) {
-          continue;
+        else {
+          // Strip const from enums to provide normal enums to consumers.
+          let fileContent = await fsp.readFile(file, "utf8");
+          fileContent = fileContent.replace(/declare\s+const\s+enum/g, () => {
+            return "declare enum";
+          });
+          await fsp.writeFile(file, fileContent, "utf8", { flush: true });
+
+          if (importExtension == null) {
+            continue;
+          }
         }
       }
       else if (importExtension == null || !file.endsWith(importExtension)) {

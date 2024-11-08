@@ -13,7 +13,7 @@ import { ProjectConfig } from "./ProjectConfig";
 import type { User } from "./User";
 
 /** Specifies the supported polling modes. */
-export enum PollingMode {
+export const enum PollingMode {
   /** The ConfigCat SDK downloads the latest values automatically and stores them in the local cache. */
   AutoPoll = 0,
   /** The ConfigCat SDK downloads the latest setting values only if they are not present in the local cache, or if the cache entry has expired. */
@@ -23,7 +23,7 @@ export enum PollingMode {
 }
 
 /** Controls the location of the config JSON files containing your feature flags and settings within the ConfigCat CDN. */
-export enum DataGovernance {
+export const enum DataGovernance {
   /** Choose this option if your config JSON files are published to all global CDN nodes. */
   Global = 0,
   /** Choose this option if your config JSON files are published to CDN nodes only in the EU. */

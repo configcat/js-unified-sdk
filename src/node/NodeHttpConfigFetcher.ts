@@ -97,5 +97,3 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
     });
   }
 }
-
-export default IConfigFetcher;

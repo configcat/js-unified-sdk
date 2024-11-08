@@ -5,7 +5,7 @@ import { errorToString } from "./Utils";
  * Specifies event severity levels for the `IConfigCatLogger` interface.
  * The levels are interpreted as minimum levels in the case of event filtering.
 */
-export enum LogLevel {
+export const enum LogLevel {
   /** All events are logged. */
   Debug = 4,
   /** Info, Warn and Error are logged. Debug events are discarded. */
@@ -16,6 +16,11 @@ export enum LogLevel {
   Error = 1,
   /** No events are logged. */
   Off = -1
+}
+
+export function nameOfLogLevel(value: LogLevel): string {
+  /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
+  return LogLevel[value];
 }
 
 export type LogEventId = number;
@@ -394,7 +399,7 @@ export class ConfigCatConsoleLogger implements IConfigCatLogger {
       level === LogLevel.Info ? [console.info, "INFO"] :
       level === LogLevel.Warn ? [console.warn, "WARN"] :
       level === LogLevel.Error ? [console.error, "ERROR"] :
-      [console.log, LogLevel[level].toUpperCase()];
+      [console.log, nameOfLogLevel(level).toUpperCase()];
 
     const exceptionString = exception !== void 0 ? this.eol + errorToString(exception, true) : "";
 

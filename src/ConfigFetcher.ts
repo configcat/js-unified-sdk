@@ -1,7 +1,7 @@
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { ProjectConfig } from "./ProjectConfig";
 
-export enum FetchStatus {
+export const enum FetchStatus {
   Fetched = 0,
   NotModified = 1,
   Errored = 2,

@@ -7,7 +7,7 @@ import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
-import { OverrideBehaviour } from "./FlagOverrides";
+import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
@@ -572,7 +572,7 @@ export class ConfigCatClient implements IConfigCatClient {
       this.configService.setOnline();
     }
     else {
-      this.options.logger.configServiceMethodHasNoEffectDueToOverrideBehavior(OverrideBehaviour[OverrideBehaviour.LocalOnly], "setOnline");
+      this.options.logger.configServiceMethodHasNoEffectDueToOverrideBehavior(nameOfOverrideBehaviour(OverrideBehaviour.LocalOnly), "setOnline");
     }
   }
 

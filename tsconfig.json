@@ -4,6 +4,9 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Node",
+    // We only use const enums internally (to reduce build output size) but we want to provide
+    // normal enums for consumers, so we strip const from enums during build (see gulpfile.js).
+    "preserveConstEnums": true,
     "lib": [
       "DOM", // APIs used: setTimeout, clearTimeout
       "ES2015", // APIs used: Promise (.race) (polyfilled)

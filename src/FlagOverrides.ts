@@ -12,7 +12,7 @@ export class FlagOverrides {
 /**
  * Specifies the behaviours for flag overrides.
  */
-export enum OverrideBehaviour {
+export const enum OverrideBehaviour {
   /**
    * When evaluating values, the SDK will not use feature flags and settings from the ConfigCat CDN, but it will use
    * all feature flags and settings that are loaded from local-override sources.
@@ -30,6 +30,11 @@ export enum OverrideBehaviour {
    * defined both in the fetched and the local-override source then the fetched version will take precedence.
    */
   RemoteOverLocal = 2,
+}
+
+export function nameOfOverrideBehaviour(value: OverrideBehaviour): string {
+  /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
+  return OverrideBehaviour[value];
 }
 
 type SettingMap = { [key: string]: Setting };
