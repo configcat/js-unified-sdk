@@ -28,7 +28,7 @@ const TARGETS = [
 async function clean() {
   for (const path of [LIB_PATH, DIST_PATH]) {
     if (fs.existsSync(path)) {
-      await fsp.rmdir(path, { recursive: true });
+      await fsp.rm(path, { recursive: true });
     }
   }
 }
