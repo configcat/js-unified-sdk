@@ -7,7 +7,7 @@ import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
-import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
+import { OverrideBehaviour, nameOfOverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
