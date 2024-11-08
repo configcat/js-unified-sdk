@@ -5,11 +5,11 @@ import { createConsoleLogger, createFlagOverridesFromMap } from "#lib/index.pubt
 
 const sdkKey = "PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A";
 
-describe("Integration tests - Normal use", () => {
+for (const pollingMode of [PollingMode.AutoPoll, PollingMode.ManualPoll, PollingMode.LazyLoad]) {
+  describe("Integration tests - Normal use", () => {
 
-  const options: IOptions = { logger: createConsoleLogger(LogLevel.Off) };
+    const options: IOptions = { logger: createConsoleLogger(LogLevel.Off) };
 
-  for (const pollingMode of [PollingMode.AutoPoll, PollingMode.ManualPoll, PollingMode.LazyLoad]) {
     let client: IConfigCatClient;
 
     beforeEach(function() {
@@ -192,8 +192,9 @@ describe("Integration tests - Normal use", () => {
       assert.equal(variationIds.double25Pi25E25Gr25Zero, "9503a1de");
       assert.equal(variationIds.keySampleText, "69ef126c");
     });
-  }
-});
+
+  });
+}
 
 describe("Integration tests - Wrong SDK key", () => {
 
