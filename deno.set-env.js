@@ -15,6 +15,6 @@ const crossEnv = require("cross-env");
   // according to Deno version and put it in environment variable.
   process.env["DENO_NODE_MODULES_DIR"] = `--node-modules-dir=${major < 2 ? "true" : "manual"}`;
 
-  // Execute the actual command (with subtituting the environment variable).
+  // Execute the actual command (with substituting the environment variable).
   crossEnv(process.argv.slice(2), { shell: true });
 })();
