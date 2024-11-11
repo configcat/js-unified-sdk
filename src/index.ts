@@ -26,13 +26,11 @@ export type {
 
 export { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 
-export type { IConfigCatClient, IConfigCatClientSnapshot } from "./ConfigCatClient";
-
-export { SettingKeyValue } from "./ConfigCatClient";
+export type { IConfigCatClient, IConfigCatClientSnapshot, SettingKeyValue } from "./ConfigCatClient";
 
 export type { IEvaluationDetails, SettingTypeOf } from "./RolloutEvaluator";
 
-export type { UserAttributeValue } from "./User";
+export type { IUser, UserAttributeValue } from "./User";
 
 export { User } from "./User";
 

@@ -3,8 +3,8 @@ import type { IConfigCatClient, IConfigCatKernel } from "./ConfigCatClient";
 import type { OptionsForPollingMode, PollingMode } from "./ConfigCatClientOptions";
 import type { IConfigCatLogger, LogLevel } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger } from "./ConfigCatLogger";
-import type { IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
-import { FlagOverrides, MapOverrideDataSource, QueryParamsOverrideDataSource } from "./FlagOverrides";
+import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
+import { MapOverrideDataSource, QueryParamsOverrideDataSource } from "./FlagOverrides";
 import type { SettingValue } from "./ProjectConfig";
 
 /* Package "pubternal" API (core part) */
@@ -52,7 +52,7 @@ export function createConsoleLogger(logLevel: LogLevel, eol?: string): IConfigCa
  * @param watchChanges If set to `true`, the input map will be tracked for changes.
  */
 export function createFlagOverridesFromMap(map: { [key: string]: NonNullable<SettingValue> }, behaviour: OverrideBehaviour, watchChanges?: boolean): FlagOverrides {
-  return new FlagOverrides(new MapOverrideDataSource(map, watchChanges), behaviour);
+  return { dataSource: new MapOverrideDataSource(map, watchChanges), behaviour };
 }
 
 /**
@@ -71,7 +71,7 @@ export function createFlagOverridesFromMap(map: { [key: string]: NonNullable<Set
 export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
   watchChanges?: boolean, paramPrefix?: string, queryStringProvider?: IQueryStringProvider
 ): FlagOverrides {
-  return new FlagOverrides(new QueryParamsOverrideDataSource(watchChanges, paramPrefix, queryStringProvider), behaviour);
+  return { dataSource: new QueryParamsOverrideDataSource(watchChanges, paramPrefix, queryStringProvider), behaviour };
 }
 
 export type { IQueryStringProvider };

@@ -10,7 +10,7 @@ import type { HookEvents, IProvidesHooks, SafeHooksWrapper } from "./Hooks";
 import { Hooks } from "./Hooks";
 import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import { ProjectConfig } from "./ProjectConfig";
-import type { User } from "./User";
+import type { IUser } from "./User";
 
 /** Specifies the supported polling modes. */
 export const enum PollingMode {
@@ -76,7 +76,7 @@ export interface IOptions {
    * The default user, used as fallback when there's no user parameter is passed to the setting evaluation methods like
    * `IConfigCatClient.getValueAsync`, `ConfigCatClient.getValueAsync`, etc.
    */
-  defaultUser?: User | null;
+  defaultUser?: IUser | null;
 
   /**
    * Indicates whether the client should be initialized to offline mode or not. Defaults to `false`.
@@ -152,7 +152,7 @@ export abstract class OptionsBase {
 
   flagOverrides?: FlagOverrides;
 
-  defaultUser?: User;
+  defaultUser?: IUser;
 
   offline: boolean = false;
 

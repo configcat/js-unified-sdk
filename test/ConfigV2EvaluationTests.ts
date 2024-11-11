@@ -3,7 +3,7 @@ import { CdnConfigLocation, LocalFileConfigLocation } from "./helpers/ConfigLoca
 import { FakeLogger, createClientWithManualPoll } from "./helpers/fakes";
 import { IManualPollOptions, OverrideBehaviour, SettingValue, User, UserAttributeValue } from "#lib";
 import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
-import { FlagOverrides, MapOverrideDataSource } from "#lib/FlagOverrides";
+import { MapOverrideDataSource } from "#lib/FlagOverrides";
 import { RolloutEvaluator, evaluate, isAllowedValue } from "#lib/RolloutEvaluator";
 import { errorToString } from "#lib/Utils";
 
@@ -71,7 +71,7 @@ describe("Setting evaluation (config v2)", () => {
 
       const fakeLogger = new FakeLogger();
       const options: IManualPollOptions = {
-        flagOverrides: new FlagOverrides(new MapOverrideDataSource(overrideMap), OverrideBehaviour.LocalOverRemote),
+        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: OverrideBehaviour.LocalOverRemote },
         logger: fakeLogger
       };
 
@@ -137,7 +137,7 @@ describe("Setting evaluation (config v2)", () => {
       };
 
       const options: IManualPollOptions = {
-        flagOverrides: new FlagOverrides(new MapOverrideDataSource(overrideMap), overrideBehaviour)
+        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour }
       };
 
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb

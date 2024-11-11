@@ -2,11 +2,9 @@ import type { SettingValue } from "./ProjectConfig";
 import { Setting } from "./ProjectConfig";
 import { isArray, parseFloatStrict } from "./Utils";
 
-export class FlagOverrides {
-  constructor(
-    public dataSource: IOverrideDataSource,
-    public behaviour: OverrideBehaviour) {
-  }
+export type FlagOverrides = {
+  dataSource: IOverrideDataSource;
+  behaviour: OverrideBehaviour;
 }
 
 /**
