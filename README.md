@@ -67,12 +67,6 @@ Import the package directly from a CDN server into your application:
   </script>
   ```
 
-* Deno backend applications:
-
-  ```js
-  import * as configcat from "https://cdn.skypack.dev/@configcat/sdk@1.0.0?dts";
-  ```
-
 * Extensions for Chromium-based browsers (Chrome, Edge, etc.):
 
   ```js

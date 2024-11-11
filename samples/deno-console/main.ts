@@ -1,7 +1,7 @@
 // @deno-types=../../lib/esm/deno/index.d.ts
 import { createConsoleLogger, getClient, LogLevel, PollingMode, User } from "../../lib/esm/deno/index.js";
 // Use this import statement instead of the above in your application.
-// import { createConsoleLogger, getClient, LogLevel, PollingMode, User } from "https://cdn.skypack.dev/@configcat/sdk@1.0.0?dts"; - TODO: test this after release
+// import { createConsoleLogger, getClient, LogLevel, PollingMode, User } from "npm:@configcat/sdk/deno";
 
 // Creating the ConfigCat client instance using the SDK Key
 const client = getClient(
