@@ -22,7 +22,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
   return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
     {
       configFetcher: new NodeHttpConfigFetcher(),
-      sdkType: "ConfigCat-Node",
+      sdkType: "ConfigCat-UnifiedJS-Node",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new EventEmitter()
     });

@@ -26,7 +26,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
   return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
     ChromeLocalStorageCache.setup({
       configFetcher: new FetchApiConfigFetcher(),
-      sdkType: "ConfigCat-JS-Chromium",
+      sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new DefaultEventEmitter()
     }));

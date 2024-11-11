@@ -26,7 +26,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
   return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
     LocalStorageCache.setup({
       configFetcher: new XmlHttpRequestConfigFetcher(),
-      sdkType: "ConfigCat-JS",
+      sdkType: "ConfigCat-UnifiedJS-Browser",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new DefaultEventEmitter()
     }));
