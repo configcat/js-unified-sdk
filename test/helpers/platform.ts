@@ -3,6 +3,7 @@ import { OptionsForPollingMode } from "#lib/ConfigCatClientOptions";
 import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
 
 interface IPlatformAbstractions {
+  gc?: () => Promise<void>;
   pathJoin(...segments: string[]): string;
   readFileUtf8(path: string): string | Promise<string>;
   createConfigFetcher(): IConfigFetcher;

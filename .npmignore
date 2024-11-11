@@ -25,4 +25,5 @@ src/
 lib/**/*.map
 test/
 tsconfig*.json
+types/
 webpack.*.config.js

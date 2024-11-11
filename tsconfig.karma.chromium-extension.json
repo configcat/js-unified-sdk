@@ -1,12 +1,15 @@
 {
+   /* TS compiler settings for Chromium-based browser extension tests (Karma/Webpack) */
   "extends": "./tsconfig.build.esm.json",
   "compilerOptions": {
+    "lib": ["DOM", "ES2017", "ES2021.WeakRef", "ES2021.Promise"],
     "sourceMap": true,
     // Generating d.ts files needs to be disabled to not pollute the build output directory ("./lib").
-    "declaration": false
+    "declaration": false,
+    "types": ["chai", "chrome", "mocha"]
   },
+  "files": [],
   "include": [
-    "src/chromium-extension/index.ts",
     "test/*.ts",
     "test/chromium-extension/**/*.ts",
     "test/helpers/**/*.ts"

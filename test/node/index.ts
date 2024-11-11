@@ -38,11 +38,17 @@ export const createClientWithLazyLoad = (sdkKey: string, options?: INodeLazyLoad
   return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
+let gcfunc: (() => Promise<void>) | undefined;
+if (typeof gc !== "undefined") {
+  gcfunc = () => gc!({ execution: "async", type: "major" });
+}
+
 export const pathJoin = (...segments: string[]): string => path.join(...segments);
 
 export const readFileUtf8 = (path: string): string => fs.readFileSync(path, "utf8");
 
 initPlatform({
+  gc: gcfunc,
   pathJoin,
   readFileUtf8,
   createConfigFetcher,

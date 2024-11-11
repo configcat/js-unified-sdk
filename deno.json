@@ -1,4 +1,8 @@
 {
+  /* TS compiler settings for Deno tests */
+  "compilerOptions": {
+    "types": ["chai", "mocha"]
+  },
   "lint": {
     "rules": {
       "@typescript-eslint/no-explicit-any": "off"

@@ -1,4 +1,5 @@
 {
+  /* Common TS compiler settings for compilation outputs */
   "extends": "./tsconfig.build.esm.json",
   "compilerOptions": {
     "declaration": true,
