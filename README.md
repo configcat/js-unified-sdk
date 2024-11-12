@@ -131,6 +131,7 @@ if (value) {
 ## Sample/Demo apps
   - [Plain HTML + JS](https://github.com/configcat/js-unified-sdk/tree/master/samples/html)
   - [Plain HTML + JS using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/html-esm)
+  - [Plain HTML + bundled TS running the SDK in a Web Worker](https://github.com/configcat/js-unified-sdk/tree/master/samples/web-worker)
   - [Sample Angular web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/angular-sample)
   - [Sample React web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-sample)
   - [Sample React Native application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-native-sample)

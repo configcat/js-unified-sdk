@@ -30,6 +30,9 @@ export { DefaultEventEmitter } from "./DefaultEventEmitter";
 
 export { LocalStorageCache } from "./browser/LocalStorageCache";
 
+export { IndexedDBCache } from "./shared/IndexedDBCache";
+
 export { XmlHttpRequestConfigFetcher } from "./browser/XmlHttpRequestConfigFetcher";
 
 export { FetchApiConfigFetcher } from "./shared/FetchApiConfigFetcher";
+

@@ -4,6 +4,7 @@ import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
+import { IndexedDBCache } from "../shared/IndexedDBCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { LocalStorageCache } from "./LocalStorageCache";
 import { XmlHttpRequestConfigFetcher } from "./XmlHttpRequestConfigFetcher";
@@ -23,13 +24,17 @@ setupPolyfills();
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
-    LocalStorageCache.setup({
-      configFetcher: new XmlHttpRequestConfigFetcher(),
-      sdkType: "ConfigCat-UnifiedJS-Browser",
-      sdkVersion: CONFIGCAT_SDK_VERSION,
-      eventEmitterFactory: () => new DefaultEventEmitter()
-    }));
+  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
+    configFetcher: new XmlHttpRequestConfigFetcher(),
+    sdkType: "ConfigCat-UnifiedJS-Browser",
+    sdkVersion: CONFIGCAT_SDK_VERSION,
+    eventEmitterFactory: () => new DefaultEventEmitter(),
+    defaultCacheFactory: typeof localStorage !== "undefined"
+      // NOTE: The IndexedDB API is asynchronous, so it's not possible to check here if it actually works. For this reason,
+      // we'd rather not fall back to IndexedDB if LocalStorage doesn't work. (In that case, IndexedDB is unlikely to work anyway.)
+      ? LocalStorageCache.tryGetFactory()
+      : IndexedDBCache.tryGetFactory()
+  });
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";

@@ -3,6 +3,7 @@ import { FakeLogger } from "../helpers/fakes";
 import { createClientWithLazyLoad } from ".";
 import { LogLevel } from "#lib";
 import { ChromeLocalStorageCache, fromUtf8Base64, toUtf8Base64 } from "#lib/chromium-extension/ChromeLocalStorageCache";
+import { ExternalConfigCache } from "#lib/ConfigCatCache";
 
 describe("Base64 encode/decode test", () => {
   let allBmpChars = "";
@@ -46,7 +47,10 @@ describe("LocalStorageCache cache tests", () => {
     const fakeLogger = new FakeLogger();
 
     const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
-      kernel => ChromeLocalStorageCache.setup(kernel, () => faultyLocalStorage));
+      kernel => {
+        kernel.defaultCacheFactory = options => new ExternalConfigCache(new ChromeLocalStorageCache(faultyLocalStorage), options.logger);
+        return kernel;
+      });
 
     try { await client.getValueAsync("stringDefaultCat", ""); }
     finally { client.dispose(); }
@@ -63,7 +67,10 @@ describe("LocalStorageCache cache tests", () => {
     const fakeLogger = new FakeLogger();
 
     const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
-      kernel => ChromeLocalStorageCache.setup(kernel, () => faultyLocalStorage));
+      kernel => {
+        kernel.defaultCacheFactory = options => new ExternalConfigCache(new ChromeLocalStorageCache(faultyLocalStorage), options.logger);
+        return kernel;
+      });
 
     try { await client.getValueAsync("stringDefaultCat", ""); }
     finally { client.dispose(); }

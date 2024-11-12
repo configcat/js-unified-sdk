@@ -15,7 +15,11 @@ export const createConfigFetcher = (): IConfigFetcher => new XmlHttpRequestConfi
 
 export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
   const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
-  return (setupKernel ?? LocalStorageCache.setup)(kernel);
+  setupKernel ??= kernel => {
+    kernel.defaultCacheFactory = LocalStorageCache.tryGetFactory();
+    return kernel;
+  };
+  return setupKernel(kernel);
 };
 
 export const createClientWithAutoPoll = (sdkKey: string, options?: IJSAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
@@ -82,6 +86,9 @@ testsContext = require.context(".", true, /\.ts$/);
 includeTestModules(testsContext);
 
 testsContext = require.context("../helpers", true, /\.ts$/);
+includeTestModules(testsContext);
+
+testsContext = require.context("../shared", false, /IndexedDBCacheTests\.ts$/);
 includeTestModules(testsContext);
 
 function includeTestModules(testsContext: Record<string, any>) {

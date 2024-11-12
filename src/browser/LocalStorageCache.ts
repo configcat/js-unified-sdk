@@ -1,14 +1,13 @@
-import type { IConfigCatCache } from "../ConfigCatCache";
+import type { IConfigCache, IConfigCatCache } from "../ConfigCatCache";
 import { ExternalConfigCache } from "../ConfigCatCache";
-import type { IConfigCatKernel } from "../ConfigCatClient";
+import type { OptionsBase } from "../ConfigCatClientOptions";
 
 export class LocalStorageCache implements IConfigCatCache {
-  static setup(kernel: IConfigCatKernel, localStorageGetter?: () => Storage | null): IConfigCatKernel {
-    const localStorage = (localStorageGetter ?? getLocalStorage)();
+  static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
+    const localStorage = getLocalStorage();
     if (localStorage) {
-      kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageCache(localStorage), options.logger);
+      return options => new ExternalConfigCache(new LocalStorageCache(localStorage), options.logger);
     }
-    return kernel;
   }
 
   constructor(private readonly storage: Storage) {
@@ -26,24 +25,24 @@ export class LocalStorageCache implements IConfigCatCache {
   }
 }
 
-export function getLocalStorage(): Storage | null {
-  const testKey = "__configcat_localStorage_test";
+export function getLocalStorage(): Storage | undefined {
+  if (typeof localStorage !== "undefined") {
+    const testKey = "__configcat_localStorage_test";
 
-  try {
-    const storage = window.localStorage;
-    storage.setItem(testKey, testKey);
+    try {
+      const storage = localStorage;
+      storage.setItem(testKey, testKey);
 
-    let retrievedItem: string | null;
-    try { retrievedItem = storage.getItem(testKey); }
-    finally { storage.removeItem(testKey); }
+      let retrievedItem: string | null;
+      try { retrievedItem = storage.getItem(testKey); }
+      finally { storage.removeItem(testKey); }
 
-    if (retrievedItem === testKey) {
-      return storage;
+      if (retrievedItem === testKey) {
+        return storage;
+      }
     }
+    catch { /* intentional no-op */ }
   }
-  catch (err) { /* intentional no-op */ }
-
-  return null;
 }
 
 export function toUtf8Base64(str: string): string {

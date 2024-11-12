@@ -66,7 +66,7 @@ export function createFlagOverridesFromMap(map: { [key: string]: NonNullable<Set
  * specify feature flag override values. Parameters whose name doesn't start with the
  * prefix will be ignored. Defaults to `cc-`.
  * @param queryStringProvider The provider object used to obtain the query string.
- * Defaults to a provider that returns the value of `window.location.search`.
+ * Defaults to a provider that returns the value of `globalThis.location.search`.
  */
 export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
   watchChanges?: boolean, paramPrefix?: string, queryStringProvider?: IQueryStringProvider

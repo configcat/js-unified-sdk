@@ -3,6 +3,7 @@ import { FakeLogger } from "../helpers/fakes";
 import { createClientWithLazyLoad } from ".";
 import { LogLevel } from "#lib";
 import { LocalStorageCache, fromUtf8Base64, getLocalStorage, toUtf8Base64 } from "#lib/browser/LocalStorageCache";
+import { ExternalConfigCache } from "#lib/ConfigCatCache";
 
 describe("Base64 encode/decode test", () => {
   let allBmpChars = "";
@@ -27,7 +28,7 @@ describe("Base64 encode/decode test", () => {
 describe("LocalStorageCache cache tests", () => {
   it("LocalStorageCache works with non latin 1 characters", () => {
     const localStorage = getLocalStorage();
-    assert.isNotNull(localStorage);
+    assert.isDefined(localStorage);
 
     const cache = new LocalStorageCache(localStorage!);
     const key = "testkey";
@@ -35,7 +36,7 @@ describe("LocalStorageCache cache tests", () => {
     cache.set(key, text);
     const retrievedValue = cache.get(key);
     assert.strictEqual(retrievedValue, text);
-    assert.strictEqual(window.localStorage.getItem(key), "w6TDtsO8w4TDlsOcw6fDqcOow7HEscWfxJ/DosKi4oSi4pyT8J+YgA==");
+    assert.strictEqual(self.localStorage.getItem(key), "w6TDtsO8w4TDlsOcw6fDqcOow7HEscWfxJ/DosKi4oSi4pyT8J+YgA==");
   });
 
   it("Error is logged when LocalStorageCache.get throws", async () => {
@@ -52,7 +53,10 @@ describe("LocalStorageCache cache tests", () => {
     const fakeLogger = new FakeLogger();
 
     const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
-      kernel => LocalStorageCache.setup(kernel, () => faultyLocalStorage));
+      kernel => {
+        kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageCache(faultyLocalStorage), options.logger);
+        return kernel;
+      });
 
     try { await client.getValueAsync("stringDefaultCat", ""); }
     finally { client.dispose(); }
@@ -74,7 +78,10 @@ describe("LocalStorageCache cache tests", () => {
     const fakeLogger = new FakeLogger();
 
     const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
-      kernel => LocalStorageCache.setup(kernel, () => faultyLocalStorage));
+      kernel => {
+        kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageCache(faultyLocalStorage), options.logger);
+        return kernel;
+      });
 
     try { await client.getValueAsync("stringDefaultCat", ""); }
     finally { client.dispose(); }

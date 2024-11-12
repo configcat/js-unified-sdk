@@ -5,6 +5,7 @@ import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+import { IndexedDBCache } from "../shared/IndexedDBCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { ChromeLocalStorageCache } from "./ChromeLocalStorageCache";
 
@@ -23,13 +24,13 @@ setupPolyfills();
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
-    ChromeLocalStorageCache.setup({
-      configFetcher: new FetchApiConfigFetcher(),
-      sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
-      sdkVersion: CONFIGCAT_SDK_VERSION,
-      eventEmitterFactory: () => new DefaultEventEmitter()
-    }));
+  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
+    configFetcher: new FetchApiConfigFetcher(),
+    sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
+    sdkVersion: CONFIGCAT_SDK_VERSION,
+    eventEmitterFactory: () => new DefaultEventEmitter(),
+    defaultCacheFactory: ChromeLocalStorageCache.tryGetFactory() ?? IndexedDBCache.tryGetFactory()
+  });
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";

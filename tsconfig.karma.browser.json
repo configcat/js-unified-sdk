@@ -8,7 +8,9 @@
     "declaration": false,
     "types": ["chai", "mocha"]
   },
-  "files": [],
+  "files": [
+    "test/shared/IndexedDBCacheTests.ts"
+  ],
   "include": [
     "test/*.ts",
     "test/browser/**/*.ts",
