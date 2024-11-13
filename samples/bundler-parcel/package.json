@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "build": "parcel build src/index.js --dist-dir=dist --no-optimize --no-source-maps",
-    "start": "npm run build & node ../shared/server dist"
+    "start": "npm run build & node ../shared/server.mjs dist"
   },
   "dependencies": {
     "@configcat/sdk": "^0.0.1"
