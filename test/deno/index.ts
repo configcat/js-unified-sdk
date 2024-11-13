@@ -9,16 +9,29 @@ import { IConfigFetcher } from "#lib/ConfigFetcher";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import { IConfigCatClient, IDenoAutoPollOptions, IDenoLazyLoadingOptions, IDenoManualPollOptions, getClient } from "#lib/deno";
 import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
+import sdkVersion from "#lib/Version";
+
+const sdkType = "ConfigCat-UnifiedJS-Deno";
 
 // Based on: https://dev.to/craigmorten/testing-your-deno-apps-with-mocha-4f35
 
 const options: Mocha.MochaOptions = {};
 
 for (let i = 0; i < Deno.args.length; i++) {
-  const key = Deno.args[i++];
-  if (!key.startsWith("--") || i >= Deno.args.length) break;
+  const arg = Deno.args[i++];
+  if (!arg.startsWith("--") || i >= Deno.args.length) break;
   const value = Deno.args[i];
-  options[key.substring(2)] = value;
+
+  const key = arg.substring(2) as keyof Mocha.MochaOptions;
+  switch (key) {
+    case "grep":
+    case "fgrep":
+    case "timeout":
+      options[key] = value;
+      break;
+    default:
+      console.warn(`Command line option '${key}' is not recognized.`);
+  }
 }
 
 // Browser-based Mocha requires `window.location` to exist.
@@ -37,9 +50,6 @@ mocha.setup({ ...options, ui: "bdd", reporter: "spec" });
 
 // Ensure there are no leaks in our tests.
 mocha.checkLeaks();
-
-const sdkVersion = "0.0.0-test";
-const sdkType = "ConfigCat-Deno";
 
 export const createConfigFetcher = (): IConfigFetcher => new FetchApiConfigFetcher();
 
