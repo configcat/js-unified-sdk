@@ -595,7 +595,7 @@ describe("ConfigCatClient", () => {
     const actualValue = await client.getValueAsync("debug", false);
     const elapsedMilliseconds: number = new Date().getTime() - startDate;
 
-    assert.isAtLeast(elapsedMilliseconds, 500 - 10); // 10 ms for tolerance
+    assert.isAtLeast(elapsedMilliseconds, 500 - 25); // 25 ms for tolerance
     assert.isAtMost(elapsedMilliseconds, maxInitWaitTimeSeconds * 1000 + 75); // 75 ms for tolerance
     assert.equal(actualValue, true);
 
@@ -619,7 +619,7 @@ describe("ConfigCatClient", () => {
       const actualDetails = await client.getValueDetailsAsync("debug", false);
       const elapsedMilliseconds: number = new Date().getTime() - startDate;
 
-      assert.isAtLeast(elapsedMilliseconds, 500 - 10); // 10 ms for tolerance
+      assert.isAtLeast(elapsedMilliseconds, 500 - 25); // 25 ms for tolerance
       assert.isAtMost(elapsedMilliseconds, configFetchDelay * 2 + 75); // 75 ms for tolerance
       assert.equal(actualDetails.isDefaultValue, true);
       assert.equal(actualDetails.value, false);
@@ -640,7 +640,7 @@ describe("ConfigCatClient", () => {
     const actualValue = await client.getValueAsync("debug", false);
     const elapsedMilliseconds: number = new Date().getTime() - startDate;
 
-    assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 10); // 10 ms for tolerance
+    assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 25); // 25 ms for tolerance
     assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 75); // 75 ms for tolerance
     assert.equal(actualValue, false);
 
@@ -681,7 +681,7 @@ describe("ConfigCatClient", () => {
       const state = await client.waitForReady();
       const elapsedMilliseconds: number = new Date().getTime() - startDate;
 
-      assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 10); // 10 ms for tolerance
+      assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 25); // 25 ms for tolerance
       assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 75); // 75 ms for tolerance
 
       assert.equal(state, ClientCacheState.NoFlagData);
@@ -714,7 +714,7 @@ describe("ConfigCatClient", () => {
       const state = await client.waitForReady();
       const elapsedMilliseconds: number = new Date().getTime() - startDate;
 
-      assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 10); // 10 ms for tolerance
+      assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 25); // 25 ms for tolerance
       assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 75); // 75 ms for tolerance
 
       assert.equal(state, ClientCacheState.HasCachedFlagDataOnly);

@@ -12,6 +12,7 @@
   "files": [
     "src/browser/index.root.ts",
     "src/chromium-extension/index.ts",
+    "src/cloudflare-worker/index.ts",
     "src/deno/index.ts",
     "src/node/index.root.ts"
   ]

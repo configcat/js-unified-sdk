@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { FakeLogger } from "../helpers/fakes";
-import { createClientWithLazyLoad } from ".";
+import { platform } from ".";
 import { LogLevel } from "#lib";
 import { LocalStorageConfigCache, fromUtf8Base64, getLocalStorage, toUtf8Base64 } from "#lib/browser/LocalStorageConfigCache";
 import { ExternalConfigCache } from "#lib/ConfigCatCache";
@@ -52,7 +52,7 @@ describe("LocalStorageConfigCache tests", () => {
 
     const fakeLogger = new FakeLogger();
 
-    const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
+    const client = platform.createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
       kernel => {
         kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageConfigCache(faultyLocalStorage), options.logger);
         return kernel;
@@ -77,7 +77,7 @@ describe("LocalStorageConfigCache tests", () => {
 
     const fakeLogger = new FakeLogger();
 
-    const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
+    const client = platform.createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
       kernel => {
         kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageConfigCache(faultyLocalStorage), options.logger);
         return kernel;

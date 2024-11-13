@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
 import { FakeExternalCache, createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions } from "./helpers/fakes";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
-import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, OptionsBase } from "#lib/ConfigCatClientOptions";
+import { OptionsBase } from "#lib/ConfigCatClientOptions";
 import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogLevel, LogMessage, LoggerWrapper } from "#lib/ConfigCatLogger";
 import { ProjectConfig } from "#lib/ProjectConfig";
 
@@ -14,7 +14,7 @@ describe("Options", () => {
   });
 
   it("ManualPollOptions initialization With NULL 'defaultCache' Should init with InMemoryCache", () => {
-    const options: ManualPollOptions = createManualPollOptions("APIKEY");
+    const options = createManualPollOptions("APIKEY");
 
     assert.isNotNull(options.cache);
     assert.instanceOf(options.cache, InMemoryConfigCache);
@@ -22,19 +22,19 @@ describe("Options", () => {
 
   it("ManualPollOptions initialization With 'sdkKey' Should create an instance, defaults OK", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: ManualPollOptions = createManualPollOptions("APIKEY", void 0, kernel);
+    const options = createManualPollOptions("APIKEY", void 0, kernel);
     assert.isDefined(options);
 
     assert.equal("APIKEY", options.sdkKey);
     assert.equal(30000, options.requestTimeoutMs);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getRealUrl());
   });
 
   it("ManualPollOptions initialization With parameters works", () => {
     const fakeLogger: FakeLogger = new FakeLogger();
 
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: ManualPollOptions = createManualPollOptions(
+    const options = createManualPollOptions(
       "APIKEY",
       {
         logger: fakeLogger,
@@ -48,17 +48,17 @@ describe("Options", () => {
     assert.equal(fakeLogger, options.logger["logger"]);
     assert.equal("APIKEY", options.sdkKey);
     assert.equal(10, options.requestTimeoutMs);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getRealUrl());
     assert.equal("http://fake-proxy.com:8080", options.proxy);
   });
 
   it("ManualPollOptions initialization With 'baseUrl' Should create an instance with custom baseUrl", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: ManualPollOptions = createManualPollOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
+    const options = createManualPollOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
 
     assert.isDefined(options);
-    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
-    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
+    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getRealUrl());
+    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getRealUrl());
   });
 
   it("AutoPollOptions initialization With -1 requestTimeoutMs ShouldThrowError", () => {
@@ -69,12 +69,12 @@ describe("Options", () => {
 
   it("AutoPollOptions initialization With 'sdkKey' Should create an instance, defaults OK", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, kernel);
+    const options = createAutoPollOptions("APIKEY", void 0, kernel);
     assert.isDefined(options);
     assert.isTrue(options.logger instanceof LoggerWrapper);
     assert.isTrue(options.logger["logger"] instanceof ConfigCatConsoleLogger);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getRealUrl());
     assert.equal(60, options.pollIntervalSeconds);
     assert.equal(30000, options.requestTimeoutMs);
     assert.isDefined(options.cache);
@@ -84,7 +84,7 @@ describe("Options", () => {
     const fakeLogger: FakeLogger = new FakeLogger();
 
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: AutoPollOptions = createAutoPollOptions(
+    const options = createAutoPollOptions(
       "APIKEY",
       {
         logger: fakeLogger,
@@ -97,7 +97,7 @@ describe("Options", () => {
     assert.isDefined(options);
     assert.equal(fakeLogger, options.logger["logger"]);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getRealUrl());
     assert.equal(59, options.pollIntervalSeconds);
     assert.equal(20, options.requestTimeoutMs);
     assert.equal("http://fake-proxy.com:8080", options.proxy);
@@ -149,7 +149,7 @@ describe("Options", () => {
 
   it("AutoPollOptions initialization With NULL 'defaultCache' Should set to InMemoryCache", () => {
 
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY");
+    const options = createAutoPollOptions("APIKEY");
 
     assert.isNotNull(options.cache);
     assert.instanceOf(options.cache, InMemoryConfigCache);
@@ -157,11 +157,11 @@ describe("Options", () => {
 
   it("AutoPollOptions initialization With 'baseUrl' Should create an instance with custom baseUrl", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
+    const options = createAutoPollOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
 
     assert.isDefined(options);
-    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
-    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
+    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getRealUrl());
+    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getRealUrl());
   });
 
   it("AutoPollOptions initialization With NaN 'maxInitWaitTimeSeconds' ShouldThrowError", () => {
@@ -197,7 +197,7 @@ describe("Options", () => {
   });
 
   it("AutoPollOptions initialization With 0 'maxInitWaitTimeSeconds' Should create an instance with passed value", () => {
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 0 });
+    const options = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 0 });
 
     assert.isDefined(options);
     assert.isNotNull(options);
@@ -205,7 +205,7 @@ describe("Options", () => {
   });
 
   it("AutoPollOptions initialization Without 'maxInitWaitTimeSeconds' Should create an instance with default value(5)", () => {
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY");
+    const options = createAutoPollOptions("APIKEY");
 
     assert.isDefined(options);
     assert.isNotNull(options);
@@ -214,10 +214,10 @@ describe("Options", () => {
 
   it("LazyLoadOptions initialization With 'sdkKey' Should create an instance, defaults OK", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", void 0, kernel);
+    const options = createLazyLoadOptions("APIKEY", void 0, kernel);
     assert.isDefined(options);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getRealUrl());
     assert.equal(60, options.cacheTimeToLiveSeconds);
     assert.equal(30000, options.requestTimeoutMs);
   });
@@ -226,7 +226,7 @@ describe("Options", () => {
     const fakeLogger: FakeLogger = new FakeLogger();
 
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: LazyLoadOptions = createLazyLoadOptions(
+    const options = createLazyLoadOptions(
       "APIKEY",
       {
         logger: fakeLogger,
@@ -240,7 +240,7 @@ describe("Options", () => {
     assert.isDefined(options);
     assert.equal(fakeLogger, options.logger["logger"]);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getRealUrl());
     assert.equal(59, options.cacheTimeToLiveSeconds);
     assert.equal(20, options.requestTimeoutMs);
     assert.equal("http://fake-proxy.com:8080", options.proxy);
@@ -259,7 +259,7 @@ describe("Options", () => {
   });
 
   it("LazyLoadOptions initialization With NULL 'defaultCache' Should set to InMemoryCache", () => {
-    const options: LazyLoadOptions = createLazyLoadOptions("APIKEY");
+    const options = createLazyLoadOptions("APIKEY");
 
     assert.isNotNull(options.cache);
     assert.instanceOf(options.cache, InMemoryConfigCache);
@@ -267,11 +267,11 @@ describe("Options", () => {
 
   it("LazyLoadOptions initialization With 'baseUrl' Should create an instance with custom baseUrl", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
+    const options = createLazyLoadOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
 
     assert.isDefined(options);
-    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
-    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
+    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getRealUrl());
+    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getRealUrl());
   });
 
   it("Options initialization With 'defaultCache' Should set option cache to passed instance", () => {
@@ -308,19 +308,19 @@ describe("Options", () => {
 
   it("AutoPollOptions initialization - sdkVersion works", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, kernel);
+    const options = createAutoPollOptions("APIKEY", void 0, kernel);
     assert.equal("common/a-1.0.0", options.clientVersion);
   });
 
   it("LazyLoadOptions initialization - sdkVersion works", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", void 0, kernel);
+    const options = createLazyLoadOptions("APIKEY", void 0, kernel);
     assert.equal("common/l-1.0.0", options.clientVersion);
   });
 
   it("ManualPollOptions initialization - sdkVersion works", () => {
     const kernel = createKernel({ sdkType: "common", sdkVersion: "1.0.0" });
-    const options: ManualPollOptions = createManualPollOptions("APIKEY", void 0, kernel);
+    const options = createManualPollOptions("APIKEY", void 0, kernel);
     assert.equal("common/m-1.0.0", options.clientVersion);
   });
 

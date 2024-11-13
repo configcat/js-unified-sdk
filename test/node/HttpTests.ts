@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import * as mockttp from "mockttp";
 import { FakeLogger } from "../helpers/fakes";
-import { createClientWithManualPoll } from ".";
+import { platform } from ".";
 import { LogLevel } from "#lib";
 
 // If the tests are failing with strange https or proxy errors, it is most likely that the local .key and .pem files are expired.
@@ -26,7 +26,7 @@ describe("HTTP tests", () => {
 
     const logger = new FakeLogger();
 
-    const client = createClientWithManualPoll(sdkKey, {
+    const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
       logger
@@ -49,7 +49,7 @@ describe("HTTP tests", () => {
 
     const logger = new FakeLogger();
 
-    const client = createClientWithManualPoll(sdkKey, {
+    const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
       logger
@@ -70,7 +70,7 @@ describe("HTTP tests", () => {
 
     const logger = new FakeLogger();
 
-    const client = createClientWithManualPoll(sdkKey, {
+    const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
       logger
@@ -91,7 +91,7 @@ describe("HTTP tests", () => {
 
     const logger = new FakeLogger();
 
-    const client = createClientWithManualPoll(sdkKey, {
+    const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
       logger
@@ -115,7 +115,7 @@ describe("HTTP tests", () => {
       }
     });
 
-    const client = createClientWithManualPoll(sdkKey, {
+    const client = platform.createClientWithManualPoll(sdkKey, {
       proxy: server.url
     });
     await client.forceRefreshAsync();

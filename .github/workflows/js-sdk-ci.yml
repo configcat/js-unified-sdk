@@ -28,29 +28,6 @@ jobs:
       - name: Run check
         run: npm run check:ts-compat
 
-  test-node:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        node-version: [14.x, 16.x, 18.x, 20.x, 22.x]
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        exclude:
-          - node-version: 14.x
-            os: macOS-latest
-    name: Node.js ${{ matrix.node-version }} (${{ matrix.os }}) test
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Install dependencies & build
-        run: npm install
-
-      - name: Test
-        run: npm run test:node
-
   test-browser-chrome:
     runs-on: ubuntu-latest
     strategy:
@@ -62,7 +39,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 18
 
       - name: Setup chrome
         uses: browser-actions/setup-chrome@latest
@@ -86,7 +63,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 18
 
       - name: Setup chrome
         uses: browser-actions/setup-chrome@latest
@@ -110,7 +87,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 18
 
       - name: Setup firefox
         uses: browser-actions/setup-firefox@latest
@@ -134,7 +111,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 18
 
       - name: Setup chrome
         uses: browser-actions/setup-chrome@latest
@@ -158,7 +135,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 18
 
       - name: Setup chrome
         uses: browser-actions/setup-chrome@latest
@@ -170,6 +147,25 @@ jobs:
 
       - name: Test
         run: CHROMIUM_BIN=$(which chrome) npm run test:chromium-extension:chromium
+
+  test-cloudflare-worker:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    name: Cloudflare Worker (${{ matrix.os }}) test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run test:cloudflare-worker
 
   test-deno:
     runs-on: ${{ matrix.os }}
@@ -196,13 +192,37 @@ jobs:
       - name: Test
         run: npm run test:deno
 
+  test-node:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x, 20.x, 22.x]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        exclude:
+          - node-version: 14.x
+            os: macOS-latest
+    name: Node.js ${{ matrix.node-version }} (${{ matrix.os }}) test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run test:node
+
   coverage:
     needs: [
       check-ts-compat,
-      test-node,
       test-browser-chrome, test-browser-chromium, test-browser-firefox,
       test-chromium-extension-chrome, test-chromium-extension-chromium,
-      test-deno
+      test-cloudflare-worker,
+      test-deno,
+      test-node
     ]
     runs-on: ubuntu-latest
     steps:
@@ -211,7 +231,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 18
 
       - name: Install dependencies & build
         run: npm install
@@ -240,7 +260,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 18
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies

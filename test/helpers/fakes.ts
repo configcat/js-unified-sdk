@@ -1,4 +1,4 @@
-import { platform } from "./platform";
+import { AugmentedOptions, platform } from "./platform";
 import { IConfigCache, IConfigCatCache } from "#lib/ConfigCatCache";
 import { IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, LazyLoadOptions, ManualPollOptions, OptionsBase } from "#lib/ConfigCatClientOptions";
@@ -12,20 +12,18 @@ export function createKernel(kernelOverride?: Partial<IConfigCatKernel>): IConfi
   return platform().createKernel(kernel => Object.assign(kernel, kernelOverride));
 }
 
-export function createAutoPollOptions(sdkKey: string, options?: IAutoPollOptions, kernel?: IConfigCatKernel): AutoPollOptions {
-  kernel ??= createKernel();
-  return new AutoPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+export function createAutoPollOptions(sdkKey: string, options?: IAutoPollOptions, kernel?: IConfigCatKernel): AugmentedOptions<AutoPollOptions> {
+  return platform().createAutoPollOptions(sdkKey, options, kernel ?? createKernel());
 }
 
-export function createManualPollOptions(sdkKey: string, options?: IManualPollOptions, kernel?: IConfigCatKernel): ManualPollOptions {
-  kernel ??= createKernel();
-  return new ManualPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+export function createManualPollOptions(sdkKey: string, options?: IManualPollOptions, kernel?: IConfigCatKernel): AugmentedOptions<ManualPollOptions> {
+  return platform().createManualPollOptions(sdkKey, options, kernel ?? createKernel());
 }
 
-export function createLazyLoadOptions(sdkKey: string, options?: ILazyLoadingOptions, kernel?: IConfigCatKernel): LazyLoadOptions {
-  kernel ??= createKernel();
-  return new LazyLoadOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, options, kernel.defaultCacheFactory, kernel.eventEmitterFactory);
+export function createLazyLoadOptions(sdkKey: string, options?: ILazyLoadingOptions, kernel?: IConfigCatKernel): AugmentedOptions<LazyLoadOptions> {
+  return platform().createLazyLoadOptions(sdkKey, options, kernel ?? createKernel());
 }
+
 export function createClientWithAutoPoll(sdkKey: string, kernelOverride?: Partial<IConfigCatKernel>, options?: IAutoPollOptions): IConfigCatClient {
   return platform().createClientWithAutoPoll(sdkKey, options, kernel => Object.assign(kernel, kernelOverride));
 }

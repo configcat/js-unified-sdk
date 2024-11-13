@@ -9,11 +9,13 @@
     ".": {
       "types": {
         "deno": "./lib/esm/deno/index.d.ts",
+        "workerd": "./lib/esm/cloudflare-worker/index.d.ts",
         "browser": "./lib/esm/browser/index.root.d.ts",
         "import": "./lib/esm/node/index.root.d.ts",
         "require": "./lib/cjs/node/index.root.d.ts"
       },
       "deno": "./lib/esm/deno/index.js",
+      "workerd": "./lib/esm/cloudflare-worker/index.js",
       "browser": "./lib/esm/browser/index.root.js",
       "import": "./lib/esm/node/index.root.js",
       "require": "./lib/cjs/node/index.root.js"
@@ -25,6 +27,10 @@
     "./chromium-extension": {
       "types": "./lib/esm/chromium-extension/index.d.ts",
       "import": "./lib/esm/chromium-extension/index.js"
+    },
+    "./cloudflare-worker": {
+      "types": "./lib/esm/cloudflare-worker/index.d.ts",
+      "import": "./lib/esm/cloudflare-worker/index.js"
     },
     "./deno": {
       "types": "./lib/esm/deno/index.d.ts",
@@ -47,6 +53,9 @@
     },
     "#lib/chromium-extension": {
       "browser": "./lib/esm/chromium-extension/index.js"
+    },
+    "#lib/cloudflare-worker": {
+      "browser": "./lib/esm/cloudflare-worker/index.js"
     },
     "#lib/node": {
       "require": "./lib/cjs/node/index.js"
@@ -76,9 +85,10 @@
     "test:browser:firefox": "karma start karma.browser.firefox.conf.js",
     "test:chromium-extension:chrome": "karma start karma.chromium-extension.chrome.conf.js",
     "test:chromium-extension:chromium": "karma start karma.chromium-extension.chromium.conf.js",
+    "test:cloudflare-worker": "webpack -c webpack.workerd.cloudflare-worker.config.js && concurrently --raw --success command-1 --kill-others \"node test/cloudflare-worker/test-run-helper/server.mjs\" \"workerd test workerd.config.capnp\"",
     "test:deno": "node deno.import-map.generator.js && node deno.set-env.js deno run $DENO_NODE_MODULES_DIR -A test/deno/index.ts --timeout 30000",
     "test:node": "cross-env NODE_EXTRA_CA_CERTS=./test/node/cert/testCA.pem TS_NODE_PROJECT=./tsconfig.mocha.node.json node --expose-gc --require ts-node/register node_modules/mocha/bin/_mocha 'test/node/index.ts' --exit --timeout 30000",
-    "test": "npm run check:ts-compat && npm run test:node && npm run test:browser:chrome && npm run test:chromium-extension:chrome && npm run test:deno"
+    "test": "npm run check:ts-compat && npm run test:browser:chrome && npm run test:chromium-extension:chrome && npm run test:cloudflare-worker &&  npm run test:deno && npm run test:node"
   },
   "keywords": [
     "configcat",
@@ -101,6 +111,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.20.2",
+    "@cloudflare/workers-types": "^4.20241106.0",
     "@types/chai": "~4.3.4",
     "@types/chrome": "~0.0.270",
     "@types/mocha": "~10.0.1",
@@ -110,6 +121,7 @@
     "@typescript-eslint/parser": "^5.53.0",
     "babel-loader": "^9.1.0",
     "chai": "^4.3.7",
+    "concurrently": "^9.1.0",
     "core-js": "^3.38.1",
     "coverage-istanbul-loader": "^3.0.5",
     "cross-env": "^7.0.3",
@@ -140,7 +152,8 @@
     "tslib": "^2.7.0",
     "typescript": "^5.5.4",
     "webpack": "^5.94.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "workerd": "^1.20241112.0"
   },
   "overrides": {
     "cookie": "0.7.2"

@@ -1,6 +1,6 @@
 import { createManualPollOptions } from "./fakes";
-import { platform } from "./platform";
-import { ManualPollOptions } from "#lib/ConfigCatClientOptions";
+import { AugmentedOptions, platform } from "./platform";
+import { DataGovernance, IOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { ManualPollConfigService } from "#lib/ManualPollConfigService";
 import { Config } from "#lib/ProjectConfig";
 
@@ -22,10 +22,19 @@ export abstract class ConfigLocation {
 }
 
 export class CdnConfigLocation extends ConfigLocation {
-  private $options?: ManualPollOptions;
-  get options(): ManualPollOptions {
+  static getDefaultCdnUrl(options?: IOptions): string {
+    switch (options?.dataGovernance ?? DataGovernance.Global) {
+      case DataGovernance.EuOnly:
+        return "https://cdn-eu.configcat.com";
+      default:
+        return "https://cdn-global.configcat.com";
+    }
+  }
+
+  private $options?: AugmentedOptions<ManualPollOptions>;
+  get options(): AugmentedOptions<ManualPollOptions> {
     return this.$options ??= createManualPollOptions(this.sdkKey, {
-      baseUrl: this.baseUrl ?? "https://cdn-eu.configcat.com"
+      baseUrl: this.baseUrl ?? CdnConfigLocation.getDefaultCdnUrl()
     });
   }
 
@@ -37,7 +46,7 @@ export class CdnConfigLocation extends ConfigLocation {
   }
 
   getRealLocation(): string {
-    const url = this.options.getUrl();
+    const url = this.options.getRealUrl();
     const index = url.lastIndexOf("?");
     return index >= 0 ? url.slice(0, index) : url;
   }

@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import fetchMock from "fetch-mock";
 import { FakeLogger } from "../helpers/fakes";
-import { createClientWithManualPoll } from ".";
+import { platform } from ".";
 import { LogLevel } from "#lib";
 
 describe("HTTP tests", () => {
@@ -18,7 +18,7 @@ describe("HTTP tests", () => {
       try {
         const logger = new FakeLogger();
 
-        const client = createClientWithManualPoll(sdkKey, {
+        const client = platform.createClientWithManualPoll(sdkKey, {
           requestTimeoutMs,
           baseUrl,
           logger
@@ -47,7 +47,7 @@ describe("HTTP tests", () => {
     try {
       const logger = new FakeLogger();
 
-      const client = createClientWithManualPoll(sdkKey, {
+      const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
         logger
@@ -73,7 +73,7 @@ describe("HTTP tests", () => {
     try {
       const logger = new FakeLogger();
 
-      const client = createClientWithManualPoll(sdkKey, {
+      const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
         logger
@@ -100,7 +100,7 @@ describe("HTTP tests", () => {
     try {
       const logger = new FakeLogger();
 
-      const client = createClientWithManualPoll(sdkKey, {
+      const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
         logger
