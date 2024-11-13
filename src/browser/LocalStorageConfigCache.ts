@@ -2,11 +2,11 @@ import type { IConfigCache, IConfigCatCache } from "../ConfigCatCache";
 import { ExternalConfigCache } from "../ConfigCatCache";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 
-export class LocalStorageCache implements IConfigCatCache {
+export class LocalStorageConfigCache implements IConfigCatCache {
   static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const localStorage = getLocalStorage();
     if (localStorage) {
-      return options => new ExternalConfigCache(new LocalStorageCache(localStorage), options.logger);
+      return options => new ExternalConfigCache(new LocalStorageConfigCache(localStorage), options.logger);
     }
   }
 

@@ -5,9 +5,9 @@ import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
-import { IndexedDBCache } from "../shared/IndexedDBCache";
+import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
-import { ChromeLocalStorageCache } from "./ChromeLocalStorageCache";
+import { ChromeLocalStorageConfigCache } from "./ChromeLocalStorageConfigCache";
 
 /* Package public API for Chromium-based browser extensions */
 
@@ -29,7 +29,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
-    defaultCacheFactory: ChromeLocalStorageCache.tryGetFactory() ?? IndexedDBCache.tryGetFactory()
+    defaultCacheFactory: ChromeLocalStorageConfigCache.tryGetFactory() ?? IndexedDBConfigCache.tryGetFactory()
   });
 }
 

@@ -1,8 +1,8 @@
 import { assert } from "chai";
-import { IndexedDBCache, getDBConnectionFactory } from "#lib/shared/IndexedDBCache";
+import { IndexedDBConfigCache, getDBConnectionFactory } from "#lib/shared/IndexedDBConfigCache";
 
-describe("IndexedDBCache cache tests", () => {
-  it("IndexedDBCache works with non latin 1 characters", async function() {
+describe("IndexedDBConfigCache tests", () => {
+  it("IndexedDBConfigCache works with non latin 1 characters", async function() {
     if (typeof indexedDB === "undefined") {
       this.skip();
     }
@@ -10,7 +10,7 @@ describe("IndexedDBCache cache tests", () => {
     const dbConnectionFactory = getDBConnectionFactory();
     assert.isDefined(dbConnectionFactory);
 
-    const cache = new IndexedDBCache(dbConnectionFactory!);
+    const cache = new IndexedDBConfigCache(dbConnectionFactory!);
     const key = "testkey";
     const text = "äöüÄÖÜçéèñışğâ¢™✓😀";
     await cache.set(key, text);

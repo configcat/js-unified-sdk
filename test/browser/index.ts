@@ -1,7 +1,7 @@
 import { initPlatform } from "../helpers/platform";
 import { getClient } from "#lib/browser";
 import type { IConfigCatClient, IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/browser";
-import { LocalStorageCache } from "#lib/browser/LocalStorageCache";
+import { LocalStorageConfigCache } from "#lib/browser/LocalStorageConfigCache";
 import { XmlHttpRequestConfigFetcher } from "#lib/browser/XmlHttpRequestConfigFetcher";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
@@ -16,7 +16,7 @@ export const createConfigFetcher = (): IConfigFetcher => new XmlHttpRequestConfi
 export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
   const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
   setupKernel ??= kernel => {
-    kernel.defaultCacheFactory = LocalStorageCache.tryGetFactory();
+    kernel.defaultCacheFactory = LocalStorageConfigCache.tryGetFactory();
     return kernel;
   };
   return setupKernel(kernel);
@@ -88,7 +88,7 @@ includeTestModules(testsContext);
 testsContext = require.context("../helpers", true, /\.ts$/);
 includeTestModules(testsContext);
 
-testsContext = require.context("../shared", false, /IndexedDBCacheTests\.ts$/);
+testsContext = require.context("../shared", false, /IndexedDBConfigCacheTests\.ts$/);
 includeTestModules(testsContext);
 
 function includeTestModules(testsContext: Record<string, any>) {

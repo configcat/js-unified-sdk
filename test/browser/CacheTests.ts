@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { FakeLogger } from "../helpers/fakes";
 import { createClientWithLazyLoad } from ".";
 import { LogLevel } from "#lib";
-import { LocalStorageCache, fromUtf8Base64, getLocalStorage, toUtf8Base64 } from "#lib/browser/LocalStorageCache";
+import { LocalStorageConfigCache, fromUtf8Base64, getLocalStorage, toUtf8Base64 } from "#lib/browser/LocalStorageConfigCache";
 import { ExternalConfigCache } from "#lib/ConfigCatCache";
 
 describe("Base64 encode/decode test", () => {
@@ -25,12 +25,12 @@ describe("Base64 encode/decode test", () => {
   }
 });
 
-describe("LocalStorageCache cache tests", () => {
-  it("LocalStorageCache works with non latin 1 characters", () => {
+describe("LocalStorageConfigCache tests", () => {
+  it("LocalStorageConfigCache works with non latin 1 characters", () => {
     const localStorage = getLocalStorage();
     assert.isDefined(localStorage);
 
-    const cache = new LocalStorageCache(localStorage!);
+    const cache = new LocalStorageConfigCache(localStorage!);
     const key = "testkey";
     const text = "äöüÄÖÜçéèñışğâ¢™✓😀";
     cache.set(key, text);
@@ -39,7 +39,7 @@ describe("LocalStorageCache cache tests", () => {
     assert.strictEqual(self.localStorage.getItem(key), "w6TDtsO8w4TDlsOcw6fDqcOow7HEscWfxJ/DosKi4oSi4pyT8J+YgA==");
   });
 
-  it("Error is logged when LocalStorageCache.get throws", async () => {
+  it("Error is logged when LocalStorageConfigCache.get throws", async () => {
     const errorMessage = "Something went wrong.";
     const faultyLocalStorage: Storage = {
       get length() { return 0; },
@@ -54,7 +54,7 @@ describe("LocalStorageCache cache tests", () => {
 
     const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
       kernel => {
-        kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageCache(faultyLocalStorage), options.logger);
+        kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageConfigCache(faultyLocalStorage), options.logger);
         return kernel;
       });
 
@@ -64,7 +64,7 @@ describe("LocalStorageCache cache tests", () => {
     assert.isDefined(fakeLogger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 2200 && err instanceof Error && err.message === errorMessage));
   });
 
-  it("Error is logged when LocalStorageCache.set throws", async () => {
+  it("Error is logged when LocalStorageConfigCache.set throws", async () => {
     const errorMessage = "Something went wrong.";
     const faultyLocalStorage: Storage = {
       get length() { return 0; },
@@ -79,7 +79,7 @@ describe("LocalStorageCache cache tests", () => {
 
     const client = createClientWithLazyLoad("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ", { logger: fakeLogger },
       kernel => {
-        kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageCache(faultyLocalStorage), options.logger);
+        kernel.defaultCacheFactory = options => new ExternalConfigCache(new LocalStorageConfigCache(faultyLocalStorage), options.logger);
         return kernel;
       });
 

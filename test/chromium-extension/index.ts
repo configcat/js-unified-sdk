@@ -1,7 +1,7 @@
 import { initPlatform } from "../helpers/platform";
 import { getClient } from "#lib/chromium-extension";
 import type { IConfigCatClient, IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/chromium-extension";
-import { ChromeLocalStorageCache } from "#lib/chromium-extension/ChromeLocalStorageCache";
+import { ChromeLocalStorageConfigCache } from "#lib/chromium-extension/ChromeLocalStorageConfigCache";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
@@ -16,7 +16,7 @@ export const createConfigFetcher = (): IConfigFetcher => new FetchApiConfigFetch
 export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
   const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
   setupKernel ??= kernel => {
-    kernel.defaultCacheFactory = ChromeLocalStorageCache.tryGetFactory();
+    kernel.defaultCacheFactory = ChromeLocalStorageConfigCache.tryGetFactory();
     return kernel;
   };
   return setupKernel(kernel);
@@ -76,7 +76,7 @@ includeTestModules(testsContext);
 testsContext = require.context("../helpers", true, /\.ts$/);
 includeTestModules(testsContext);
 
-testsContext = require.context("../shared", false, /IndexedDBCacheTests\.ts$/);
+testsContext = require.context("../shared", false, /IndexedDBConfigCacheTests\.ts$/);
 includeTestModules(testsContext);
 
 function includeTestModules(testsContext: Record<string, any>) {

@@ -9,7 +9,7 @@
     "types": ["chai", "mocha"]
   },
   "files": [
-    "test/shared/IndexedDBCacheTests.ts"
+    "test/shared/IndexedDBConfigCacheTests.ts"
   ],
   "include": [
     "test/*.ts",

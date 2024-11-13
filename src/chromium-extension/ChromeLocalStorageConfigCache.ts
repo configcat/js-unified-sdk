@@ -2,11 +2,11 @@ import type { IConfigCache, IConfigCatCache } from "../ConfigCatCache";
 import { ExternalConfigCache } from "../ConfigCatCache";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 
-export class ChromeLocalStorageCache implements IConfigCatCache {
+export class ChromeLocalStorageConfigCache implements IConfigCatCache {
   static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const localStorage = getChromeLocalStorage();
     if (localStorage) {
-      return options => new ExternalConfigCache(new ChromeLocalStorageCache(localStorage), options.logger);
+      return options => new ExternalConfigCache(new ChromeLocalStorageConfigCache(localStorage), options.logger);
     }
   }
 

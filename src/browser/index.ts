@@ -4,9 +4,9 @@ import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
-import { IndexedDBCache } from "../shared/IndexedDBCache";
+import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
-import { LocalStorageCache } from "./LocalStorageCache";
+import { LocalStorageConfigCache } from "./LocalStorageConfigCache";
 import { XmlHttpRequestConfigFetcher } from "./XmlHttpRequestConfigFetcher";
 
 /* Package public API for browsers */
@@ -32,8 +32,8 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     defaultCacheFactory: typeof localStorage !== "undefined"
       // NOTE: The IndexedDB API is asynchronous, so it's not possible to check here if it actually works. For this reason,
       // we'd rather not fall back to IndexedDB if LocalStorage doesn't work. (In that case, IndexedDB is unlikely to work anyway.)
-      ? LocalStorageCache.tryGetFactory()
-      : IndexedDBCache.tryGetFactory()
+      ? LocalStorageConfigCache.tryGetFactory()
+      : IndexedDBConfigCache.tryGetFactory()
   });
 }
 

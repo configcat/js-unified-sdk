@@ -28,9 +28,9 @@ export type { IEventEmitter, IEventProvider } from "./EventEmitter";
 
 export { DefaultEventEmitter } from "./DefaultEventEmitter";
 
-export { LocalStorageCache } from "./browser/LocalStorageCache";
+export { LocalStorageConfigCache } from "./browser/LocalStorageConfigCache";
 
-export { IndexedDBCache } from "./shared/IndexedDBCache";
+export { IndexedDBConfigCache } from "./shared/IndexedDBConfigCache";
 
 export { XmlHttpRequestConfigFetcher } from "./browser/XmlHttpRequestConfigFetcher";
 
