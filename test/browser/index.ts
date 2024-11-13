@@ -7,9 +7,9 @@ import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
+import sdkVersion from "#lib/Version";
 
-const sdkVersion = "0.0.0-test";
-const sdkType = "ConfigCat-JS";
+const sdkType = "ConfigCat-UnifiedJS-Browser";
 
 export const createConfigFetcher = (): IConfigFetcher => new XmlHttpRequestConfigFetcher();
 

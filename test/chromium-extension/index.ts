@@ -7,9 +7,9 @@ import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/Config
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
 import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
+import sdkVersion from "#lib/Version";
 
-const sdkVersion = "0.0.0-test";
-const sdkType = "ConfigCat-JS-Chromium";
+const sdkType = "ConfigCat-UnifiedJS-ChromiumExtension";
 
 export const createConfigFetcher = (): IConfigFetcher => new FetchApiConfigFetcher();
 
