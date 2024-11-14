@@ -50,15 +50,17 @@ mocha.setup({ ...options, ui: "bdd", reporter: "spec" });
 // Ensure there are no leaks in our tests.
 mocha.checkLeaks();
 
+type IDenoOptions = IDenoAutoPollOptions | IDenoManualPollOptions | IDenoLazyLoadingOptions;
+
 class DenoPlatform extends PlatformAbstractions<IDenoAutoPollOptions, IDenoManualPollOptions, IDenoLazyLoadingOptions> {
   pathJoin(...segments: string[]) { return path.join(...segments); }
 
   readFileUtf8(path: string) { return Deno.readTextFileSync(path); }
 
-  createConfigFetcher() { return new FetchApiConfigFetcher(); }
+  createConfigFetcher(options?: IDenoOptions) { return new FetchApiConfigFetcher(); }
 
-  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IDenoOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
     return (setupKernel ?? (k => k))(kernel);
   }
 

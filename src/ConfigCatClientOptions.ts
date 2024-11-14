@@ -51,9 +51,6 @@ export interface IOptions {
    */
   baseUrl?: string | null;
 
-  /** Proxy settings (supported only in the Node SDK currently). */
-  proxy?: string | null;
-
   /**
    * Set this property to be in sync with the Data Governance preference on the Dashboard:
    * https://app.configcat.com/organization/data-governance (only Organization Admins have access).
@@ -144,8 +141,6 @@ export abstract class OptionsBase {
 
   baseUrlOverriden: boolean = false;
 
-  proxy: string = "";
-
   dataGovernance: DataGovernance;
 
   cache: IConfigCache;
@@ -208,10 +203,6 @@ export abstract class OptionsBase {
       if (options.baseUrl) {
         this.baseUrl = options.baseUrl;
         this.baseUrlOverriden = true;
-      }
-
-      if (options.proxy) {
-        this.proxy = options.proxy;
       }
 
       if (options.flagOverrides) {

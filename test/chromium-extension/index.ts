@@ -9,6 +9,8 @@ import sdkVersion from "#lib/Version";
 
 const sdkType = "ConfigCat-UnifiedJS-ChromiumExtension";
 
+type IJSOptions = IJSAutoPollOptions | IJSManualPollOptions | IJSLazyLoadingOptions;
+
 class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManualPollOptions, IJSLazyLoadingOptions> {
   pathJoin(...segments: string[]) { return segments.join("/"); }
 
@@ -22,10 +24,10 @@ class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions,
     }
   }
 
-  createConfigFetcher() { return new FetchApiConfigFetcher(); }
+  createConfigFetcher(options?: IJSOptions) { return new FetchApiConfigFetcher(); }
 
-  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
     setupKernel ??= kernel => {
       kernel.defaultCacheFactory = ChromeLocalStorageConfigCache.tryGetFactory();
       return kernel;

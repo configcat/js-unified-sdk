@@ -9,6 +9,8 @@ import sdkVersion from "#lib/Version";
 
 const sdkType = "ConfigCat-UnifiedJS-Browser";
 
+type IJSOptions = IJSAutoPollOptions | IJSManualPollOptions | IJSLazyLoadingOptions;
+
 class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManualPollOptions, IJSLazyLoadingOptions> {
   pathJoin(...segments: string[]) { return segments.join("/"); }
 
@@ -34,10 +36,10 @@ class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManual
     });
   }
 
-  createConfigFetcher() { return new XmlHttpRequestConfigFetcher(); }
+  createConfigFetcher(options?: IJSOptions) { return new XmlHttpRequestConfigFetcher(); }
 
-  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
     setupKernel ??= kernel => {
       kernel.defaultCacheFactory = LocalStorageConfigCache.tryGetFactory();
       return kernel;

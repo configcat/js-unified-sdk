@@ -31,6 +31,8 @@ mocha.setup({ ...options, ui: "bdd", reporter: "spec" });
 // Ensure there are no leaks in our tests.
 mocha.checkLeaks();
 
+type IJSOptions = IJSAutoPollOptions | IJSManualPollOptions | IJSLazyLoadingOptions;
+
 class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManualPollOptions, IJSLazyLoadingOptions> {
   pathJoin(...segments: string[]) { return segments.join("/"); }
 
@@ -50,10 +52,10 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
     }
   }
 
-  createConfigFetcher() { return new FetchApiConfigFetcher(); }
+  createConfigFetcher(options?: IJSOptions) { return new FetchApiConfigFetcher(); }
 
-  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
     setupKernel ??= kernel => {
       kernel.defaultCacheFactory = CloudflareConfigCache.tryGetFactory();
       return kernel;

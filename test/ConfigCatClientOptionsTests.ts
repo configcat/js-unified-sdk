@@ -39,7 +39,6 @@ describe("Options", () => {
       {
         logger: fakeLogger,
         requestTimeoutMs: 10,
-        proxy: "http://fake-proxy.com:8080"
       },
       kernel
     );
@@ -49,7 +48,6 @@ describe("Options", () => {
     assert.equal("APIKEY", options.sdkKey);
     assert.equal(10, options.requestTimeoutMs);
     assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getRealUrl());
-    assert.equal("http://fake-proxy.com:8080", options.proxy);
   });
 
   it("ManualPollOptions initialization With 'baseUrl' Should create an instance with custom baseUrl", () => {
@@ -90,7 +88,6 @@ describe("Options", () => {
         logger: fakeLogger,
         pollIntervalSeconds: 59,
         requestTimeoutMs: 20,
-        proxy: "http://fake-proxy.com:8080"
       },
       kernel);
 
@@ -100,7 +97,6 @@ describe("Options", () => {
     assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getRealUrl());
     assert.equal(59, options.pollIntervalSeconds);
     assert.equal(20, options.requestTimeoutMs);
-    assert.equal("http://fake-proxy.com:8080", options.proxy);
   });
 
   it("AutoPollOptions initialization With -1 'pollIntervalSeconds' ShouldThrowError", () => {
@@ -231,8 +227,7 @@ describe("Options", () => {
       {
         logger: fakeLogger,
         cacheTimeToLiveSeconds: 59,
-        requestTimeoutMs: 20,
-        proxy: "http://fake-proxy.com:8080"
+        requestTimeoutMs: 20
       },
       kernel
     );
@@ -243,7 +238,6 @@ describe("Options", () => {
     assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getRealUrl());
     assert.equal(59, options.cacheTimeToLiveSeconds);
     assert.equal(20, options.requestTimeoutMs);
-    assert.equal("http://fake-proxy.com:8080", options.proxy);
   });
 
   it("LazyLoadOptions initialization With -1 'cacheTimeToLiveSeconds' ShouldThrowError", () => {

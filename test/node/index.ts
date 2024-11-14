@@ -15,6 +15,8 @@ const sdkVersion = require("#lib/Version");
 
 const sdkType = "ConfigCat-UnifiedJS-Node";
 
+type INodeOptions = INodeAutoPollOptions | INodeManualPollOptions | INodeLazyLoadingOptions;
+
 class NodePlatform extends PlatformAbstractions<INodeAutoPollOptions, INodeManualPollOptions, INodeLazyLoadingOptions> {
   constructor() {
     super();
@@ -28,10 +30,10 @@ class NodePlatform extends PlatformAbstractions<INodeAutoPollOptions, INodeManua
 
   readFileUtf8(path: string) { return fs.readFileSync(path, "utf8"); }
 
-  createConfigFetcher() { return new NodeHttpConfigFetcher(); }
+  createConfigFetcher(options?: INodeOptions) { return new NodeHttpConfigFetcher(options); }
 
-  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new EventEmitter() };
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: INodeOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new EventEmitter() };
     return (setupKernel ?? (k => k))(kernel);
   }
 
