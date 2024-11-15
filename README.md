@@ -11,6 +11,22 @@
 
 ConfigCat SDK for JavaScript provides easy integration for your application to [ConfigCat](https://configcat.com).
 
+This repository hosts the next generation of the ConfigCat SDK for JavaScript platforms. It ships in the form of a single, unified NPM package for
+different JS platforms, as opposed to the one package per platform model used before.
+
+The new SDK combines and, thus, supersedes these packages:
+* [configcat-common](https://www.npmjs.com/package/configcat-common)
+* [configcat-js](https://www.npmjs.com/package/configcat-js)
+* [configcat-js-ssr](https://www.npmjs.com/package/configcat-js-ssr)
+* [configcat-js-chromium-extension](https://www.npmjs.com/package/configcat-js-chromium-extension)
+* [configcat-node](https://www.npmjs.com/package/configcat-node)
+
+The new SDK maintains backward compatibility, so it can be used as a drop-in replacement for the packages listed above. In most cases you just need to
+replace the old package with the new and adjust the import specifiers (as shown [here](#1-install-and-import-package)).
+
+> [!CAUTION]
+> Please note that the SDK is still under development and is currently in beta phase. You use it at your own risk.
+
 ## Getting Started
 
 ### 1. Install and import package:
@@ -25,7 +41,7 @@ npm i @configcat/sdk
 
 Then import it into your application:
 
-* Frontend applications running in the browser:
+* Frontend applications and Web Workers running in the browser:
   ```js
   import * as configcat from "@configcat/sdk/browser";
   ```
@@ -35,12 +51,22 @@ Then import it into your application:
   import * as configcat from "@configcat/sdk/node";
   ```
 
+* Bun backend applications:
+  ```js
+  import * as configcat from "@configcat/sdk/bun";
+  ```
+
 * Deno backend applications:
   ```js
   import * as configcat from "npm:@configcat/sdk/deno";
   ```
 
   (To make this work, you may need to enable the [unstable-byonm](https://docs.deno.com/runtime/manual/tools/unstable_flags/#--unstable-byonm) feature or adjust your [import map](https://docs.deno.com/runtime/manual/basics/import_maps/).)
+
+* Cloudflare Workers:
+  ```js
+  import * as configcat from "@configcat/sdk/cloudflare-worker";
+  ```
 
 * Extensions for Chromium-based browsers (Chrome, Edge, etc.):
   ```js
@@ -53,7 +79,7 @@ Then import it into your application:
 
 Import the package directly from a CDN server into your application:
 
-* Frontend applications running in the browser:
+* Frontend applications and Web Workers running in the browser:
 
   ```html
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@configcat/sdk@latest/dist/configcat.browser.umd.min.js"></script>
@@ -74,7 +100,7 @@ Import the package directly from a CDN server into your application:
   ```
 
 ### 2. Go to the <a href="https://app.configcat.com/sdkkey" target="_blank">ConfigCat Dashboard</a> to get your *SDK Key*:
-![SDK-KEY](https://raw.githubusercontent.com/ConfigCat/js-sdk/master/media/readme02-3.png  "SDK-KEY")
+![SDK-KEY](https://raw.githubusercontent.com/configcat/js-unified-sdk/master/media/readme02-3.png  "SDK-KEY")
 
 ### 3. Create a *ConfigCat* client instance:
 ```js
@@ -131,7 +157,7 @@ if (value) {
 ## Sample/Demo apps
   - [Plain HTML + JS](https://github.com/configcat/js-unified-sdk/tree/master/samples/html)
   - [Plain HTML + JS using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/html-esm)
-  - [Plain HTML + bundled TS running the SDK in a Web Worker](https://github.com/configcat/js-unified-sdk/tree/master/samples/web-worker)
+  - [Plain HTML + TS running the SDK in a Web Worker](https://github.com/configcat/js-unified-sdk/tree/master/samples/web-worker)
   - [Sample Angular web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/angular-sample)
   - [Sample React web application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-sample)
   - [Sample React Native application](https://github.com/configcat/js-unified-sdk/tree/master/samples/react-native-sample)
@@ -142,7 +168,9 @@ if (value) {
   - [Sample Node.js console application using TypeScript and ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/ts-node-console-esm)
   - [Sample Node.js application using Express and Docker](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-expresswithdocker)
   - [Sample Node.js application on how to get real time updates on feature flag changes](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-realtimeupdate)
+  - [Sample Bun console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/bun-console)
   - [Sample Deno console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/deno-console)
+  - [Sample Cloudflare Worker](https://github.com/configcat/js-unified-sdk/tree/master/samples/cloudflare-worker)
   - [Sample Chrome extension](https://github.com/configcat/js-unified-sdk/tree/master/samples/chrome-extension)
 
 ## Polling Modes
@@ -193,13 +221,17 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
   - Chrome (stable, latest, beta)
   - Chromium (64.0.3282.0, 72.0.3626.0, 80.0.3987.0)
   - Firefox (latest, latest-beta, 84.0)
-- @configcat/sdk/chromium-extension:
-  - Chrome (stable, latest, beta)
-  - Chromium (72.0.3626.0, 80.0.3987.0)
+- @configcat/sdk/bun:
+  - Bun (v1.1.0, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/deno:
   - Deno (v1.31, v1.46, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/node:
   - Node.js (v14.x, v16.x, v18.x, v20.x, v22.x) on Windows / Ubuntu / macOS
+- @configcat/sdk/cloudflare-worker:
+  - Workerd (2023-02-28)
+- @configcat/sdk/chromium-extension:
+  - Chrome (stable, latest, beta)
+  - Chromium (72.0.3626.0, 80.0.3987.0)
 
 The SDK should be compatible with TypeScript v4.0.2 or newer. Earlier versions may work but those are not tested, thus, not supported officially.
 
