@@ -31,6 +31,45 @@
       }
     },
     {
+      // This configuration needs the `oven.bun-vscode` extension to be installed.
+      "type": "bun",
+      "name": "Run tests (Bun)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtime": "bun",
+      "runtimeArgs": ["--tsconfig-override ./tsconfig.mocha.bun.json"],
+      "program": "./node_modules/mocha/bin/mocha.js",
+      "args": [
+        "test/bun/index.ts",
+        "--fgrep",
+        "",
+        "--color",
+        "--exit",
+        "--timeout",
+        "30000"
+      ],
+      "noDebug": false,
+    },
+    {
+      "type": "node",
+      "name": "Run tests (Deno)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "deno",
+      "runtimeArgs": [
+        "run",
+        "--inspect",
+        "-A",
+        "test/deno/index.ts",
+        "--fgrep",
+        "",
+        "--timeout",
+        "30000"
+      ],
+      "attachSimplePort": 9229,
+      "outputCapture": "std"
+    },
+    {
       "type": "node",
       "request": "launch",
       "name": "Run tests (Node.js)",
@@ -62,25 +101,6 @@
       "skipFiles": [
         "<node_internals>/**/*.js"
       ]
-    },
-    {
-      "type": "node",
-      "name": "Run tests (Deno)",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "runtimeExecutable": "deno",
-      "runtimeArgs": [
-        "run",
-        "--inspect-brk",
-        "-A",
-        "test/deno/index.ts",
-        "--fgrep",
-        "",
-        "--timeout",
-        "30000"
-      ],
-      "attachSimplePort": 9229,
-      "outputCapture": "std"
     }
   ]
 }

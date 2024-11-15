@@ -100,6 +100,26 @@ jobs:
       - name: Test
         run: npm run test:browser:firefox
 
+  test-bun:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        bun-version: ["1.1.0", "latest"]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    name: Bun ${{ matrix.bun-version }} (${{ matrix.os }}) test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ matrix.bun-version }}
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run test:bun
+
   test-chromium-extension-chrome:
     runs-on: ubuntu-latest
     strategy:
@@ -219,6 +239,7 @@ jobs:
     needs: [
       check-ts-compat,
       test-browser-chrome, test-browser-chromium, test-browser-firefox,
+      test-bun,
       test-chromium-extension-chrome, test-chromium-extension-chromium,
       test-cloudflare-worker,
       test-deno,

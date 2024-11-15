@@ -13,15 +13,15 @@
     ],
     "paths": {
       // Keep this in sync with the imports listed in package.json!
-      "#lib/browser": ["./lib/esm/browser/index.root"],
+      "#lib/browser": ["./lib/esm/browser/index"],
+      "#lib/bun": ["./lib/esm/bun/index"],
       "#lib/chromium-extension": ["./lib/esm/chromium-extension/index"],
       "#lib/cloudflare-worker": ["./lib/esm/cloudflare-worker/index"],
       "#lib/deno": ["./lib/esm/deno/index"],
-      "#lib/node": ["./lib/esm/node/index.root"],
+      "#lib/node": ["./lib/esm/node/index"],
       "#lib": ["./lib/esm/index"],
       "#lib/*": ["./lib/esm/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./types"],
     // Prevent typings for tests (mocha, chai, etc.) from bleeding into build source files.
     // (Wish we had more fine-grained control over what typings are included in what part of
     // the project... Something like this: https://github.com/microsoft/TypeScript/issues/33407)

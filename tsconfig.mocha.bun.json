@@ -1,0 +1,20 @@
+{
+  /* TS compiler settings for Bun tests */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2017",
+    "module": "ES2015",
+    "moduleResolution": "NodeNext",
+    "paths": {
+      "#lib/bun": ["./lib/esm/bun/index"],
+      "#lib": ["./lib/esm/index"],
+      "#lib/*": ["./lib/esm/*"]
+    },
+    "types": ["bun", "chai", "mocha"]
+  },
+  "include": [
+    "test/bun/**/*.ts",
+    "test/*.ts",
+    "test/helpers/**/*.ts"
+  ]
+}
