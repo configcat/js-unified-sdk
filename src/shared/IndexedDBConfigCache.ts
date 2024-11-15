@@ -60,7 +60,7 @@ export function getDBConnectionFactory(): DBConnectionFactory | undefined {
       });
 
       // Check if it is possible to connect to the DB.
-      dbConnectionFactory().then(db => db.close());
+      dbConnectionFactory().then(db => db.close()).catch(() => { /* intentional no-op */ });
 
       return dbConnectionFactory;
     }
