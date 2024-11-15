@@ -135,7 +135,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return [fetchResult, latestConfig];
   }
 
-  protected onConfigFetched(newConfig: ProjectConfig): void { }
+  protected onConfigFetched(newConfig: ProjectConfig): void {
+    this.options.logger.debug("config fetched");
+  }
 
   protected onConfigChanged(newConfig: ProjectConfig): void {
     this.options.logger.debug("config changed");
