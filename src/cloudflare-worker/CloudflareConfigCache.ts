@@ -1,4 +1,4 @@
-import type * as cloudflare from "@cloudflare/workers-types";
+import type * as cloudflare from "@cloudflare/workers-types/2023-03-01";
 import type { IConfigCache, IConfigCatCache } from "../ConfigCatCache";
 import { ExternalConfigCache } from "../ConfigCatCache";
 import type { OptionsBase } from "../ConfigCatClientOptions";

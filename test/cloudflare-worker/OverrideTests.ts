@@ -1,4 +1,4 @@
-import type * as cloudflare from "@cloudflare/workers-types";
+import type * as cloudflare from "@cloudflare/workers-types/2023-03-01";
 import { assert } from "chai";
 import { FakeConfigFetcherBase, createAutoPollOptions, createKernel } from "../helpers/fakes";
 import { createFlagOverridesFromQueryParams } from "#lib/cloudflare-worker";

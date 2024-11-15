@@ -1,4 +1,4 @@
-import type * as cloudflare from "@cloudflare/workers-types";
+import type * as cloudflare from "@cloudflare/workers-types/2023-03-01";
 import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";

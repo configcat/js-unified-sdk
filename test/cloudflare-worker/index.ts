@@ -1,5 +1,5 @@
 import "mocha/mocha.js";
-import * as cloudflare from "@cloudflare/workers-types";
+import * as cloudflare from "@cloudflare/workers-types/2023-03-01";
 import { CdnConfigLocation } from "../helpers/ConfigLocation";
 import { AugmentedOptions, PlatformAbstractions, initPlatform } from "../helpers/platform";
 import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions, IOptions } from "#lib/cloudflare-worker";
