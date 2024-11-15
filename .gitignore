@@ -61,5 +61,6 @@ lib/
 dist/
 .idea/
 .parcel-cache/
+bun.lockb
 deno.lock
 deno.import-map.json

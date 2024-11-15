@@ -1,6 +1,6 @@
 # Sample application for Node.js with TypeScript (ts-node)
 
-This is a simple Node.js application to demonstrate how to use the ConfigCat SDK on Node.js.
+This is a simple console application to demonstrate how to use the ConfigCat SDK on Node.js using ECMAScript modules and TypeScript.
 
 ## Install dependencies
 

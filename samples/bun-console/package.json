@@ -1,0 +1,9 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Sample application for ConfigCat JS SDK",
+  "main": "index.js",
+  "dependencies": {
+    "@configcat/sdk": "^0.0.1"
+  }
+}
