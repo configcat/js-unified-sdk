@@ -117,8 +117,8 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
   }
 
   protected onConfigFetched(newConfig: ProjectConfig): void {
-    super.onConfigFetched(newConfig);
     this.signalInitialization();
+    super.onConfigFetched(newConfig);
   }
 
   protected setOnlineCore(): void {

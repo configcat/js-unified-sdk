@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import * as mockxmlhttprequest from "mock-xmlhttprequest";
 import { FakeLogger } from "../helpers/fakes";
-import { createClientWithManualPoll } from ".";
+import { platform } from ".";
 import { LogLevel } from "#lib";
 
 describe("HTTP tests", () => {
@@ -20,7 +20,7 @@ describe("HTTP tests", () => {
 
       const logger = new FakeLogger();
 
-      const client = createClientWithManualPoll(sdkKey, {
+      const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs,
         baseUrl,
         logger
@@ -52,7 +52,7 @@ describe("HTTP tests", () => {
 
       const logger = new FakeLogger();
 
-      const client = createClientWithManualPoll(sdkKey, {
+      const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
         logger
@@ -82,7 +82,7 @@ describe("HTTP tests", () => {
 
       const logger = new FakeLogger();
 
-      const client = createClientWithManualPoll(sdkKey, {
+      const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
         logger
@@ -112,7 +112,7 @@ describe("HTTP tests", () => {
 
       const logger = new FakeLogger();
 
-      const client = createClientWithManualPoll(sdkKey, {
+      const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
         logger

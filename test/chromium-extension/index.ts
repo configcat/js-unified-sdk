@@ -1,64 +1,46 @@
-import { initPlatform } from "../helpers/platform";
+import { PlatformAbstractions, initPlatform } from "../helpers/platform";
+import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/chromium-extension";
 import { getClient } from "#lib/chromium-extension";
-import type { IConfigCatClient, IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/chromium-extension";
 import { ChromeLocalStorageConfigCache } from "#lib/chromium-extension/ChromeLocalStorageConfigCache";
-import { ConfigCatClient } from "#lib/ConfigCatClient";
-import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
-import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
+import type { IConfigCatKernel } from "#lib/index.pubternals";
 import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
 import sdkVersion from "#lib/Version";
 
 const sdkType = "ConfigCat-UnifiedJS-ChromiumExtension";
 
-export const createConfigFetcher = (): IConfigFetcher => new FetchApiConfigFetcher();
+type IJSOptions = IJSAutoPollOptions | IJSManualPollOptions | IJSLazyLoadingOptions;
 
-export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
-  const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
-  setupKernel ??= kernel => {
-    kernel.defaultCacheFactory = ChromeLocalStorageConfigCache.tryGetFactory();
-    return kernel;
-  };
-  return setupKernel(kernel);
-};
+class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManualPollOptions, IJSLazyLoadingOptions> {
+  pathJoin(...segments: string[]) { return segments.join("/"); }
 
-export const createClientWithAutoPoll = (sdkKey: string, options?: IJSAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
-
-export const createClientWithManualPoll = (sdkKey: string, options?: IJSLazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
-
-export const createClientWithLazyLoad = (sdkKey: string, options?: IJSManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
-
-export const pathJoin = (...segments: string[]): string => segments.join("/");
-
-export const readFileUtf8 = async (path: string): Promise<string> => {
-  const response = await fetch("base/" + path, { method: "GET" });
-  if (response.status === 200) {
-    return await response.text();
+  async readFileUtf8(path: string) {
+    const response = await fetch("base/" + path, { method: "GET" });
+    if (response.status === 200) {
+      return await response.text();
+    }
+    else {
+      throw Error(`unexpected response: ${response.status} ${response.statusText}`);
+    }
   }
-  else {
-    throw Error(`unexpected response: ${response.status} ${response.statusText}`);
-  }
-};
 
-initPlatform({
-  pathJoin,
-  readFileUtf8,
-  createConfigFetcher,
-  createKernel,
-  createClientWithAutoPoll,
-  createClientWithManualPoll,
-  createClientWithLazyLoad,
-  getClient
-});
+  createConfigFetcher(options?: IJSOptions) { return new FetchApiConfigFetcher(); }
+
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+    setupKernel ??= kernel => {
+      kernel.defaultCacheFactory = ChromeLocalStorageConfigCache.tryGetFactory();
+      return kernel;
+    };
+    return setupKernel(kernel);
+  }
+
+  protected getClientImpl = getClient;
+}
+
+export const platform = new ChromiumExtensionPlatform();
+
+initPlatform(platform);
 
 /* Discover and load tests */
 

@@ -9,7 +9,7 @@
     "format": "prettier --write --ignore-unknown \"{config,public,src}/**/*.{html,css,js,ts,json}\""
   },
   "dependencies": {
-    "@configcat/sdk": "^0.0.1"
+    "@configcat/sdk": "^0.1.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^10.2.4",

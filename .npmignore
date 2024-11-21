@@ -27,3 +27,4 @@ test/
 tsconfig*.json
 types/
 webpack.*.config.js
+workerd.config.capnp

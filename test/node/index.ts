@@ -3,13 +3,11 @@ import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as glob from "glob";
 import * as path from "path";
-import { initPlatform } from "../helpers/platform";
+import { PlatformAbstractions, initPlatform } from "../helpers/platform";
 import { normalizePathSeparator } from "../helpers/utils";
 import { isTestSpec } from "../index";
-import { ConfigCatClient } from "#lib/ConfigCatClient";
-import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
-import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
-import type { IConfigCatClient, INodeAutoPollOptions, INodeLazyLoadingOptions, INodeManualPollOptions } from "#lib/node";
+import type { IConfigCatKernel } from "#lib/index.pubternals";
+import type { INodeAutoPollOptions, INodeLazyLoadingOptions, INodeManualPollOptions } from "#lib/node";
 import { getClient } from "#lib/node";
 import { NodeHttpConfigFetcher } from "#lib/node/NodeHttpConfigFetcher";
 // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
@@ -17,48 +15,34 @@ const sdkVersion = require("#lib/Version");
 
 const sdkType = "ConfigCat-UnifiedJS-Node";
 
-export const createConfigFetcher = (): IConfigFetcher => new NodeHttpConfigFetcher();
+type INodeOptions = INodeAutoPollOptions | INodeManualPollOptions | INodeLazyLoadingOptions;
 
-export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
-  const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new EventEmitter() };
-  return (setupKernel ?? (k => k))(kernel);
-};
+class NodePlatform extends PlatformAbstractions<INodeAutoPollOptions, INodeManualPollOptions, INodeLazyLoadingOptions> {
+  constructor() {
+    super();
 
-export const createClientWithAutoPoll = (sdkKey: string, options?: INodeAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
+    if (typeof gc !== "undefined") {
+      this.gc = () => gc!({ execution: "async", type: "major" });
+    }
+  }
 
-export const createClientWithManualPoll = (sdkKey: string, options?: INodeManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
+  pathJoin(...segments: string[]) { return path.join(...segments); }
 
-export const createClientWithLazyLoad = (sdkKey: string, options?: INodeLazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
+  readFileUtf8(path: string) { return fs.readFileSync(path, "utf8"); }
 
-let gcfunc: (() => Promise<void>) | undefined;
-if (typeof gc !== "undefined") {
-  gcfunc = () => gc!({ execution: "async", type: "major" });
+  createConfigFetcher(options?: INodeOptions) { return new NodeHttpConfigFetcher(options); }
+
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: INodeOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new EventEmitter() };
+    return (setupKernel ?? (k => k))(kernel);
+  }
+
+  protected getClientImpl = getClient;
 }
 
-export const pathJoin = (...segments: string[]): string => path.join(...segments);
+export const platform = new NodePlatform();
 
-export const readFileUtf8 = (path: string): string => fs.readFileSync(path, "utf8");
-
-initPlatform({
-  gc: gcfunc,
-  pathJoin,
-  readFileUtf8,
-  createConfigFetcher,
-  createKernel,
-  createClientWithAutoPoll,
-  createClientWithManualPoll,
-  createClientWithLazyLoad,
-  getClient
-});
+initPlatform(platform);
 
 /* Discover and load tests */
 

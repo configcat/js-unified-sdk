@@ -7,7 +7,18 @@ import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { IConfigFetcher, IFetchResponse } from "../ConfigFetcher";
 import { FetchError } from "../ConfigFetcher";
 
+export interface INodeHttpConfigFetcherOptions {
+  /** Proxy settings. */
+  proxy?: string | null;
+}
+
 export class NodeHttpConfigFetcher implements IConfigFetcher {
+  private readonly proxy?: string | null;
+
+  constructor(options?: INodeHttpConfigFetcherOptions) {
+    this.proxy = options?.proxy;
+  }
+
   private handleResponse(response: http.IncomingMessage, resolve: (value: IFetchResponse) => void, reject: (reason?: any) => void) {
     try {
       const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
@@ -46,9 +57,9 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
         const baseUrl = options.getUrl();
         const isBaseUrlSecure = baseUrl.startsWith("https");
         let agent: any;
-        if (options.proxy) {
+        if (this.proxy) {
           try {
-            const proxy: URL = new URL(options.proxy);
+            const proxy: URL = new URL(this.proxy);
             let agentFactory: any;
             if (proxy.protocol === "https:") {
               agentFactory = isBaseUrlSecure ? tunnel.httpsOverHttps : tunnel.httpOverHttps;
@@ -65,7 +76,7 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
             });
           }
           catch (err) {
-            options.logger.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to parse \`options.proxy\`: '${options.proxy}'.`, err);
+            options.logger.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to parse \`options.proxy\`: '${this.proxy}'.`, err);
           }
         }
 

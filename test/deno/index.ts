@@ -1,13 +1,12 @@
 import * as path from "https://deno.land/std@0.224.0/path/mod.ts";
 // @deno-types="npm:@types/mocha"
 import "npm:mocha/browser-entry.js";
-import { initPlatform } from "../helpers/platform";
+import { PlatformAbstractions, initPlatform } from "../helpers/platform";
 import { isTestSpec } from "../index";
-import { ConfigCatClient, IConfigCatKernel } from "#lib/ConfigCatClient";
-import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
-import { IConfigFetcher } from "#lib/ConfigFetcher";
+import { IConfigCatKernel } from "#lib/ConfigCatClient";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
-import { IConfigCatClient, IDenoAutoPollOptions, IDenoLazyLoadingOptions, IDenoManualPollOptions, getClient } from "#lib/deno";
+import type { IDenoAutoPollOptions, IDenoLazyLoadingOptions, IDenoManualPollOptions } from "#lib/deno";
+import { getClient } from "#lib/deno";
 import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
 import sdkVersion from "#lib/Version";
 
@@ -51,42 +50,26 @@ mocha.setup({ ...options, ui: "bdd", reporter: "spec" });
 // Ensure there are no leaks in our tests.
 mocha.checkLeaks();
 
-export const createConfigFetcher = (): IConfigFetcher => new FetchApiConfigFetcher();
+type IDenoOptions = IDenoAutoPollOptions | IDenoManualPollOptions | IDenoLazyLoadingOptions;
 
-export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
-  const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
-  return (setupKernel ?? (k => k))(kernel);
-};
+class DenoPlatform extends PlatformAbstractions<IDenoAutoPollOptions, IDenoManualPollOptions, IDenoLazyLoadingOptions> {
+  pathJoin(...segments: string[]) { return path.join(...segments); }
 
-export const createClientWithAutoPoll = (sdkKey: string, options?: IDenoAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new AutoPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
+  readFileUtf8(path: string) { return Deno.readTextFileSync(path); }
 
-export const createClientWithManualPoll = (sdkKey: string, options?: IDenoManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new ManualPollOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
+  createConfigFetcher(options?: IDenoOptions) { return new FetchApiConfigFetcher(); }
 
-export const createClientWithLazyLoad = (sdkKey: string, options?: IDenoLazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
-  const configCatKernel = createKernel(setupKernel);
-  return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
-};
+  createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IDenoOptions) {
+    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+    return (setupKernel ?? (k => k))(kernel);
+  }
 
-export const pathJoin = (...segments: string[]): string => path.join(...segments);
+  protected getClientImpl = getClient;
+}
 
-export const readFileUtf8 = (path: string): string => Deno.readTextFileSync(path);
+export const platform = new DenoPlatform();
 
-initPlatform({
-  pathJoin,
-  readFileUtf8,
-  createConfigFetcher,
-  createKernel,
-  createClientWithAutoPoll,
-  createClientWithManualPoll,
-  createClientWithLazyLoad,
-  getClient
-});
+initPlatform(platform);
 
 /* Discover and load tests */
 

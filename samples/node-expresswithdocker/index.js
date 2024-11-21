@@ -1,4 +1,4 @@
-const SDKKEY = "PKDVCLf-Hq-h-kCzMp-L7Q/HhOWfwVtZ0mb30i9wi17GQ";
+const SDKKEY = "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw";
 const PORT = 8088;
 const SAMPLE_KEY = "isAwesomeFeatureEnabled";
 

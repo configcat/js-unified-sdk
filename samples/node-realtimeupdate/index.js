@@ -3,7 +3,7 @@ var PubNub = require("pubnub");
 
 // ConfigCat related variables
 const configcatSettingKey = "isAwesomeFeatureEnabled"; // Copy your feature flag or setting key from https://app.configcat.com
-const configcatSdkKey = "PKDVCLf-Hq-h-kCzMp-L7Q/HhOWfwVtZ0mb30i9wi17GQ"; // Copy your Configcat SDK Key: https://app.configcat.com/sdkkey
+const configcatSdkKey = "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw"; // Copy your Configcat SDK Key: https://app.configcat.com/sdkkey
 
 // PubNub related variables
 const pubnubSubscriberKey = "demo";

@@ -4,6 +4,7 @@ import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "
 import { PollingMode } from "../ConfigCatClientOptions";
 import { getClient as getClientCommon } from "../index.pubternals.core";
 import CONFIGCAT_SDK_VERSION from "../Version";
+import type { INodeHttpConfigFetcherOptions } from "./NodeHttpConfigFetcher";
 import { NodeHttpConfigFetcher } from "./NodeHttpConfigFetcher";
 
 /* Package public API for Node.js */
@@ -21,7 +22,7 @@ import { NodeHttpConfigFetcher } from "./NodeHttpConfigFetcher";
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
   return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
     {
-      configFetcher: new NodeHttpConfigFetcher(),
+      configFetcher: new NodeHttpConfigFetcher(options),
       sdkType: "ConfigCat-UnifiedJS-Node",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new EventEmitter()
@@ -31,15 +32,15 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
 export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
-export interface INodeAutoPollOptions extends IAutoPollOptions {
+export interface INodeAutoPollOptions extends IAutoPollOptions, INodeHttpConfigFetcherOptions {
 }
 
 /** Options used to configure the ConfigCat SDK in the case of Lazy Loading mode. */
-export interface INodeLazyLoadingOptions extends ILazyLoadingOptions {
+export interface INodeLazyLoadingOptions extends ILazyLoadingOptions, INodeHttpConfigFetcherOptions {
 }
 
 /** Options used to configure the ConfigCat SDK in the case of Manual Polling mode. */
-export interface INodeManualPollOptions extends IManualPollOptions {
+export interface INodeManualPollOptions extends IManualPollOptions, INodeHttpConfigFetcherOptions {
 }
 
 export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
