@@ -1,4 +1,5 @@
 {
+  /* TS compiler settings for Node.js tests */
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "ES2017",
@@ -8,8 +9,15 @@
       "#lib/node": ["./lib/cjs/node/index.root"],
       "#lib": ["./lib/cjs/index"],
       "#lib/*": ["./lib/cjs/*"]
-    }
+    },
+    "types": ["chai", "mocha", "node"]
   },
+  "include": [
+    "test/*.ts",
+    "test/helpers/**/*.ts",
+    "test/node/**/*.ts"
+  ],
   "ts-node": {
+    /* Add ts-node settings here if needed. */
   }
 }

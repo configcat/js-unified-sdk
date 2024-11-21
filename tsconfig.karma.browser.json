@@ -1,12 +1,17 @@
 {
+   /* TS compiler settings for browser tests (Karma/Webpack) */
   "extends": "./tsconfig.build.esm.json",
   "compilerOptions": {
+    "lib": ["DOM", "ES2017", "ES2021.WeakRef", "ES2021.Promise"],
     "sourceMap": true,
     // Generating d.ts files needs to be disabled to not pollute the build output directory ("./lib").
-    "declaration": false
+    "declaration": false,
+    "types": ["chai", "mocha"]
   },
+  "files": [
+    "test/shared/IndexedDBConfigCacheTests.ts"
+  ],
   "include": [
-    "src/browser/index.ts",
     "test/*.ts",
     "test/browser/**/*.ts",
     "test/helpers/**/*.ts"

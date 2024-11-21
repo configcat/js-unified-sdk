@@ -1,22 +1,25 @@
-import { isTestSpec } from "..";
 import { initPlatform } from "../helpers/platform";
 import { getClient } from "#lib/chromium-extension";
 import type { IConfigCatClient, IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/chromium-extension";
-import { ChromeLocalStorageCache } from "#lib/chromium-extension/ChromeLocalStorageCache";
+import { ChromeLocalStorageConfigCache } from "#lib/chromium-extension/ChromeLocalStorageConfigCache";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
 import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
+import sdkVersion from "#lib/Version";
 
-const sdkVersion = "0.0.0-test";
-const sdkType = "ConfigCat-JS-Chromium";
+const sdkType = "ConfigCat-UnifiedJS-ChromiumExtension";
 
 export const createConfigFetcher = (): IConfigFetcher => new FetchApiConfigFetcher();
 
 export const createKernel = (setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatKernel => {
   const kernel: IConfigCatKernel = { configFetcher: createConfigFetcher(), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
-  return (setupKernel ?? ChromeLocalStorageCache.setup)(kernel);
+  setupKernel ??= kernel => {
+    kernel.defaultCacheFactory = ChromeLocalStorageConfigCache.tryGetFactory();
+    return kernel;
+  };
+  return setupKernel(kernel);
 };
 
 export const createClientWithAutoPoll = (sdkKey: string, options?: IJSAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
@@ -62,13 +65,22 @@ initPlatform({
 declare const require: any;
 
 // With karma-webpack, importing test modules by `import("...");` does not work, we need to import them using some webpack magic (require.context).
-// This way we need to specify the set of modules via a single regex expression, which is pretty limited. We can't let any node-specific module
-// be matched by the regex because that would break webpack. So, as a workaround, we use the `.nb.ts` extension to ignore node-specific modules.
-const testsContext: Record<string, any> = require.context("..", true, /(?<!\/index|\.nb)\.ts$/);
+// Keep this in sync with the includes listed in tsconfig.karma.chromium-extension.json!
 
-for (const key of testsContext.keys()) {
-  const [isTest, segments] = isTestSpec(key, "chromium-extension");
-  if (isTest || (segments.length < 2 || segments[0] === "helpers")) {
+let testsContext: Record<string, any> = require.context("..", false, /\.ts$/);
+includeTestModules(testsContext);
+
+testsContext = require.context(".", true, /\.ts$/);
+includeTestModules(testsContext);
+
+testsContext = require.context("../helpers", true, /\.ts$/);
+includeTestModules(testsContext);
+
+testsContext = require.context("../shared", false, /IndexedDBConfigCacheTests\.ts$/);
+includeTestModules(testsContext);
+
+function includeTestModules(testsContext: Record<string, any>) {
+  for (const key of testsContext.keys()) {
     (testsContext as any)(key);
   }
 }

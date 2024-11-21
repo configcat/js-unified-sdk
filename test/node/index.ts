@@ -12,9 +12,10 @@ import type { IConfigCatKernel, IConfigFetcher } from "#lib/index.pubternals";
 import type { IConfigCatClient, INodeAutoPollOptions, INodeLazyLoadingOptions, INodeManualPollOptions } from "#lib/node";
 import { getClient } from "#lib/node";
 import { NodeHttpConfigFetcher } from "#lib/node/NodeHttpConfigFetcher";
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+const sdkVersion = require("#lib/Version");
 
-const sdkVersion = "0.0.0-test";
-const sdkType = "ConfigCat-Node";
+const sdkType = "ConfigCat-UnifiedJS-Node";
 
 export const createConfigFetcher = (): IConfigFetcher => new NodeHttpConfigFetcher();
 
@@ -38,11 +39,17 @@ export const createClientWithLazyLoad = (sdkKey: string, options?: INodeLazyLoad
   return new ConfigCatClient(new LazyLoadOptions(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory), configCatKernel);
 };
 
+let gcfunc: (() => Promise<void>) | undefined;
+if (typeof gc !== "undefined") {
+  gcfunc = () => gc!({ execution: "async", type: "major" });
+}
+
 export const pathJoin = (...segments: string[]): string => path.join(...segments);
 
 export const readFileUtf8 = (path: string): string => fs.readFileSync(path, "utf8");
 
 initPlatform({
+  gc: gcfunc,
   pathJoin,
   readFileUtf8,
   createConfigFetcher,

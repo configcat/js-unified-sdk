@@ -5,8 +5,11 @@ import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
-import { ChromeLocalStorageCache } from "./ChromeLocalStorageCache";
+import { ChromeLocalStorageConfigCache } from "./ChromeLocalStorageConfigCache";
+
+/* Package public API for Chromium-based browser extensions */
 
 setupPolyfills();
 
@@ -21,16 +24,18 @@ setupPolyfills();
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
-    ChromeLocalStorageCache.setup({
-      configFetcher: new FetchApiConfigFetcher(),
-      sdkType: "ConfigCat-JS-Chromium",
-      sdkVersion: CONFIGCAT_SDK_VERSION,
-      eventEmitterFactory: () => new DefaultEventEmitter()
-    }));
+  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
+    configFetcher: new FetchApiConfigFetcher(),
+    sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
+    sdkVersion: CONFIGCAT_SDK_VERSION,
+    eventEmitterFactory: () => new DefaultEventEmitter(),
+    defaultCacheFactory: ChromeLocalStorageConfigCache.tryGetFactory() ?? IndexedDBConfigCache.tryGetFactory()
+  });
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";
+
+export type { IQueryStringProvider } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
 export interface IJSAutoPollOptions extends IAutoPollOptions {

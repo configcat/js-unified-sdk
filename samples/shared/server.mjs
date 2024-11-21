@@ -53,4 +53,4 @@ http.createServer(function (req, res) {
   });
 }).listen(parseInt(port));
 
-console.log(`Server listening as http://localhost:${port}...`);
+console.log(`Server listening at http://localhost:${port}...`);

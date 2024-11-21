@@ -7,9 +7,8 @@ export function isTestSpec(file: string, platform: string): [isMatch: boolean, s
     segments.splice(0, index + 1);
   }
 
-  const isMatch = (segments.length < 2 || segments[0] === "shared" || segments[0] === platform)
-    && /Tests(?:\..+)?\.ts$/.test(segments[segments.length - 1]);
+  const isMatch = (segments.length < 2 || segments[0] === platform)
+    && /Tests\.ts$/.test(segments[segments.length - 1]);
 
   return [isMatch, segments];
 }
-

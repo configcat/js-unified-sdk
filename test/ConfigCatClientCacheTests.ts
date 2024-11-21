@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { FakeConfigFetcher, createAutoPollOptions, createKernel, createManualPollOptions } from "./helpers/fakes";
-import { allowEventLoop } from "./helpers/utils";
+import { platform } from "./helpers/platform";
 import { ConfigCatClient, ConfigCatClientCache } from "#lib/ConfigCatClient";
 import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
 import "./helpers/ConfigCatClientCacheExtensions";
@@ -42,7 +42,8 @@ describe("ConfigCatClientCache", () => {
     // Arrange
 
     setupPolyfills();
-    if (!isWeakRefAvailable() || typeof gc === "undefined") {
+    const { gc } = platform();
+    if (!gc || !isWeakRefAvailable()) {
       this.skip();
     }
 
@@ -57,9 +58,7 @@ describe("ConfigCatClientCache", () => {
 
     const [client1, instanceAlreadyCreated1] = getOrCreateClientWeakRef(cache, options, configCatKernel);
 
-    // We need to allow the event loop to run so the runtime can detect there's no more strong references to client1.
-    await allowEventLoop();
-    gc();
+    await gc();
 
     const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options, configCatKernel);
 
@@ -146,7 +145,8 @@ describe("ConfigCatClientCache", () => {
     // Arrange
 
     setupPolyfills();
-    if (!isWeakRefAvailable() || typeof gc === "undefined") {
+    const { gc } = platform();
+    if (!gc || !isWeakRefAvailable()) {
       this.skip();
     }
 
@@ -159,9 +159,7 @@ describe("ConfigCatClientCache", () => {
 
     const [client1, instanceAlreadyCreated1] = getOrCreateClientWeakRef(cache, options, configCatKernel);
 
-    // We need to allow the event loop to run so the runtime can detect there's no more strong references to client1.
-    await allowEventLoop();
-    gc();
+    await gc();
 
     // Act
 
@@ -211,7 +209,8 @@ describe("ConfigCatClientCache", () => {
     // Arrange
 
     setupPolyfills();
-    if (!isWeakRefAvailable() || typeof gc === "undefined") {
+    const { gc } = platform();
+    if (!gc || !isWeakRefAvailable()) {
       this.skip();
     }
 
@@ -227,9 +226,7 @@ describe("ConfigCatClientCache", () => {
     const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options1, configCatKernel);
     const [client2, instanceAlreadyCreated2, cacheCountBefore] = getOrCreateClientWeakRef(cache, options2, configCatKernel);
 
-    // We need to allow the event loop to run so the runtime can detect there's no more strong references to client1.
-    await allowEventLoop();
-    gc();
+    await gc();
 
     // Act
 

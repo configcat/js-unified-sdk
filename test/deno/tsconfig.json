@@ -1,0 +1,7 @@
+{
+  /* Override TS compiler settings for IDEs (like VSCode) */
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["chai", "deno", "mocha"]
+  }
+}

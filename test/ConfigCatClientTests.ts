@@ -1,5 +1,6 @@
 import { assert, expect } from "chai";
 import { FakeCache, FakeConfigFetcher, FakeConfigFetcherBase, FakeConfigFetcherWithAlwaysVariableEtag, FakeConfigFetcherWithNullNewConfig, FakeConfigFetcherWithPercentageOptions, FakeConfigFetcherWithRules, FakeConfigFetcherWithTwoCaseSensitiveKeys, FakeConfigFetcherWithTwoKeys, FakeConfigFetcherWithTwoKeysAndRules, FakeExternalAsyncCache, FakeExternalCache, FakeExternalCacheWithInitialData, FakeLogger, createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions } from "./helpers/fakes";
+import { platform } from "./helpers/platform";
 import { allowEventLoop } from "./helpers/utils";
 import { AutoPollConfigService } from "#lib/AutoPollConfigService";
 import { ConfigCatClient, IConfigCatClient, IConfigCatKernel } from "#lib/ConfigCatClient";
@@ -1132,7 +1133,8 @@ describe("ConfigCatClient", () => {
     // Arrange
 
     setupPolyfills();
-    if (!isWeakRefAvailable() || typeof gc === "undefined") {
+    const { gc } = platform();
+    if (!gc || !isWeakRefAvailable()) {
       this.skip();
     }
     const isFinalizationRegistryAvailable = typeof FinalizationRegistry !== "undefined";
@@ -1153,9 +1155,7 @@ describe("ConfigCatClient", () => {
 
     const instanceCount1 = createClients();
 
-    // We need to allow the event loop to run so the runtime can detect there's no more strong references to the created clients.
-    await allowEventLoop();
-    gc();
+    await gc();
 
     if (isFinalizationRegistryAvailable) {
       // We need to allow the finalizer callbacks to execute.
@@ -1182,7 +1182,8 @@ describe("ConfigCatClient", () => {
     // Arrange
 
     setupPolyfills();
-    if (!isWeakRefAvailable() || typeof FinalizationRegistry === "undefined" || typeof gc === "undefined") {
+    const { gc } = platform();
+    if (!gc || !isWeakRefAvailable() || typeof FinalizationRegistry === "undefined") {
       this.skip();
     }
 
@@ -1201,9 +1202,7 @@ describe("ConfigCatClient", () => {
 
     const instanceCount1 = createClients();
 
-    // We need to allow the event loop to run so the runtime can detect there's no more strong references to the created clients.
-    await allowEventLoop();
-    gc();
+    await gc();
 
     // We need to allow the finalizer callbacks to execute.
     await allowEventLoop(10);

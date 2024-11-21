@@ -15,7 +15,7 @@ import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import type { IConfig, PercentageOption, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingTypeOf } from "./RolloutEvaluator";
 import { RolloutEvaluator, checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue } from "./RolloutEvaluator";
-import type { User } from "./User";
+import type { IUser } from "./User";
 import { errorToString, isArray, throwError } from "./Utils";
 
 /** ConfigCat SDK client. */
@@ -33,7 +33,7 @@ export interface IConfigCatClient extends IProvidesHooks {
    * @throws {Error} `key` is empty.
    * @throws {TypeError} `defaultValue` is not of an allowed type.
    */
-  getValueAsync<T extends SettingValue>(key: string, defaultValue: T, user?: User): Promise<SettingTypeOf<T>>;
+  getValueAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<SettingTypeOf<T>>;
 
   /**
    * Returns the value along with evaluation details of a feature flag or setting identified by `key`.
@@ -47,7 +47,7 @@ export interface IConfigCatClient extends IProvidesHooks {
    * @throws {Error} `key` is empty.
    * @throws {TypeError} `defaultValue` is not of an allowed type.
    */
-  getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: User): Promise<IEvaluationDetails<SettingTypeOf<T>>>;
+  getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<IEvaluationDetails<SettingTypeOf<T>>>;
 
   /**
    * Returns all setting keys.
@@ -60,14 +60,14 @@ export interface IConfigCatClient extends IProvidesHooks {
    * @param user The User Object to use for evaluating targeting rules and percentage options.
    * @returns A promise that fulfills with the array of key-value pairs.
    */
-  getAllValuesAsync(user?: User): Promise<SettingKeyValue[]>;
+  getAllValuesAsync(user?: IUser): Promise<SettingKeyValue[]>;
 
   /**
    * Returns the values along with evaluation details of all feature flags and settings.
    * @param user The User Object to use for evaluating targeting rules and percentage options.
    * @returns A promise that fulfills with the array of values along with evaluation details.
    */
-  getAllValueDetailsAsync(user?: User): Promise<IEvaluationDetails[]>;
+  getAllValueDetailsAsync(user?: IUser): Promise<IEvaluationDetails[]>;
 
   /** Returns the key of a setting and it's value identified by the given Variation ID (analytics) */
 
@@ -100,7 +100,7 @@ export interface IConfigCatClient extends IProvidesHooks {
    * Sets the default user.
    * @param defaultUser The default User Object to use for evaluating targeting rules and percentage options.
    */
-  setDefaultUser(defaultUser: User): void;
+  setDefaultUser(defaultUser: IUser): void;
 
   /**
    * Clears the default user.
@@ -153,7 +153,7 @@ export interface IConfigCatClientSnapshot {
    * @throws {Error} `key` is empty.
    * @throws {TypeError} `defaultValue` is not of an allowed type.
    */
-  getValue<T extends SettingValue>(key: string, defaultValue: T, user?: User): SettingTypeOf<T>;
+  getValue<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): SettingTypeOf<T>;
 
   /**
  * Returns the value along with evaluation details of a feature flag or setting identified by `key` synchronously, based on the snapshot.
@@ -167,7 +167,7 @@ export interface IConfigCatClientSnapshot {
  * @throws {Error} `key` is empty.
  * @throws {TypeError} `defaultValue` is not of an allowed type.
  */
-  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: User): IEvaluationDetails<SettingTypeOf<T>>;
+  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): IEvaluationDetails<SettingTypeOf<T>>;
 }
 
 export interface IConfigCatKernel {
@@ -237,7 +237,7 @@ export class ConfigCatClient implements IConfigCatClient {
   protected evaluator: IRolloutEvaluator;
   private readonly options: OptionsBase;
   private readonly hooks: Hooks;
-  private defaultUser?: User;
+  private defaultUser?: IUser;
   private readonly suppressFinalize: () => void;
 
   private static get instanceCache() { return clientInstanceCache; }
@@ -364,7 +364,7 @@ export class ConfigCatClient implements IConfigCatClient {
     }
   }
 
-  async getValueAsync<T extends SettingValue>(key: string, defaultValue: T, user?: User): Promise<SettingTypeOf<T>> {
+  async getValueAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<SettingTypeOf<T>> {
     this.options.logger.debug("getValueAsync() called.");
 
     validateKey(key);
@@ -389,7 +389,7 @@ export class ConfigCatClient implements IConfigCatClient {
     return value;
   }
 
-  async getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: User): Promise<IEvaluationDetails<SettingTypeOf<T>>> {
+  async getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<IEvaluationDetails<SettingTypeOf<T>>> {
     this.options.logger.debug("getValueDetailsAsync() called.");
 
     validateKey(key);
@@ -429,7 +429,7 @@ export class ConfigCatClient implements IConfigCatClient {
     }
   }
 
-  async getAllValuesAsync(user?: User): Promise<SettingKeyValue[]> {
+  async getAllValuesAsync(user?: IUser): Promise<SettingKeyValue[]> {
     this.options.logger.debug("getAllValuesAsync() called.");
 
     const defaultReturnValue = "empty array";
@@ -438,7 +438,7 @@ export class ConfigCatClient implements IConfigCatClient {
     try {
       const [settings, remoteConfig] = await this.getSettingsAsync();
       [evaluationDetailsArray, evaluationErrors] = evaluateAll(this.evaluator, settings, user, remoteConfig, this.options.logger, defaultReturnValue);
-      result = evaluationDetailsArray.map(details => new SettingKeyValue(details.key, details.value));
+      result = evaluationDetailsArray.map(details => ({ settingKey: details.key, settingValue: details.value }));
     }
     catch (err) {
       this.options.logger.settingEvaluationError("getAllValuesAsync", defaultReturnValue, err);
@@ -457,7 +457,7 @@ export class ConfigCatClient implements IConfigCatClient {
     return result;
   }
 
-  async getAllValueDetailsAsync(user?: User): Promise<IEvaluationDetails[]> {
+  async getAllValueDetailsAsync(user?: IUser): Promise<IEvaluationDetails[]> {
     this.options.logger.debug("getAllValueDetailsAsync() called.");
 
     const defaultReturnValue = "empty array";
@@ -496,7 +496,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
       for (const [settingKey, setting] of Object.entries(settings)) {
         if (variationId === setting.variationId) {
-          return new SettingKeyValue(settingKey, ensureAllowedValue(setting.value));
+          return { settingKey, settingValue: ensureAllowedValue(setting.value) };
         }
 
         const targetingRules = settings[settingKey].targetingRules;
@@ -507,12 +507,12 @@ export class ConfigCatClient implements IConfigCatClient {
               for (let j = 0; j < then.length; j++) {
                 const percentageOption: PercentageOption = then[j];
                 if (variationId === percentageOption.variationId) {
-                  return new SettingKeyValue(settingKey, ensureAllowedValue(percentageOption.value));
+                  return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
                 }
               }
             }
             else if (variationId === then.variationId) {
-              return new SettingKeyValue(settingKey, ensureAllowedValue(then.value));
+              return { settingKey, settingValue: ensureAllowedValue(then.value) };
             }
           }
         }
@@ -522,7 +522,7 @@ export class ConfigCatClient implements IConfigCatClient {
           for (let i = 0; i < percentageOptions.length; i++) {
             const percentageOption: PercentageOption = percentageOptions[i];
             if (variationId === percentageOption.variationId) {
-              return new SettingKeyValue(settingKey, ensureAllowedValue(percentageOption.value));
+              return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
             }
           }
         }
@@ -555,7 +555,7 @@ export class ConfigCatClient implements IConfigCatClient {
     }
   }
 
-  setDefaultUser(defaultUser: User): void {
+  setDefaultUser(defaultUser: IUser): void {
     this.defaultUser = defaultUser;
   }
 
@@ -689,7 +689,7 @@ export class ConfigCatClient implements IConfigCatClient {
 }
 
 class Snapshot implements IConfigCatClientSnapshot {
-  private readonly defaultUser: User | undefined;
+  private readonly defaultUser: IUser | undefined;
   private readonly evaluator: IRolloutEvaluator;
   private readonly options: ConfigCatClientOptions;
 
@@ -715,7 +715,7 @@ class Snapshot implements IConfigCatClientSnapshot {
 
   getAllKeys() { return this.mergedSettings ? Object.keys(this.mergedSettings) : []; }
 
-  getValue<T extends SettingValue>(key: string, defaultValue: T, user?: User): SettingTypeOf<T> {
+  getValue<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): SettingTypeOf<T> {
     this.options.logger.debug("Snapshot.getValue() called.");
 
     validateKey(key);
@@ -737,7 +737,7 @@ class Snapshot implements IConfigCatClientSnapshot {
     return value;
   }
 
-  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: User): IEvaluationDetails<SettingTypeOf<T>> {
+  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): IEvaluationDetails<SettingTypeOf<T>> {
     this.options.logger.debug("Snapshot.getValueDetails() called.");
 
     validateKey(key);
@@ -759,10 +759,9 @@ class Snapshot implements IConfigCatClientSnapshot {
 }
 
 /** Setting key-value pair. */
-export class SettingKeyValue<TValue extends SettingValue = SettingValue> {
-  constructor(
-    public settingKey: string,
-    public settingValue: TValue) { }
+export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
+  settingKey: string;
+  settingValue: TValue;
 }
 
 function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {

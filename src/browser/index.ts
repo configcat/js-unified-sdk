@@ -4,9 +4,12 @@ import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientCommon } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
+import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
-import { LocalStorageCache } from "./LocalStorageCache";
+import { LocalStorageConfigCache } from "./LocalStorageConfigCache";
 import { XmlHttpRequestConfigFetcher } from "./XmlHttpRequestConfigFetcher";
+
+/* Package public API for browsers */
 
 setupPolyfills();
 
@@ -21,16 +24,22 @@ setupPolyfills();
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
-    LocalStorageCache.setup({
-      configFetcher: new XmlHttpRequestConfigFetcher(),
-      sdkType: "ConfigCat-JS",
-      sdkVersion: CONFIGCAT_SDK_VERSION,
-      eventEmitterFactory: () => new DefaultEventEmitter()
-    }));
+  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
+    configFetcher: new XmlHttpRequestConfigFetcher(),
+    sdkType: "ConfigCat-UnifiedJS-Browser",
+    sdkVersion: CONFIGCAT_SDK_VERSION,
+    eventEmitterFactory: () => new DefaultEventEmitter(),
+    defaultCacheFactory: typeof localStorage !== "undefined"
+      // NOTE: The IndexedDB API is asynchronous, so it's not possible to check here if it actually works. For this reason,
+      // we'd rather not fall back to IndexedDB if LocalStorage doesn't work. (In that case, IndexedDB is unlikely to work anyway.)
+      ? LocalStorageConfigCache.tryGetFactory()
+      : IndexedDBConfigCache.tryGetFactory()
+  });
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";
+
+export type { IQueryStringProvider } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
 export interface IJSAutoPollOptions extends IAutoPollOptions {

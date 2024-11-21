@@ -7,7 +7,7 @@ import type { ConditionUnion, IPercentageOption, ITargetingRule, PercentageOptio
 import { nameOfSettingType } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
-import type { User, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
+import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes } from "./User";
 import { errorToString, formatStringList, isArray, isStringArray, parseFloatStrict, utf8Encode } from "./Utils";
 
@@ -23,7 +23,7 @@ export class EvaluateContext {
   constructor(
     readonly key: string,
     readonly setting: Setting,
-    readonly user: User | undefined,
+    readonly user: IUser | undefined,
     readonly settings: Readonly<{ [key: string]: Setting }>,
   ) {
   }
@@ -819,7 +819,7 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
   fetchTime?: Date;
 
   /** The User object used for the evaluation (if available). */
-  user?: User;
+  user?: IUser;
 
   /**
    * Indicates whether the default value passed to the setting evaluation methods like `IConfigCatClient.getValueAsync`, `IConfigCatClient.getValueDetailsAsync`, etc.
@@ -842,7 +842,7 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
 
 /* Helper functions */
 
-function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult, fetchTime?: Date, user?: User): IEvaluationDetails<SettingTypeOf<T>> {
+function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult, fetchTime?: Date, user?: IUser): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: evaluateResult.selectedValue.value as SettingTypeOf<T>,
@@ -855,7 +855,7 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
   };
 }
 
-export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T, fetchTime?: Date, user?: User, errorMessage?: string, errorException?: any): IEvaluationDetails<SettingTypeOf<T>> {
+export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T, fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: defaultValue as SettingTypeOf<T>,
@@ -868,7 +868,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
 }
 
 export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: Readonly<{ [key: string]: Setting }> | null, key: string, defaultValue: T,
-  user: User | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper): IEvaluationDetails<SettingTypeOf<T>> {
+  user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper): IEvaluationDetails<SettingTypeOf<T>> {
 
   let errorMessage: string;
   if (!settings) {
@@ -888,7 +888,7 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
 }
 
 export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [key: string]: Setting }> | null,
-  user: User | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string): [IEvaluationDetails[], any[] | undefined] {
+  user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string): [IEvaluationDetails[], any[] | undefined] {
 
   let errors: any[] | undefined;
 

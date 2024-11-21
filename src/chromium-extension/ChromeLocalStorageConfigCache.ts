@@ -1,14 +1,13 @@
-import type { IConfigCatCache } from "../ConfigCatCache";
+import type { IConfigCache, IConfigCatCache } from "../ConfigCatCache";
 import { ExternalConfigCache } from "../ConfigCatCache";
-import type { IConfigCatKernel } from "../ConfigCatClient";
+import type { OptionsBase } from "../ConfigCatClientOptions";
 
-export class ChromeLocalStorageCache implements IConfigCatCache {
-  static setup(kernel: IConfigCatKernel, localStorageGetter?: () => chrome.storage.LocalStorageArea | null): IConfigCatKernel {
-    const localStorage = localStorageGetter?.() ?? window.chrome?.storage?.local;
+export class ChromeLocalStorageConfigCache implements IConfigCatCache {
+  static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
+    const localStorage = getChromeLocalStorage();
     if (localStorage) {
-      kernel.defaultCacheFactory = options => new ExternalConfigCache(new ChromeLocalStorageCache(localStorage), options.logger);
+      return options => new ExternalConfigCache(new ChromeLocalStorageConfigCache(localStorage), options.logger);
     }
-    return kernel;
   }
 
   constructor(private readonly storage: chrome.storage.LocalStorageArea) {
@@ -24,6 +23,12 @@ export class ChromeLocalStorageCache implements IConfigCatCache {
     if (configString) {
       return fromUtf8Base64(configString);
     }
+  }
+}
+
+export function getChromeLocalStorage(): chrome.storage.LocalStorageArea | undefined {
+  if (typeof chrome !== "undefined") {
+    return chrome?.storage?.local;
   }
 }
 

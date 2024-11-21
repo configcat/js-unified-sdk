@@ -6,6 +6,8 @@ import { getClient as getClientCommon } from "../index.pubternals.core";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { NodeHttpConfigFetcher } from "./NodeHttpConfigFetcher";
 
+/* Package public API for Node.js */
+
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.
  * @remarks This method returns a single, shared instance per each distinct SDK Key.
@@ -20,7 +22,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
   return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
     {
       configFetcher: new NodeHttpConfigFetcher(),
-      sdkType: "ConfigCat-Node",
+      sdkType: "ConfigCat-UnifiedJS-Node",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new EventEmitter()
     });
