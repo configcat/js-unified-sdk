@@ -222,7 +222,7 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
   - Chromium (64.0.3282.0, 72.0.3626.0, 80.0.3987.0)
   - Firefox (latest, latest-beta, 84.0)
 - @configcat/sdk/bun:
-  - Bun (v1.1.0, latest stable) on Windows / Ubuntu / macOS
+  - Bun (v1.1.0, v1.1.34) on Windows
 - @configcat/sdk/deno:
   - Deno (v1.31, v1.46, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/node:

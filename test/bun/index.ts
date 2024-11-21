@@ -54,6 +54,6 @@ for (const file of glob.globIterateSync(normalizePathSeparator(testDir) + "/**/*
     segments[segments.length - 1] = path.basename(fileName, path.extname(fileName));
 
     /* eslint-disable @typescript-eslint/no-require-imports */
-    require("../" + segments.join("/"));
+    await import("../" + segments.join("/"));
   }
 }

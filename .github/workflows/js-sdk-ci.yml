@@ -104,8 +104,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        bun-version: ["1.1.0", "latest"]
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        bun-version: ["1.1.0", "1.1.34"]
+         # Bun fails to run tests on ubuntu-latest and macOS-latest.
+         # It may not be possible at all for now: https://github.com/oven-sh/bun/issues/10001
+         # Bun version "latest" (1.1.36) seems to have a regression,
+         # so we use 1.1.34 until it fixed.
+        os: [windows-latest]
     name: Bun ${{ matrix.bun-version }} (${{ matrix.os }}) test
     steps:
       - uses: actions/checkout@v4
