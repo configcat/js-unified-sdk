@@ -25,7 +25,7 @@ The new SDK maintains backward compatibility, so it can be used as a drop-in rep
 replace the old package with the new and adjust the import specifiers (as shown [here](#1-install-and-import-package)).
 
 > [!CAUTION]
-> Please note that the SDK is still under development and is currently in beta phase. You use it at your own risk.
+> Please note that the SDK is still under development and is currently in beta phase. Use it at your own risk.
 
 ## Getting Started
 

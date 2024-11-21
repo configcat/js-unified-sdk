@@ -2,7 +2,7 @@ import { createConsoleLogger, getClient, LogLevel, PollingMode, User } from "@co
 
 // Creating the ConfigCat client instance using the SDK Key
 const client = getClient(
-  "PKDVCLf-Hq-h-kCzMp-L7Q/HhOWfwVtZ0mb30i9wi17GQ",
+  "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw",
   PollingMode.AutoPoll,
   {
     // Setting log level to Info to show detailed feature flag evaluation

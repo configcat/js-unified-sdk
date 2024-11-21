@@ -4,7 +4,7 @@ export default {
   async fetch(request, env, ctx): Promise<Response> {
     // Creating the ConfigCat client instance using the SDK Key
     const client = getClient(
-      "PKDVCLf-Hq-h-kCzMp-L7Q/HhOWfwVtZ0mb30i9wi17GQ",
+      "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw",
       // For short-lived workers it is recommended to use Lazy Loading mode
       PollingMode.LazyLoad,
       {
