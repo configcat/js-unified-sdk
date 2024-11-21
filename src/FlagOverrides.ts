@@ -89,7 +89,10 @@ export interface IQueryStringProvider {
 }
 
 class DefaultQueryStringProvider implements IQueryStringProvider {
-  get currentValue() { if (typeof location !== "undefined") return location?.search; }
+  get currentValue() {
+    if (typeof location === "undefined") return;
+    return location?.search;
+  }
 }
 
 let defaultQueryStringProvider: DefaultQueryStringProvider | undefined;

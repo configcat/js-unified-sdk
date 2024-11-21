@@ -22,10 +22,10 @@ export class IndexedDBConfigCache implements IConfigCatCache {
     try {
       await new Promise<void>((resolve, reject) => {
         const transaction = db.transaction(OBJECT_STORE_NAME, "readwrite");
-        const store = transaction.objectStore(OBJECT_STORE_NAME);
-        store.put(value, key);
         transaction.oncomplete = () => resolve();
         transaction.onerror = event => reject((event.target as IDBRequest<IDBValidKey>).error);
+        const store = transaction.objectStore(OBJECT_STORE_NAME);
+        store.put(value, key);
       });
     }
     finally { db.close(); }
@@ -36,12 +36,12 @@ export class IndexedDBConfigCache implements IConfigCatCache {
     try {
       return await new Promise<string | undefined>((resolve, reject) => {
         const transaction = db.transaction(OBJECT_STORE_NAME, "readonly");
-        const store = transaction.objectStore(OBJECT_STORE_NAME);
-        const storeRequest = store.get(key);
         let value: string | undefined;
-        storeRequest.onsuccess = event => value = (event.target as IDBRequest<any>).result;
         transaction.oncomplete = () => resolve(value);
         transaction.onerror = event => reject((event.target as IDBRequest<IDBValidKey>).error);
+        const store = transaction.objectStore(OBJECT_STORE_NAME);
+        const storeRequest = store.get(key);
+        storeRequest.onsuccess = event => value = (event.target as IDBRequest<any>).result;
       });
     }
     finally { db.close(); }
