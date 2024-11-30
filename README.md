@@ -4,7 +4,6 @@
 [![Quality Gate Status](https://img.shields.io/sonar/quality_gate/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
 [![SonarCloud Coverage](https://img.shields.io/sonar/coverage/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
 [![Known Vulnerabilities](https://snyk.io/test/github/configcat/js-unified-sdk/badge.svg?targetFile=package.json)](https://snyk.io/test/github/configcat/js-unified-sdk?targetFile=package.json) 
-[![Tree Shaking](https://badgen.net/bundlephobia/tree-shaking/@configcat/sdk)](https://bundlephobia.com/result?p=@configcat/sdk) 
 ![License](https://img.shields.io/github/license/configcat/js-unified-sdk.svg) 
 [![](https://data.jsdelivr.com/v1/package/npm/@configcat/sdk/badge)](https://www.jsdelivr.com/package/npm/@configcat/sdk)
 [![NPM](https://nodei.co/npm/@configcat/sdk.png)](https://nodei.co/npm/@configcat/sdk/)
@@ -222,7 +221,7 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
   - Chromium (64.0.3282.0, 72.0.3626.0, 80.0.3987.0)
   - Firefox (latest, latest-beta, 84.0)
 - @configcat/sdk/bun:
-  - Bun (v1.1.0, latest stable) on Windows
+  - Bun (v1.1.0, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/deno:
   - Deno (v1.31, v1.46, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/node:

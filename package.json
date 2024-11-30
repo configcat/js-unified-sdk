@@ -55,26 +55,26 @@
   },
   "imports": {
     "#lib/browser": {
-      "browser": "./lib/esm/browser/index.js"
+      "import": "./lib/esm/browser/index.js"
     },
     "#lib/bun": {
-      "browser": "./lib/esm/bun/index.js"
+      "import": "./lib/esm/bun/index.js"
     },
     "#lib/chromium-extension": {
-      "browser": "./lib/esm/chromium-extension/index.js"
+      "import": "./lib/esm/chromium-extension/index.js"
     },
     "#lib/cloudflare-worker": {
-      "browser": "./lib/esm/cloudflare-worker/index.js"
+      "import": "./lib/esm/cloudflare-worker/index.js"
     },
     "#lib/node": {
       "require": "./lib/cjs/node/index.js"
     },
     "#lib": {
-      "browser": "./lib/esm/index.js",
+      "import": "./lib/esm/index.js",
       "require": "./lib/cjs/index.js"
     },
     "#lib/*": {
-      "browser": "./lib/esm/*.js",
+      "import": "./lib/esm/*.js",
       "require": "./lib/cjs/*.js"
     }
   },
@@ -92,7 +92,7 @@
     "test:browser:chrome": "karma start karma.browser.chrome.conf.js",
     "test:browser:chromium": "karma start karma.browser.chromium.conf.js",
     "test:browser:firefox": "karma start karma.browser.firefox.conf.js",
-    "test:bun": "bun run --tsconfig-override ./tsconfig.mocha.bun.json ./node_modules/mocha/bin/mocha.js test/bun/index.ts --timeout 30000",
+    "test:bun": "bun --tsconfig-override ./tsconfig.mocha.bun.json ./node_modules/mocha/bin/mocha.js test/bun/index.ts --timeout 30000",
     "test:chromium-extension:chrome": "karma start karma.chromium-extension.chrome.conf.js",
     "test:chromium-extension:chromium": "karma start karma.chromium-extension.chromium.conf.js",
     "test:cloudflare-worker": "webpack -c webpack.workerd.cloudflare-worker.config.js && concurrently --raw --success command-1 --kill-others \"node test/cloudflare-worker/test-run-helper/server.mjs\" \"workerd test workerd.config.capnp\"",
