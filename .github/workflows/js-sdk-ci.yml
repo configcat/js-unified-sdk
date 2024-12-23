@@ -29,7 +29,9 @@ jobs:
         run: npm run check:ts-compat
 
   test-browser-chrome:
-    runs-on: ubuntu-latest
+    # Runner image version is temporarily pinned to `ubuntu-22.04`.
+    # TODO: Restore it to `ubuntu-latest` as soon as compatibility issues with `browser-actions/setup-chrome@latest` are sorted out.
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         chrome: ["beta", "stable"]
@@ -77,7 +79,9 @@ jobs:
         run: CHROMIUM_BIN=$(which chrome) npm run test:browser:chromium
 
   test-browser-firefox:
-    runs-on: ubuntu-latest
+    # Runner image version is temporarily pinned to `ubuntu-22.04`.
+    # TODO: Restore it to `ubuntu-latest` as soon as compatibility issues with `browser-actions/setup-firefox@latest` are sorted out.
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         firefox: ["84.0", "latest-beta", "latest"]
@@ -121,7 +125,9 @@ jobs:
         run: npm run test:bun
 
   test-chromium-extension-chrome:
-    runs-on: ubuntu-latest
+    # Runner image version is temporarily pinned to `ubuntu-22.04`.
+    # TODO: Restore it to `ubuntu-latest` as soon as compatibility issues with `browser-actions/setup-chrome@latest` are sorted out.
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         chrome: ["beta", "stable"]
