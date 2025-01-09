@@ -1,7 +1,8 @@
 import eslint from "@eslint/js";
-import importPlugin from "eslint-plugin-import";
-import tseslint from "typescript-eslint";
 import stylisticTs from "@stylistic/eslint-plugin-ts";
+import importPlugin from "eslint-plugin-import";
+import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default [
   /* Base configuration (@eslint/js, eslint-plugin-import) */
@@ -235,7 +236,17 @@ export default [
           }
         }
       ],
-      "import/newline-after-import": "warn"
+      "import/newline-after-import": "warn",
+      // This rule seems broken, so we disable it for now.
+      "import/no-unresolved": "off",
+    }
+  },
+  /* Additional configuration for build scripts */
+  {
+    files: ["**/*.{js,cjs,mjs}"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: globals.node
     }
   },
   /* Configuration for src & test files (typescript-eslint) */
@@ -260,8 +271,6 @@ export default [
         reportUnusedDisableDirectives: "error",
       },
       rules: {
-        "import/no-unresolved": "off",
-
         // Supported rules (https://typescript-eslint.io/rules/#supported-rules)
         "@typescript-eslint/array-type": ["error", {
           "default": "array",
@@ -449,7 +458,6 @@ export default [
   {
     // Ignored files (https://github.com/eslint/eslint/issues/17400)
     ignores: [
-      "**/*.{js,mjs,cjs}",
       "build/",
       "coverage/",
       "dist/",
@@ -459,6 +467,7 @@ export default [
       "samples/",
       "src/Hash.ts",
       "src/Semver.ts",
+      "test/cloudflare-worker/dist/"
     ]
   }
 ];

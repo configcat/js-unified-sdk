@@ -1,13 +1,13 @@
 // This is a workaround for a nasty breaking change introduced in Deno 2:
 // the `nodeModulesDir` option must be set to "manual" instead of true.
 
-const { promisify } = require('util');
-const exec = promisify(require('child_process').exec);
 const crossEnv = require("cross-env");
+const { promisify } = require("util");
+const exec = promisify(require("child_process").exec);
 
 (async () => {
   // Detect Deno version.
-  const output = await exec('deno --version');
+  const output = await exec("deno --version");
   const match = output.stdout.match(/\bdeno\s+(\d+).(\d+).(\d+)/);
   const major = +match[1];
 

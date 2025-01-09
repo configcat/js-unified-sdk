@@ -1,9 +1,8 @@
 "use strict";
 
-const path = require("path");
 const fs = require("fs");
 const glob = require("glob");
-const { match } = require("assert");
+const path = require("path");
 
 process.chdir(__dirname);
 
