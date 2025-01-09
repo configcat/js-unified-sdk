@@ -9,6 +9,9 @@ export default [
   eslint.configs.recommended,
   importPlugin.flatConfigs.recommended,
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
     rules: {
       /* Suggestions (https://eslint.org/docs/latest/rules/#suggestions) */
       "curly": [
@@ -267,9 +270,6 @@ export default [
           project: "tsconfig.json"
         },
       },
-      linterOptions: {
-        reportUnusedDisableDirectives: "error",
-      },
       rules: {
         // Supported rules (https://typescript-eslint.io/rules/#supported-rules)
         "@typescript-eslint/array-type": ["error", {
@@ -306,9 +306,9 @@ export default [
         "@typescript-eslint/no-non-null-assertion": "off",
         "@typescript-eslint/no-non-null-asserted-nullish-coalescing": "warn",
         "@typescript-eslint/no-require-imports": "error",
-        // This rule would be useful but produces too many false positives when noUncheckedIndexedAccess
+        // This rule would be useful but produces too many false positives when `noUncheckedIndexedAccess`
         // is disabled. However, enabling that would cause a lot of other false positives.
-        // So we turn this lint rule off until noUncheckedIndexedAccess is improved.
+        // So we turn this lint rule off until `noUncheckedIndexedAccess` is improved.
         // See also: https://github.com/typescript-eslint/typescript-eslint/issues/6264
         "@typescript-eslint/no-unnecessary-condition": "off",
         "@typescript-eslint/no-unsafe-declaration-merging": "warn",
@@ -416,7 +416,7 @@ export default [
         ],
       },
     },
-    // Additional configuration for src files
+    /* Additional configuration for src files */
     {
       files: ["src/**/*.ts"],
       rules: {
@@ -437,7 +437,7 @@ export default [
         "@typescript-eslint/no-import-type-side-effects": "warn"
       }
     },
-    // Additional configuration for test files
+    /* Additional configuration for test files */
     {
       files: ["test/**/*.ts"],
       rules: {
@@ -455,8 +455,8 @@ export default [
       }
     },
   ),
+  /* Ignored files (https://github.com/eslint/eslint/issues/17400) */
   {
-    // Ignored files (https://github.com/eslint/eslint/issues/17400)
     ignores: [
       "build/",
       "coverage/",
