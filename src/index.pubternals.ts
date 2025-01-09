@@ -14,7 +14,7 @@ export type { OptionsBase } from "./ConfigCatClientOptions";
 
 export type { IOverrideDataSource } from "./FlagOverrides";
 
-export const settingFromValue = Setting.fromValue;
+export const settingFromValue = Setting.fromValue.bind(Setting);
 
 export type { IConfigCache } from "./ConfigCatCache";
 

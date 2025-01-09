@@ -122,7 +122,7 @@ export class FakeConfigFetcherBase implements IConfigFetcher {
 
   constructor(
     private config: string | null,
-    private readonly callbackDelay: number = 0,
+    private readonly callbackDelay = 0,
     private readonly getFetchResponse?: (lastConfig: string | null, lastEtag: string | null) => IFetchResponse) {
 
     this.config ??= this.defaultConfigJson;

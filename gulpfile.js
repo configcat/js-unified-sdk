@@ -1,10 +1,10 @@
 "use strict";
 
-const gulp = require("gulp");
 const child_process = require("child_process");
-const path = require("path");
 const fs = require("fs"), fsp = fs.promises;
 const glob = require("glob");
+const gulp = require("gulp");
+const path = require("path");
 const packageJson = require("./package.json");
 
 process.chdir(__dirname);

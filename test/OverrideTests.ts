@@ -400,6 +400,7 @@ describe("Local Overrides", () => {
     [[], false, false],
     [function() { }, false, false],
   ]) {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     it(`Override value type mismatch should be handled correctly (${overrideValue}, ${defaultValue})`, async () => {
       const key = "flag";
 

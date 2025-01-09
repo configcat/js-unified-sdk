@@ -30,7 +30,7 @@ describe("LocalStorageConfigCache tests", () => {
     const localStorage = getLocalStorage();
     assert.isDefined(localStorage);
 
-    const cache = new LocalStorageConfigCache(localStorage!);
+    const cache = new LocalStorageConfigCache(localStorage);
     const key = "testkey";
     const text = "äöüÄÖÜçéèñışğâ¢™✓😀";
     cache.set(key, text);

@@ -14,7 +14,7 @@ export function setupPolyfills(): void {
 export function ObjectValuesPolyfill<T>(o: { [s: string]: T } | ArrayLike<T>): T[] {
   const result: T[] = [];
   for (const key of Object.keys(o)) {
-    result.push((o as any)[key]);
+    result.push((o as Record<string, T>)[key]);
   }
   return result;
 }
@@ -23,16 +23,16 @@ export function ObjectValuesPolyfill<T>(o: { [s: string]: T } | ArrayLike<T>): T
 export function ObjectEntriesPolyfill<T>(o: { [s: string]: T } | ArrayLike<T>): [string, T][] {
   const result: [string, T][] = [];
   for (const key of Object.keys(o)) {
-    result.push([key, (o as any)[key]]);
+    result.push([key, (o as Record<string, T>)[key]]);
   }
   return result;
 }
 
-export function getWeakRefStub<T extends object>(): WeakRefConstructor {
-  type WeakRefImpl = WeakRef<T> & { target: T };
+export function getWeakRefStub(): WeakRefConstructor {
+  type WeakRefImpl = WeakRef<WeakKey> & { target: object };
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const WeakRef = function(this: WeakRefImpl, target: T) {
+  const WeakRef = function(this: WeakRefImpl, target: object) {
     this.target = target;
   } as Function as WeakRefConstructor & { isFallback: boolean };
 

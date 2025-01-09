@@ -95,7 +95,9 @@ Import the package directly from a CDN server into your application:
 * Extensions for Chromium-based browsers (Chrome, Edge, etc.):
 
   ```js
-  import * as configcat from "https://cdn.jsdelivr.net/npm/@configcat/sdk@latest/dist/configcat.chromium-extension.esm.min.js";
+  <script type="module">
+    import * as configcat from "https://cdn.jsdelivr.net/npm/@configcat/sdk@latest/dist/configcat.chromium-extension.esm.min.js";
+  </script>
   ```
 
 ### 2. Go to the <a href="https://app.configcat.com/sdkkey" target="_blank">ConfigCat Dashboard</a> to get your *SDK Key*:

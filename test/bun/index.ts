@@ -53,7 +53,6 @@ for (const file of glob.globIterateSync(normalizePathSeparator(testDir) + "/**/*
     const fileName = segments[segments.length - 1];
     segments[segments.length - 1] = path.basename(fileName, path.extname(fileName));
 
-    /* eslint-disable @typescript-eslint/no-require-imports */
     await import("../" + segments.join("/"));
   }
 }

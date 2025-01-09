@@ -32,7 +32,7 @@ export const enum OverrideBehaviour {
 
 export function nameOfOverrideBehaviour(value: OverrideBehaviour): string {
   /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
-  return OverrideBehaviour[value];
+  return OverrideBehaviour[value] as string;
 }
 
 type SettingMap = { [key: string]: Setting };
@@ -91,7 +91,7 @@ export interface IQueryStringProvider {
 class DefaultQueryStringProvider implements IQueryStringProvider {
   get currentValue() {
     if (typeof location === "undefined") return;
-    return location?.search;
+    return location.search;
   }
 }
 

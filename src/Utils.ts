@@ -56,7 +56,7 @@ export function throwError(err: any): never {
   throw err;
 }
 
-export function isArray(value: unknown): value is readonly unknown[] {
+export function isArray(value: unknown): value is ReadonlyArray<unknown> {
   // See also: https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1477626624
   return Array.isArray(value);
 }
@@ -85,7 +85,7 @@ export function formatStringList(items: ReadonlyArray<string>, maxLength = 0, ge
 
 export function isPromiseLike<T>(obj: unknown): obj is PromiseLike<T> {
   // See also: https://stackoverflow.com/a/27746324/8656352
-  return typeof (obj as PromiseLike<T>)?.then === "function";
+  return typeof (obj as PromiseLike<T> | undefined)?.then === "function";
 }
 
 export function utf8Encode(text: string): string {

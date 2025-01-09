@@ -53,6 +53,7 @@ export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchError
           const [timeoutMs] = args as FetchErrorCauses["timeout"];
           return `Request timed out. Timeout value: ${timeoutMs}ms`;
         case "failure":
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const [err] = args as FetchErrorCauses["failure"];
           const message = "Request failed due to a network or protocol error.";
           return err
@@ -66,6 +67,7 @@ export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchError
     // Thus, we need to manually fix the prototype chain as recommended in the TS docs
     // (see https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work)
     if (!(this instanceof FetchError)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (Object.setPrototypeOf || ((o, proto) => o["__proto__"] = proto))(this, FetchError.prototype);
     }
     this.args = args;

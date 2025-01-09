@@ -19,10 +19,13 @@ export abstract class ConfigLocation {
     }
     return configPromise;
   }
+
+  abstract toString(): string;
 }
 
 export class CdnConfigLocation extends ConfigLocation {
   static getDefaultCdnUrl(options?: IOptions): string {
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (options?.dataGovernance ?? DataGovernance.Global) {
       case DataGovernance.EuOnly:
         return "https://cdn-eu.configcat.com";

@@ -23,7 +23,7 @@ export class IndexedDBConfigCache implements IConfigCatCache {
       await new Promise<void>((resolve, reject) => {
         const transaction = db.transaction(OBJECT_STORE_NAME, "readwrite");
         transaction.oncomplete = () => resolve();
-        transaction.onerror = event => reject((event.target as IDBRequest<IDBValidKey>).error);
+        transaction.onerror = event => reject((event.target as IDBRequest).error!);
         const store = transaction.objectStore(OBJECT_STORE_NAME);
         store.put(value, key);
       });
@@ -38,10 +38,10 @@ export class IndexedDBConfigCache implements IConfigCatCache {
         const transaction = db.transaction(OBJECT_STORE_NAME, "readonly");
         let value: string | undefined;
         transaction.oncomplete = () => resolve(value);
-        transaction.onerror = event => reject((event.target as IDBRequest<IDBValidKey>).error);
+        transaction.onerror = event => reject((event.target as IDBRequest).error!);
         const store = transaction.objectStore(OBJECT_STORE_NAME);
         const storeRequest = store.get(key);
-        storeRequest.onsuccess = event => value = (event.target as IDBRequest<any>).result;
+        storeRequest.onsuccess = event => value = (event.target as IDBRequest<string | undefined>).result;
       });
     }
     finally { db.close(); }
@@ -56,7 +56,7 @@ export function getDBConnectionFactory(): DBConnectionFactory | undefined {
         openRequest.onupgradeneeded = event =>
           (event.target as IDBOpenDBRequest).result.createObjectStore(OBJECT_STORE_NAME);
         openRequest.onsuccess = event => resolve((event.target as IDBOpenDBRequest).result);
-        openRequest.onerror = event => reject((event.target as IDBOpenDBRequest).error);
+        openRequest.onerror = event => reject((event.target as IDBOpenDBRequest).error!);
       });
 
       // Check if it is possible to connect to the DB.

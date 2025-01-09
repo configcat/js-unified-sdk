@@ -10,7 +10,7 @@ describe("IndexedDBConfigCache tests", () => {
     const dbConnectionFactory = getDBConnectionFactory();
     assert.isDefined(dbConnectionFactory);
 
-    const cache = new IndexedDBConfigCache(dbConnectionFactory!);
+    const cache = new IndexedDBConfigCache(dbConnectionFactory);
     const key = "testkey";
     const text = "äöüÄÖÜçéèñışğâ¢™✓😀";
     await cache.set(key, text);

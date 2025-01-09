@@ -26,7 +26,7 @@ class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManual
             reject(Error(`unexpected response: ${request.status} ${request.statusText}`));
           }
         }
-      },
+      };
       request.ontimeout = () => reject(Error("timeout"));
       request.onabort = () => reject(Error("abort"));
       request.onerror = () => reject(Error("error"));

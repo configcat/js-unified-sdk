@@ -12,7 +12,7 @@ import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
 import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
-import type { IConfig, PercentageOption, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
+import type { IConfig, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingTypeOf } from "./RolloutEvaluator";
 import { RolloutEvaluator, checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue } from "./RolloutEvaluator";
 import type { IUser } from "./User";
@@ -499,13 +499,13 @@ export class ConfigCatClient implements IConfigCatClient {
           return { settingKey, settingValue: ensureAllowedValue(setting.value) };
         }
 
-        const targetingRules = settings[settingKey].targetingRules;
-        if (targetingRules && targetingRules.length > 0) {
+        const { targetingRules } = setting;
+        if (targetingRules.length > 0) {
           for (let i = 0; i < targetingRules.length; i++) {
             const then = targetingRules[i].then;
             if (isArray(then)) {
               for (let j = 0; j < then.length; j++) {
-                const percentageOption: PercentageOption = then[j];
+                const percentageOption = then[j];
                 if (variationId === percentageOption.variationId) {
                   return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
                 }
@@ -517,10 +517,10 @@ export class ConfigCatClient implements IConfigCatClient {
           }
         }
 
-        const percentageOptions = settings[settingKey].percentageOptions;
-        if (percentageOptions && percentageOptions.length > 0) {
+        const { percentageOptions } = setting;
+        if (percentageOptions.length > 0) {
           for (let i = 0; i < percentageOptions.length; i++) {
-            const percentageOption: PercentageOption = percentageOptions[i];
+            const percentageOption = percentageOptions[i];
             if (variationId === percentageOption.variationId) {
               return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
             }
@@ -594,7 +594,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     let remoteSettings: { [key: string]: Setting } | null;
     let remoteConfig: ProjectConfig | null;
-    const flagOverrides = this.options?.flagOverrides;
+    const { flagOverrides } = this.options;
     if (flagOverrides) {
       const localSettings = flagOverrides.dataSource.getOverridesSync();
       switch (flagOverrides.behaviour) {
@@ -622,7 +622,7 @@ export class ConfigCatClient implements IConfigCatClient {
       return [settings, config];
     };
 
-    const flagOverrides = this.options?.flagOverrides;
+    const { flagOverrides } = this.options;
     if (flagOverrides) {
       let remoteSettings: { [key: string]: Setting } | null;
       let remoteConfig: ProjectConfig | null;
@@ -643,7 +643,9 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this = this.on;
+  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.on;
 
   /** @inheritdoc */
   on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
@@ -664,7 +666,9 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this = this.removeListener;
+  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.removeListener;
 
   /** @inheritdoc */
   removeAllListeners(eventName?: keyof HookEvents): this {
@@ -683,7 +687,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  eventNames(): Array<keyof HookEvents> {
+  eventNames(): (keyof HookEvents)[] {
     return this.hooks.eventNames();
   }
 }

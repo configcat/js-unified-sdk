@@ -2,6 +2,8 @@ import type { IConfigCache, IConfigCatCache } from "../ConfigCatCache";
 import { ExternalConfigCache } from "../ConfigCatCache";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 export class ChromeLocalStorageConfigCache implements IConfigCatCache {
   static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const localStorage = getChromeLocalStorage();
@@ -19,7 +21,7 @@ export class ChromeLocalStorageConfigCache implements IConfigCatCache {
 
   async get(key: string): Promise<string | undefined> {
     const cacheObj = await this.storage.get(key);
-    const configString = cacheObj[key];
+    const configString = cacheObj[key] as string | undefined;
     if (configString) {
       return fromUtf8Base64(configString);
     }
@@ -28,13 +30,13 @@ export class ChromeLocalStorageConfigCache implements IConfigCatCache {
 
 export function getChromeLocalStorage(): chrome.storage.LocalStorageArea | undefined {
   if (typeof chrome !== "undefined") {
-    return chrome?.storage?.local;
+    return chrome.storage?.local;
   }
 }
 
 export function toUtf8Base64(str: string): string {
   str = encodeURIComponent(str);
-  str = str.replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16)));
+  str = str.replace(/%([0-9A-F]{2})/g, (_, p1: string) => String.fromCharCode(parseInt(p1, 16)));
   return btoa(str);
 }
 

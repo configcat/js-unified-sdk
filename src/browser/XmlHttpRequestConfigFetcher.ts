@@ -49,6 +49,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigFetcher {
         httpRequest.send(null);
       }
       catch (err) {
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         reject(err);
       }
     });

@@ -116,7 +116,7 @@ export interface ILazyLoadingOptions extends IOptions {
   cacheTimeToLiveSeconds?: number;
 }
 
-export type OptionsForPollingMode<TMode extends PollingMode | unknown> =
+export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends PollingMode.AutoPoll ? IAutoPollOptions :
   TMode extends PollingMode.ManualPoll ? IManualPollOptions :
   TMode extends PollingMode.LazyLoad ? ILazyLoadingOptions :
@@ -165,6 +165,7 @@ export abstract class OptionsBase {
     this.clientVersion = clientVersion;
     this.dataGovernance = options?.dataGovernance ?? DataGovernance.Global;
 
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (this.dataGovernance) {
       case DataGovernance.EuOnly:
         this.baseUrl = "https://cdn-eu.configcat.com";

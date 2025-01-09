@@ -317,7 +317,7 @@ describe("DefaultEventEmitter", () => {
 
       // Assert
 
-      assert.deepEqual(capturedArgs1, emittedArgs),
+      assert.deepEqual(capturedArgs1, emittedArgs);
       assert.deepEqual(capturedArgs2, []);
 
       assert.strictEqual(1, ee.listenerCount("evt1"));

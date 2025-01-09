@@ -98,7 +98,7 @@ export interface IConfig {
 
 export class Config implements IConfig {
   static deserialize(configJson: string): Config {
-    const configJsonParsed = JSON.parse(configJson);
+    const configJsonParsed: unknown = JSON.parse(configJson);
     if (typeof configJsonParsed !== "object" || !configJsonParsed) {
       throw new Error("Invalid config JSON content:" + configJson);
     }
@@ -114,8 +114,8 @@ export class Config implements IConfig {
     this.segments = json.s?.map(item => new Segment(item)) ?? [];
     this.settings = json.f != null
       ? Object.entries(json.f)
-        .reduce((acc, [key, value]) =>
-          (acc[key] = new Setting(value, this) as SettingUnion, acc), {} as { [key: string]: SettingUnion })
+        .reduce<{ [key: string]: SettingUnion }>((acc, [key, value]) =>
+          (acc[key] = new Setting(value, this) as SettingUnion, acc), {})
       : {};
   }
 
@@ -210,8 +210,7 @@ export class Setting<TSetting extends SettingType = SettingType> extends Setting
   constructor(json: ConfigJson.Setting<TSetting>, config?: Config) {
     super(json, json.t < 0);
     this.type = json.t;
-    const identifierAttribute: WellKnownUserObjectAttribute = "Identifier";
-    this.percentageOptionsAttribute = json.a ?? identifierAttribute;
+    this.percentageOptionsAttribute = json.a ?? ("Identifier" satisfies WellKnownUserObjectAttribute);
     this.targetingRules = json.r?.map(item => new TargetingRule<TSetting>(item, config!)) ?? [];
     this.percentageOptions = json.p?.map(item => new PercentageOption<TSetting>(item)) ?? [];
     this.configJsonSalt = config?.salt ?? "";
@@ -394,5 +393,5 @@ function unwrapSettingValue(json: ConfigJson.SettingValue): NonNullable<SettingV
 
 export function nameOfSettingType(value: SettingType): string {
   /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
-  return ConfigJson.SettingType[value];
+  return ConfigJson.SettingType[value] as string;
 }

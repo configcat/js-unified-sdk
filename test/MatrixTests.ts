@@ -144,11 +144,15 @@ function createUser(columns: ReadonlyArray<string>, headers: string[]): User | u
 }
 
 function getTypedValue(value: string, settingType: SettingType): NonNullable<SettingValue> {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (settingType) {
-    case SettingType.Boolean: return value.toLowerCase() === "true";
+    case SettingType.Boolean:
+      return value.toLowerCase() === "true";
     case SettingType.Int:
-    case SettingType.Double: return +value;
-    default: return value;
+    case SettingType.Double:
+      return +value;
+    default:
+      return value;
   }
 }
 

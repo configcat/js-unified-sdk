@@ -22,6 +22,7 @@ for (let i = 0; i < Deno.args.length; i++) {
   const value = Deno.args[i];
 
   const key = arg.substring(2) as keyof Mocha.MochaOptions;
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (key) {
     case "grep":
     case "fgrep":
