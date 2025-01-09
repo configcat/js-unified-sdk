@@ -68,7 +68,7 @@ const enum ConfigServiceStatus {
 
 function nameOfConfigServiceStatus(value: ConfigServiceStatus): string {
   /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
-  return ConfigServiceStatus[value];
+  return ConfigServiceStatus[value] as string;
 }
 
 export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
@@ -161,6 +161,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
     let errorMessage: string;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const [response, configOrError] = await this.fetchRequestAsync(lastConfig.httpETag ?? null);
 
       switch (response.statusCode) {
@@ -175,7 +176,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
           return FetchResult.success(new ProjectConfig(response.body, configOrError, ProjectConfig.generateTimestamp(), response.eTag));
 
         case 304: // Not Modified
-          if (!lastConfig) {
+          if (lastConfig.isEmpty) {
             errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase).toString();
             options.logger.debug(`ConfigServiceBase.fetchLogicAsync(): ${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
             return FetchResult.error(lastConfig, errorMessage);
@@ -206,6 +207,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   private async fetchRequestAsync(lastETag: string | null, maxRetryCount = 2): Promise<[IFetchResponse, (Config | any)?]> {
     const options = this.options;
     options.logger.debug("ConfigServiceBase.fetchRequestAsync() - called.");

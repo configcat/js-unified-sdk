@@ -32,7 +32,7 @@ export class FetchApiConfigFetcher implements IConfigFetcher {
       const { status: statusCode, statusText: reasonPhrase } = response;
       if (statusCode === 200) {
         const body = await response.text();
-        const eTag = response.headers?.get("Etag") ?? void 0;
+        const eTag = response.headers.get("ETag") ?? void 0;
         return { statusCode, reasonPhrase, eTag, body };
       }
       else {

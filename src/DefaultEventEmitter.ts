@@ -26,11 +26,11 @@ export class DefaultEventEmitter implements IEventEmitter {
     const listener: Listener = { fn, once };
 
     if (!listeners) {
-      this.events[eventName as string] = listener;
+      this.events[eventName] = listener;
       this.eventCount++;
     }
     else if (isSingle(listeners)) {
-      this.events[eventName as string] = [listeners, listener];
+      this.events[eventName] = [listeners, listener];
     }
     else {
       listeners.push(listener);
@@ -40,7 +40,7 @@ export class DefaultEventEmitter implements IEventEmitter {
   }
 
   private removeListenerCore<TState>(eventName: string | symbol, state: TState, isMatch: (listener: Listener, state: TState) => boolean) {
-    const listeners = this.events[eventName as string];
+    const listeners = this.events[eventName];
 
     if (!listeners) {
       return this;
@@ -54,7 +54,7 @@ export class DefaultEventEmitter implements IEventEmitter {
             this.removeEvent(eventName);
           }
           else if (listeners.length === 1) {
-            this.events[eventName as string] = listeners[0];
+            this.events[eventName] = listeners[0];
           }
           break;
         }
@@ -72,11 +72,13 @@ export class DefaultEventEmitter implements IEventEmitter {
       this.events = {};
     }
     else {
-      delete this.events[eventName as string];
+      delete this.events[eventName];
     }
   }
 
-  addListener: (eventName: string | symbol, listener: (...args: any[]) => void) => this = this.on;
+  addListener: (eventName: string | symbol, listener: (...args: any[]) => void) => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.on;
 
   on(eventName: string | symbol, listener: (...args: any[]) => void): this {
     return this.addListenerCore(eventName, listener, false);
@@ -94,14 +96,16 @@ export class DefaultEventEmitter implements IEventEmitter {
     return this.removeListenerCore(eventName, listener, (listener, fn) => listener.fn === fn);
   }
 
-  off: (eventName: string | symbol, listener: (...args: any[]) => void) => this = this.removeListener;
+  off: (eventName: string | symbol, listener: (...args: any[]) => void) => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.removeListener;
 
-  removeAllListeners(eventName?: string | symbol | undefined): this {
+  removeAllListeners(eventName?: string | symbol): this {
     if (!eventName) {
       this.events = {};
       this.eventCount = 0;
     }
-    else if (this.events[eventName as string]) {
+    else if (this.events[eventName]) {
       this.removeEvent(eventName);
     }
 
@@ -109,7 +113,7 @@ export class DefaultEventEmitter implements IEventEmitter {
   }
 
   listeners(eventName: string | symbol): Function[] {
-    const listeners = this.events[eventName as string];
+    const listeners = this.events[eventName];
 
     if (!listeners) {
       return [];
@@ -127,7 +131,7 @@ export class DefaultEventEmitter implements IEventEmitter {
   }
 
   listenerCount(eventName: string | symbol): number {
-    const listeners = this.events[eventName as string];
+    const listeners = this.events[eventName];
 
     if (!listeners) {
       return 0;
@@ -162,7 +166,7 @@ export class DefaultEventEmitter implements IEventEmitter {
   }
 
   emit(eventName: string | symbol, arg0?: any, arg1?: any, arg2?: any, arg3?: any, ...moreArgs: any[]): boolean {
-    let listeners = this.events[eventName as string];
+    let listeners = this.events[eventName];
 
     if (!listeners) {
       return false;
@@ -196,7 +200,7 @@ export class DefaultEventEmitter implements IEventEmitter {
         default:
           const args = new Array(argCount);
           for (let j = 0; j < argCount; j++) {
-            // eslint-disable-next-line prefer-rest-params
+            // eslint-disable-next-line prefer-rest-params, @typescript-eslint/no-unsafe-assignment
             args[j] = arguments[j + 1];
           }
           listener.fn.apply(this, args);

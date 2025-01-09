@@ -5,6 +5,8 @@ import { LogLevel } from "#lib";
 import { ChromeLocalStorageConfigCache, fromUtf8Base64, toUtf8Base64 } from "#lib/chromium-extension/ChromeLocalStorageConfigCache";
 import { ExternalConfigCache } from "#lib/ConfigCatCache";
 
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 describe("Base64 encode/decode test", () => {
   let allBmpChars = "";
   for (let i = 0; i <= 0xFFFF; i++) {

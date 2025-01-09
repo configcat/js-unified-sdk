@@ -47,7 +47,7 @@ export function getLocalStorage(): Storage | undefined {
 
 export function toUtf8Base64(str: string): string {
   str = encodeURIComponent(str);
-  str = str.replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16)));
+  str = str.replace(/%([0-9A-F]{2})/g, (_, p1: string) => String.fromCharCode(parseInt(p1, 16)));
   return btoa(str);
 }
 

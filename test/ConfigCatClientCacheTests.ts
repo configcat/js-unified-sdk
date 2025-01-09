@@ -90,7 +90,7 @@ describe("ConfigCatClientCache", () => {
 
     // Act
 
-    const success = cache.remove(sdkKey, client1["cacheToken"]!);
+    const success = cache.remove(sdkKey, client1["cacheToken"]);
 
     // Assert
 
@@ -115,13 +115,13 @@ describe("ConfigCatClientCache", () => {
     const cache = new ConfigCatClientCache();
 
     const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options, configCatKernel);
-    cache.remove(sdkKey, client1["cacheToken"]!);
+    cache.remove(sdkKey, client1["cacheToken"]);
 
     const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options, configCatKernel);
 
     // Act
 
-    const success = cache.remove(sdkKey, client1["cacheToken"]!);
+    const success = cache.remove(sdkKey, client1["cacheToken"]);
 
     // Assert
 

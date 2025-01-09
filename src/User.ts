@@ -71,15 +71,14 @@ export class User implements IUser {
 
 export function getUserAttribute(user: IUser, name: string): UserAttributeValue | null | undefined {
   switch (name) {
-    case <WellKnownUserObjectAttribute>"Identifier": return user.identifier ?? "";
-    case <WellKnownUserObjectAttribute>"Email": return user.email;
-    case <WellKnownUserObjectAttribute>"Country": return user.country;
+    case "Identifier" satisfies WellKnownUserObjectAttribute: return user.identifier ?? "";
+    case "Email" satisfies WellKnownUserObjectAttribute: return user.email;
+    case "Country" satisfies WellKnownUserObjectAttribute: return user.country;
     default: return user.custom?.[name];
   }
 }
 
 export function getUserAttributes(user: IUser): { [key: string]: UserAttributeValue } {
-
   const result: { [key: string]: UserAttributeValue } = {};
 
   const identifierAttribute: WellKnownUserObjectAttribute = "Identifier";

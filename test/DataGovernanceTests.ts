@@ -267,7 +267,7 @@ export class FakeConfigFetcher implements IConfigFetcher {
   }
 
   fetchLogic(options: OptionsBase, lastEtag: string | null): Promise<IFetchResponse> {
-    const getUrl = ((options as AugmentedOptions<OptionsBase>).getRealUrl ?? options.getUrl).bind(options);
+    const getUrl = ((options as Partial<AugmentedOptions<OptionsBase>>).getRealUrl ?? options.getUrl).bind(options);
     const projectConfig = this.responses[getUrl()];
     if (!projectConfig) {
       assert.fail("ConfigFetcher not prepared for " + getUrl());

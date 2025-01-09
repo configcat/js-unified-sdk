@@ -66,7 +66,7 @@ describe("Setting evaluation (config v2)", () => {
   ]) {
     it(`Prerequisite flag comparison value type mismatch - key: ${key} | prerequisiteFlagKey: ${prerequisiteFlagKey} | prerequisiteFlagValue: ${prerequisiteFlagValue}`, async () => {
       const overrideMap: { [key: string]: NonNullable<SettingValue> } = {
-        [prerequisiteFlagKey]: prerequisiteFlagValue as unknown as NonNullable<SettingValue>
+        [prerequisiteFlagKey]: prerequisiteFlagValue as NonNullable<SettingValue>
       };
 
       const fakeLogger = new FakeLogger();
@@ -199,7 +199,7 @@ describe("Setting evaluation (config v2)", () => {
     const user = new User("12345", void 0, void 0, { [customAttributeName]: customAttributeValue });
 
     const key = "boolTextEqualsNumber";
-    const evaluationDetails = evaluate(evaluator, config.settings, key, null, user!, null, logger);
+    const evaluationDetails = evaluate(evaluator, config.settings, key, null, user, null, logger);
 
     assert.strictEqual(evaluationDetails.value, true);
 
@@ -291,7 +291,7 @@ describe("Setting evaluation (config v2)", () => {
 
       const user = new User(userId, void 0, void 0, { [customAttributeName]: customAttributeValue });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, null, user!, null, logger);
+      const evaluationDetails = evaluate(evaluator, config.settings, key, null, user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });
@@ -328,7 +328,7 @@ describe("Setting evaluation (config v2)", () => {
         ["Custom1"]: customAttributeValue,
       });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user!, null, logger);
+      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });
@@ -390,7 +390,7 @@ describe("Setting evaluation (config v2)", () => {
         ["Date"]: " 1705253400 "
       });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user!, null, logger);
+      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });
@@ -442,7 +442,7 @@ describe("Setting evaluation (config v2)", () => {
         ["Date"]: "1705253400"
       });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user!, null, logger);
+      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });

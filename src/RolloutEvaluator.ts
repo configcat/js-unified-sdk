@@ -7,7 +7,7 @@ import type { ConditionUnion, IPercentageOption, ITargetingRule, PercentageOptio
 import { nameOfSettingType } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
-import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
+import type { IUser, UserAttributeValue } from "./User";
 import { getUserAttribute, getUserAttributes } from "./User";
 import { errorToString, formatStringList, isArray, isStringArray, parseFloatStrict, utf8Encode } from "./Utils";
 
@@ -197,16 +197,8 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return;
     }
 
-    let percentageOptionsAttributeName = context.setting.percentageOptionsAttribute;
-    let percentageOptionsAttributeValue: UserAttributeValue | null | undefined;
-
-    if (percentageOptionsAttributeName == null) {
-      percentageOptionsAttributeName = <WellKnownUserObjectAttribute>"Identifier";
-      percentageOptionsAttributeValue = context.user.identifier ?? "";
-    }
-    else {
-      percentageOptionsAttributeValue = getUserAttribute(context.user, percentageOptionsAttributeName);
-    }
+    const percentageOptionsAttributeName = context.setting.percentageOptionsAttribute;
+    const percentageOptionsAttributeValue = getUserAttribute(context.user, percentageOptionsAttributeName);
 
     if (percentageOptionsAttributeValue == null) {
       logBuilder?.newLine(`Skipping % options because the User.${percentageOptionsAttributeName} attribute is missing.`);
@@ -778,10 +770,10 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
 }
 
 function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): ReadonlyArray<string> | string {
-  let stringArray = attributeValue;
+  let stringArray: unknown = attributeValue;
   if (typeof stringArray === "string") {
     try { stringArray = JSON.parse(stringArray); }
-    catch (err) { /* intentional no-op */ }
+    catch { /* intentional no-op */ }
   }
   if (isStringArray(stringArray)) {
     return stringArray;
@@ -863,6 +855,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
     user,
     isDefaultValue: true,
     errorMessage,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     errorException
   };
 }
@@ -943,6 +936,7 @@ export function handleInvalidReturnValue(value: unknown): never {
   throw new TypeError(
     value === null ? "Setting value is null." :
     value === void 0 ? "Setting value is undefined." :
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     `Setting value '${value}' is of an unsupported type (${typeof value}).`);
 }
 

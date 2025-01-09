@@ -12,8 +12,7 @@ import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
-import { SettingValueContainer } from "#lib/ProjectConfig";
-import { Config, IConfig, ProjectConfig, SettingValue } from "#lib/ProjectConfig";
+import { Config, IConfig, ProjectConfig, SettingValue, SettingValueContainer } from "#lib/ProjectConfig";
 import { EvaluateContext, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
 import { delay } from "#lib/Utils";
@@ -313,8 +312,8 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isDefined(actual.matchedTargetingRule);
-    assert.strictEqual(actual.value, (actual.matchedTargetingRule?.then as SettingValueContainer).value);
-    assert.strictEqual(actual.variationId, (actual.matchedTargetingRule?.then as SettingValueContainer).variationId);
+    assert.strictEqual(actual.value, (actual.matchedTargetingRule.then as SettingValueContainer).value);
+    assert.strictEqual(actual.variationId, (actual.matchedTargetingRule.then as SettingValueContainer).variationId);
     assert.isUndefined(actual.matchedPercentageOption);
 
     assert.equal(1, flagEvaluatedEvents.length);
@@ -359,8 +358,8 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
     assert.isDefined(actual.matchedPercentageOption);
-    assert.strictEqual(actual.value, actual.matchedPercentageOption?.value);
-    assert.strictEqual(actual.variationId, actual.matchedPercentageOption?.variationId);
+    assert.strictEqual(actual.value, actual.matchedPercentageOption.value);
+    assert.strictEqual(actual.variationId, actual.matchedPercentageOption.variationId);
 
     assert.equal(1, flagEvaluatedEvents.length);
     assert.strictEqual(actual, flagEvaluatedEvents[0]);
@@ -534,7 +533,7 @@ describe("ConfigCatClient", () => {
     expect(actualErrorMessage).to.include("Error occurred in the `getAllValueDetailsAsync` method.");
     if (typeof AggregateError !== "undefined") {
       assert.instanceOf(actualErrorException, AggregateError);
-      assert.deepEqual(Array(actual.length).fill(err), (actualErrorException as AggregateError).errors);
+      assert.deepEqual(Array(actual.length).fill(err), actualErrorException.errors);
     }
     else {
       assert.strictEqual(err, actualErrorException);
@@ -960,7 +959,7 @@ describe("ConfigCatClient", () => {
 
     client.getValueAsync("debug", false).then(value => {
       client.dispose();
-      done(value === true ? null : new Error("Wrong value."));
+      done(value ? null : new Error("Wrong value."));
     });
   });
 
@@ -1260,7 +1259,7 @@ describe("ConfigCatClient", () => {
       assert.isFalse(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      const etag1 = ((await configService.getConfig())?.httpETag ?? "0") as any | 0;
+      const etag1 = ((await configService.getConfig()).httpETag ?? "0") as any | 0;
       if (configService instanceof LazyLoadConfigService) {
         expectedFetchTimes++;
       }
@@ -1274,7 +1273,7 @@ describe("ConfigCatClient", () => {
       assert.isFalse(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      const etag2 = ((await configService.getConfig())?.httpETag ?? "0") as any | 0;
+      const etag2 = ((await configService.getConfig()).httpETag ?? "0") as any | 0;
       assert.isTrue(etag2 > etag1);
 
       assert.isTrue(refreshResult.isSuccess);
@@ -1317,7 +1316,7 @@ describe("ConfigCatClient", () => {
 
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      const etag1 = ((await configService.getConfig())?.httpETag ?? "0") as any | 0;
+      const etag1 = ((await configService.getConfig()).httpETag ?? "0") as any | 0;
       if (configService instanceof LazyLoadConfigService) {
         expectedFetchTimes++;
       }
@@ -1336,7 +1335,7 @@ describe("ConfigCatClient", () => {
       assert.isTrue(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      assert.equal(etag1, ((await configService.getConfig())?.httpETag ?? "0") as any | 0);
+      assert.equal(etag1, ((await configService.getConfig()).httpETag ?? "0") as any | 0);
 
       // 4. Checks that forceRefreshAsync() does not initiate a HTTP call in offline mode
       const refreshResult = await client.forceRefreshAsync();
@@ -1344,7 +1343,7 @@ describe("ConfigCatClient", () => {
       assert.isTrue(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      assert.equal(etag1, ((await configService.getConfig())?.httpETag ?? "0") as any | 0);
+      assert.equal(etag1, ((await configService.getConfig()).httpETag ?? "0") as any | 0);
 
       assert.isFalse(refreshResult.isSuccess);
       expect(refreshResult.errorMessage).to.contain("offline mode");

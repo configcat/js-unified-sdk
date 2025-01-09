@@ -76,7 +76,9 @@ export abstract class PlatformAbstractions<
 
   protected abstract getClientImpl<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode, TAutoPollOptions, TManualPollOptions, TLazyLoadingOptions>): IConfigCatClient;
 
-  protected adjustOptions<TOptions extends IOptions>(options?: TOptions): TOptions | undefined { return options; }
+  protected adjustOptions<TOptions extends IOptions>(options?: TOptions): TOptions | undefined {
+    return options;
+  }
 
   protected augmentOptions<TOptions extends OptionsBase>(options: TOptions): AugmentedOptions<TOptions> {
     const augmentedOptions = options as AugmentedOptions<TOptions>;

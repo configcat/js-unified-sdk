@@ -50,13 +50,13 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
     }
   }
 
-  fetchLogic(options: OptionsBase, lastEtag: string): Promise<IFetchResponse> {
+  fetchLogic(options: OptionsBase, lastEtag: string | null): Promise<IFetchResponse> {
     return new Promise<IFetchResponse>((resolve, reject) => {
       try {
         options.logger.debug("HttpConfigFetcher.fetchLogic() called.");
         const baseUrl = options.getUrl();
         const isBaseUrlSecure = baseUrl.startsWith("https");
-        let agent: any;
+        let agent: http.Agent | undefined;
         if (this.proxy) {
           try {
             const proxy: URL = new URL(this.proxy);
@@ -67,6 +67,7 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
             else {
               agentFactory = isBaseUrlSecure ? tunnel.httpsOverHttp : tunnel.httpOverHttp;
             }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
             agent = agentFactory({
               proxy: {
                 host: proxy.hostname,
@@ -80,12 +81,16 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
           }
         }
 
-        const requestOptions = {
+        const headers: http.OutgoingHttpHeaders = {
+          "User-Agent": options.clientVersion
+        };
+        if (lastEtag) {
+          headers["If-None-Match"] = lastEtag;
+        }
+
+        const requestOptions: http.RequestOptions | https.RequestOptions = {
           agent,
-          headers: {
-            "User-Agent": options.clientVersion,
-            "If-None-Match": lastEtag ?? null
-          },
+          headers,
           timeout: options.requestTimeoutMs,
         };
         options.logger.debug(JSON.stringify(requestOptions));
@@ -99,10 +104,13 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
               reject(new FetchError("timeout", options.requestTimeoutMs));
             }
           })
-          .on("error", err => reject(new FetchError("failure", err)))
+          .on("error", err => {
+            reject(new FetchError("failure", err));
+          })
           .end();
       }
       catch (err) {
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         reject(err);
       }
     });

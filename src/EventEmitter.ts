@@ -92,7 +92,7 @@ export interface IEventProvider<TEvents extends Events = Events> {
    * Returns an array listing the events for which the emitter has registered
    * listeners. The values in the array are strings or `Symbol`s.
    */
-  eventNames(): Array<keyof TEvents>;
+  eventNames(): (keyof TEvents)[];
 }
 
 /** Defines methods for emitting events. */
@@ -107,7 +107,9 @@ export interface IEventEmitter<TEvents extends Events = Events> extends IEventPr
 }
 
 export class NullEventEmitter implements IEventEmitter {
-  addListener: () => this = this.on;
+  addListener: () => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.on;
 
   on(): this { return this; }
 
@@ -115,7 +117,9 @@ export class NullEventEmitter implements IEventEmitter {
 
   removeListener(): this { return this; }
 
-  off: () => this = this.removeListener;
+  off: () => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.removeListener;
 
   removeAllListeners(): this { return this; }
 

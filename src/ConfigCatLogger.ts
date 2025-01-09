@@ -20,7 +20,7 @@ export const enum LogLevel {
 
 export function nameOfLogLevel(value: LogLevel): string {
   /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
-  return LogLevel[value];
+  return LogLevel[value] as string;
 }
 
 export type LogEventId = number;

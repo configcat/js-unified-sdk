@@ -40,7 +40,9 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this = this.on;
+  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.on;
 
   /** @inheritdoc */
   on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
@@ -61,7 +63,9 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this = this.removeListener;
+  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    = this.removeListener;
 
   /** @inheritdoc */
   removeAllListeners(eventName?: keyof HookEvents): this {
@@ -80,8 +84,8 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 
   /** @inheritdoc */
-  eventNames(): Array<keyof HookEvents> {
-    return this.eventEmitter.eventNames() as Array<keyof HookEvents>;
+  eventNames(): (keyof HookEvents)[] {
+    return this.eventEmitter.eventNames() as (keyof HookEvents)[];
   }
 
   /** @inheritdoc */

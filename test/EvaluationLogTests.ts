@@ -55,7 +55,7 @@ function describeTestSet(testSetName: string) {
     }
   }
   else {
-    it(`${testSetName}`, async () => {
+    it(testSetName, async () => {
       for (const [configLocation, testCase] of getTestCases(await testSetData)) {
         runTest(testSetName, configLocation, testCase);
       }

@@ -52,9 +52,7 @@ export class CloudflareConfigCache implements IConfigCatCache {
 
 export function getCloudflareCache(): Promise<cloudflare.Cache> | undefined {
   if (typeof caches !== "undefined") {
-    try {
-      return caches?.open(CACHE_NAME);
-    }
+    try { return caches.open(CACHE_NAME); }
     catch { /* intentional no-op */ }
   }
 }

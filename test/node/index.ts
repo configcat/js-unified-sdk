@@ -10,8 +10,8 @@ import type { IConfigCatKernel } from "#lib/index.pubternals";
 import type { INodeAutoPollOptions, INodeLazyLoadingOptions, INodeManualPollOptions } from "#lib/node";
 import { getClient } from "#lib/node";
 import { NodeHttpConfigFetcher } from "#lib/node/NodeHttpConfigFetcher";
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-const sdkVersion = require("#lib/Version");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const sdkVersion = require("#lib/Version").default;
 
 const sdkType = "ConfigCat-UnifiedJS-Node";
 

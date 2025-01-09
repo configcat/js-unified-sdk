@@ -47,6 +47,7 @@ export class EvaluateLogBuilder {
   }
 
   private appendUserConditionCore(comparisonAttribute: string, comparator: UserComparator, comparisonValue?: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return this.append(`User.${comparisonAttribute} ${formatUserComparator(comparator)} '${comparisonValue ?? invalidValuePlaceholder}'`);
   }
 
