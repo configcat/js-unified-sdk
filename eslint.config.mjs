@@ -1,4 +1,5 @@
 import eslint from "@eslint/js";
+import stylisticJs from "@stylistic/eslint-plugin-js";
 import stylisticTs from "@stylistic/eslint-plugin-ts";
 import importPlugin from "eslint-plugin-import";
 import globals from "globals";
@@ -11,6 +12,9 @@ export default [
   {
     linterOptions: {
       reportUnusedDisableDirectives: "error",
+    },
+    plugins: {
+      "@stylistic/js": stylisticJs
     },
     rules: {
       /* Suggestions (https://eslint.org/docs/latest/rules/#suggestions) */
@@ -51,52 +55,52 @@ export default [
           "allowSeparatedGroups": true
         }
       ],
-      /* Layout & Formatting (https://eslint.org/docs/latest/rules/#layout--formatting) */
-      "array-bracket-spacing": [
+      /* Layout & Formatting (https://eslint.style/packages/js) */
+      "@stylistic/js/array-bracket-spacing": [
         "warn",
         "never"
       ],
-      "arrow-spacing": [
+      "@stylistic/js/arrow-spacing": [
         "warn",
         {
           "before": true,
           "after": true
         }
       ],
-      "block-spacing": [
+      "@stylistic/js/block-spacing": [
         "warn",
         "always"
       ],
-      "brace-style": [
+      "@stylistic/js/brace-style": [
         "warn",
         "stroustrup",
         {
           "allowSingleLine": true
         }
       ],
-      "comma-spacing": [
+      "@stylistic/js/comma-spacing": [
         "warn",
         {
           "after": true
         }
       ],
-      "computed-property-spacing": [
+      "@stylistic/js/computed-property-spacing": [
         "warn",
         "never"
       ],
-      "dot-location": [
+      "@stylistic/js/dot-location": [
         "warn",
         "property"
       ],
-      "eol-last": [
+      "@stylistic/js/eol-last": [
         "warn",
         "always"
       ],
-      "func-call-spacing": [
+      "@stylistic/js/func-call-spacing": [
         "warn",
         "never"
       ],
-      "generator-star-spacing": [
+      "@stylistic/js/generator-star-spacing": [
         "warn",
         {
           "before": false,
@@ -107,7 +111,7 @@ export default [
           }
         }
       ],
-      "indent": [
+      "@stylistic/js/indent": [
         "warn",
         2,
         {
@@ -115,7 +119,7 @@ export default [
           "flatTernaryExpressions": true
         }
       ],
-      "key-spacing": [
+      "@stylistic/js/key-spacing": [
         "warn",
         {
           "beforeColon": false,
@@ -123,14 +127,14 @@ export default [
           "mode": "strict"
         }
       ],
-      "keyword-spacing": [
+      "@stylistic/js/keyword-spacing": [
         "warn",
         {
           "before": true,
           "after": true
         }
       ],
-      "max-len": [
+      "@stylistic/js/max-len": [
         "off",
         {
           "code": 160,
@@ -139,49 +143,49 @@ export default [
           "ignoreRegExpLiterals": true
         }
       ],
-      "no-multi-spaces": "warn",
-      "no-multiple-empty-lines": [
+      "@stylistic/js/no-multi-spaces": "warn",
+      "@stylistic/js/no-multiple-empty-lines": [
         "warn",
         {
           "max": 1,
           "maxBOF": 0
         }
       ],
-      "no-tabs": "warn",
-      "no-trailing-spaces": "warn",
-      "no-whitespace-before-property": "warn",
-      "object-curly-spacing": [
+      "@stylistic/js/no-tabs": "warn",
+      "@stylistic/js/no-trailing-spaces": "warn",
+      "@stylistic/js/no-whitespace-before-property": "warn",
+      "@stylistic/js/object-curly-spacing": [
         "warn",
         "always"
       ],
-      "quotes": [
+      "@stylistic/js/quotes": [
         "warn",
         "double",
         {
           "avoidEscape": true
         }
       ],
-      "rest-spread-spacing": [
+      "@stylistic/js/rest-spread-spacing": [
         "warn",
         "never"
       ],
-      "semi": [
+      "@stylistic/js/semi": [
         "error",
         "always"
       ],
-      "semi-spacing": [
+      "@stylistic/js/semi-spacing": [
         "warn",
         {
           "before": false,
           "after": true
         }
       ],
-      "semi-style": "warn",
-      "space-before-blocks": [
+      "@stylistic/js/semi-style": "warn",
+      "@stylistic/js/space-before-blocks": [
         "warn",
         "always"
       ],
-      "space-before-function-paren": [
+      "@stylistic/js/space-before-function-paren": [
         "warn",
         {
           "anonymous": "never",
@@ -189,34 +193,34 @@ export default [
           "asyncArrow": "always"
         }
       ],
-      "space-in-parens": [
+      "@stylistic/js/space-in-parens": [
         "warn",
         "never"
       ],
-      "space-infix-ops": "warn",
-      "space-unary-ops": [
+      "@stylistic/js/space-infix-ops": "warn",
+      "@stylistic/js/space-unary-ops": [
         "warn",
         {
           "words": true,
           "nonwords": false
         }
       ],
-      "switch-colon-spacing": [
+      "@stylistic/js/switch-colon-spacing": [
         "warn",
         {
           "before": false,
           "after": true
         }
       ],
-      "template-curly-spacing": [
+      "@stylistic/js/template-curly-spacing": [
         "warn",
         "never"
       ],
-      "template-tag-spacing": [
+      "@stylistic/js/template-tag-spacing": [
         "warn",
         "never"
       ],
-      "yield-star-spacing": [
+      "@stylistic/js/yield-star-spacing": [
         "warn",
         "after"
       ],
@@ -334,6 +338,7 @@ export default [
         "@typescript-eslint/restrict-template-expressions": "off",
         "@typescript-eslint/switch-exhaustiveness-check": "warn",
         "@stylistic/ts/type-annotation-spacing": "warn",
+        "@typescript-eslint/unbound-method": ["error", { ignoreStatic: true }],
 
         "@typescript-eslint/explicit-member-accessibility": [
           "warn",
