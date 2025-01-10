@@ -76,9 +76,9 @@ export class DefaultEventEmitter implements IEventEmitter {
     }
   }
 
-  addListener: (eventName: string | symbol, listener: (...args: any[]) => void) => this
+  addListener: (eventName: string | symbol, listener: (...args: any[]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.on;
+    this.on;
 
   on(eventName: string | symbol, listener: (...args: any[]) => void): this {
     return this.addListenerCore(eventName, listener, false);
@@ -96,9 +96,9 @@ export class DefaultEventEmitter implements IEventEmitter {
     return this.removeListenerCore(eventName, listener, (listener, fn) => listener.fn === fn);
   }
 
-  off: (eventName: string | symbol, listener: (...args: any[]) => void) => this
+  off: (eventName: string | symbol, listener: (...args: any[]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.removeListener;
+    this.removeListener;
 
   removeAllListeners(eventName?: string | symbol): this {
     if (!eventName) {

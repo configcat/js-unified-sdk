@@ -249,10 +249,10 @@ export class ConfigCatClient implements IConfigCatClient {
     }
 
     const optionsClass =
-      pollingMode === PollingMode.AutoPoll ? AutoPollOptions :
-      pollingMode === PollingMode.ManualPoll ? ManualPollOptions :
-      pollingMode === PollingMode.LazyLoad ? LazyLoadOptions :
-      throwError(new Error("Invalid 'pollingMode' value"));
+      pollingMode === PollingMode.AutoPoll ? AutoPollOptions
+      : pollingMode === PollingMode.ManualPoll ? ManualPollOptions
+      : pollingMode === PollingMode.LazyLoad ? LazyLoadOptions
+      : throwError(new Error("Invalid 'pollingMode' value"));
 
     const actualOptions = new optionsClass(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory);
 
@@ -301,10 +301,10 @@ export class ConfigCatClient implements IConfigCatClient {
 
     if (options.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly) {
       this.configService =
-        options instanceof AutoPollOptions ? new AutoPollConfigService(configCatKernel.configFetcher, options) :
-        options instanceof ManualPollOptions ? new ManualPollConfigService(configCatKernel.configFetcher, options) :
-        options instanceof LazyLoadOptions ? new LazyLoadConfigService(configCatKernel.configFetcher, options) :
-        throwError(new Error("Invalid 'options' value"));
+        options instanceof AutoPollOptions ? new AutoPollConfigService(configCatKernel.configFetcher, options)
+        : options instanceof ManualPollOptions ? new ManualPollConfigService(configCatKernel.configFetcher, options)
+        : options instanceof LazyLoadOptions ? new LazyLoadConfigService(configCatKernel.configFetcher, options)
+        : throwError(new Error("Invalid 'options' value"));
     }
     else {
       this.hooks.emit("clientReady", ClientCacheState.HasLocalOverrideFlagDataOnly);
@@ -643,9 +643,9 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.on;
+    this.on;
 
   /** @inheritdoc */
   on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
@@ -666,9 +666,9 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.removeListener;
+    this.removeListener;
 
   /** @inheritdoc */
   removeAllListeners(eventName?: keyof HookEvents): this {

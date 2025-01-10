@@ -238,10 +238,10 @@ export class TargetingRule<TSetting extends SettingType = SettingType> implement
 
   constructor(json: ConfigJson.TargetingRule<TSetting>, config: Config) {
     this.conditions = json.c?.map(item =>
-      item.u != null ? new UserCondition(item.u) as UserConditionUnion :
-      item.p != null ? new PrerequisiteFlagCondition(item.p) :
-      item.s != null ? new SegmentCondition(item.s, config) :
-      void 0 as unknown as ConditionUnion) ?? [];
+      item.u != null ? new UserCondition(item.u) as UserConditionUnion
+      : item.p != null ? new PrerequisiteFlagCondition(item.p)
+      : item.s != null ? new SegmentCondition(item.s, config)
+      : void 0 as unknown as ConditionUnion) ?? [];
     this.then = json.p != null
       ? json.p.map(item => new PercentageOption<TSetting>(item))
       : new SettingValueContainer<TSetting>(json.s);

@@ -110,11 +110,11 @@ function formatLogEvent(event: FakeLogger["events"][0]) {
   const [level, eventId, message, exception] = event;
 
   const levelString =
-    level === LogLevel.Debug ? "DEBUG" :
-    level === LogLevel.Info ? "INFO" :
-    level === LogLevel.Warn ? "WARNING" :
-    level === LogLevel.Error ? "ERROR" :
-    LogLevel[level].toUpperCase().padStart(5);
+    level === LogLevel.Debug ? "DEBUG"
+    : level === LogLevel.Info ? "INFO"
+    : level === LogLevel.Warn ? "WARNING"
+    : level === LogLevel.Error ? "ERROR"
+    : LogLevel[level].toUpperCase().padStart(5);
 
   const exceptionString = exception !== void 0 ? "\n" + errorToString(exception, true) : "";
 

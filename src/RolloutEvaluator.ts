@@ -718,10 +718,10 @@ function hashComparisonValueSlice(sliceUtf8: string, configJsonSalt: string, con
 }
 
 function userAttributeValueToString(userAttributeValue: UserAttributeValue) {
-  return typeof userAttributeValue === "string" ? userAttributeValue :
-    userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + "" :
-    isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue) :
-    userAttributeValue + "";
+  return typeof userAttributeValue === "string" ? userAttributeValue
+    : userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + ""
+    : isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue)
+    : userAttributeValue + "";
 }
 
 function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): string {
@@ -934,10 +934,10 @@ function isCompatibleValue(value: SettingValue, settingType: SettingType): boole
 
 export function handleInvalidReturnValue(value: unknown): never {
   throw new TypeError(
-    value === null ? "Setting value is null." :
-    value === void 0 ? "Setting value is undefined." :
+    value === null ? "Setting value is null."
+    : value === void 0 ? "Setting value is undefined."
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    `Setting value '${value}' is of an unsupported type (${typeof value}).`);
+    : `Setting value '${value}' is of an unsupported type (${typeof value}).`);
 }
 
 export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | undefined {

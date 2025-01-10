@@ -149,9 +149,9 @@ export class EvaluateLogBuilder {
 
   appendPrerequisiteFlagCondition(condition: PrerequisiteFlagCondition, settings: Readonly<{ [key: string]: Setting }>): this {
     const prerequisiteFlagKey =
-      typeof condition.prerequisiteFlagKey !== "string" ? invalidNamePlaceholder :
-      !(condition.prerequisiteFlagKey in settings) ? invalidReferencePlaceholder :
-      condition.prerequisiteFlagKey;
+      typeof condition.prerequisiteFlagKey !== "string" ? invalidNamePlaceholder
+      : !(condition.prerequisiteFlagKey in settings) ? invalidReferencePlaceholder
+      : condition.prerequisiteFlagKey;
 
     const comparator = condition.comparator;
     const comparisonValue = condition.comparisonValue;
@@ -164,9 +164,9 @@ export class EvaluateLogBuilder {
     const comparator = condition.comparator;
 
     const segmentName =
-      segment == null ? invalidReferencePlaceholder :
-      typeof segment.name !== "string" || !segment.name ? invalidNamePlaceholder :
-      segment.name;
+      segment == null ? invalidReferencePlaceholder
+      : typeof segment.name !== "string" || !segment.name ? invalidNamePlaceholder
+      : segment.name;
 
     return this.append(`User ${formatSegmentComparator(comparator)} '${segmentName}'`);
   }

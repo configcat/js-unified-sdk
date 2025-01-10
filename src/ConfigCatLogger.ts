@@ -395,11 +395,11 @@ export class ConfigCatConsoleLogger implements IConfigCatLogger {
   /** @inheritdoc */
   log(level: LogLevel, eventId: LogEventId, message: LogMessage, exception?: any): void {
     const [logMethod, levelString] =
-      level === LogLevel.Debug ? [console.info, "DEBUG"] :
-      level === LogLevel.Info ? [console.info, "INFO"] :
-      level === LogLevel.Warn ? [console.warn, "WARN"] :
-      level === LogLevel.Error ? [console.error, "ERROR"] :
-      [console.log, nameOfLogLevel(level).toUpperCase()];
+      level === LogLevel.Debug ? [console.info, "DEBUG"]
+      : level === LogLevel.Info ? [console.info, "INFO"]
+      : level === LogLevel.Warn ? [console.warn, "WARN"]
+      : level === LogLevel.Error ? [console.error, "ERROR"]
+      : [console.log, nameOfLogLevel(level).toUpperCase()];
 
     const exceptionString = exception !== void 0 ? this.eol + errorToString(exception, true) : "";
 
