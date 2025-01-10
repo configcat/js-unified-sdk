@@ -146,6 +146,7 @@ export default [
       "@stylistic/js/no-trailing-spaces": "warn",
       "@stylistic/js/no-whitespace-before-property": "warn",
       "@stylistic/ts/object-curly-spacing": ["warn", "always"],
+      "@stylistic/ts/quote-props": ["warn", "consistent"],
       "@stylistic/ts/quotes": [
         "warn",
         "double",
