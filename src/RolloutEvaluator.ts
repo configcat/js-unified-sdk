@@ -98,8 +98,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         // When a default value other than null or undefined is specified, the return value must have the same type as the default value
         // so that the consistency between TS (compile-time) and JS (run-time) return value types is maintained.
         isValidReturnValue = typeof returnValue === typeof defaultValue;
-      }
-      else {
+      } else {
         result = this.evaluateSetting(context);
         returnValue = result.selectedValue.value;
 
@@ -112,14 +111,12 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       }
 
       return result;
-    }
-    catch (err) {
+    } catch (err) {
       logBuilder?.resetIndent().increaseIndent();
 
       returnValue = defaultValue;
       throw err;
-    }
-    finally {
+    } finally {
       if (logBuilder) {
         logBuilder.newLine(`Returning '${returnValue}'.`)
           .decreaseIndent();
@@ -254,8 +251,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         if (!i) {
           logBuilder.append("IF ")
             .increaseIndent();
-        }
-        else {
+        } else {
           logBuilder.increaseIndent()
             .newLine("AND ");
         }
@@ -629,8 +625,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     if (typeof prerequisiteFlagValue !== typeof condition.comparisonValue) {
       if (isAllowedValue(prerequisiteFlagValue)) {
         throw new Error(`Type mismatch between comparison value '${condition.comparisonValue}' and prerequisite flag '${prerequisiteFlagKey}'.`);
-      }
-      else {
+      } else {
         handleInvalidReturnValue(prerequisiteFlagValue);
       }
     }
@@ -791,8 +786,9 @@ function getUserAttributeValueAsStringArray(attributeName: string, attributeValu
 ): ReadonlyArray<string> | string {
   let stringArray: unknown = attributeValue;
   if (typeof stringArray === "string") {
-    try { stringArray = JSON.parse(stringArray); }
-    catch { /* intentional no-op */ }
+    try {
+      stringArray = JSON.parse(stringArray);
+    } catch { /* intentional no-op */ }
   }
   if (isStringArray(stringArray)) {
     return stringArray;
@@ -919,8 +915,7 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [
     try {
       const evaluateResult = evaluator.evaluate(null, new EvaluateContext(key, setting, user, settings));
       evaluationDetails = evaluationDetailsFromEvaluateResult(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
-    }
-    catch (err) {
+    } catch (err) {
       errors ??= [];
       errors.push(err);
       evaluationDetails = evaluationDetailsFromDefaultValue(key, null, getTimestampAsDate(remoteConfig), user, errorToString(err), err);

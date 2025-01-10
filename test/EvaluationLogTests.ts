@@ -53,8 +53,7 @@ function describeTestSet(testSetName: string) {
       it(`${testSetName} - ${configLocation} | ${testCase.key} | ${testCase.defaultValue} | ${userJson}`, () =>
         runTest(testSetName, configLocation, testCase));
     }
-  }
-  else {
+  } else {
     it(testSetName, async () => {
       for (const [configLocation, testCase] of getTestCases(await testSetData)) {
         runTest(testSetName, configLocation, testCase);

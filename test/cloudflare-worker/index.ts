@@ -46,8 +46,7 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
     const response = await workerEnv.data.fetch("http://dummy" + path, { method: "GET" });
     if (response.status === 200) {
       return await response.text();
-    }
-    else {
+    } else {
       throw Error(`unexpected response: ${response.status} ${response.statusText}`);
     }
   }

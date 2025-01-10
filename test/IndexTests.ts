@@ -13,8 +13,7 @@ describe("ConfigCatClient index (main)", () => {
 
     try {
       assert.isDefined(client);
-    }
-    finally {
+    } finally {
       client.dispose();
     }
   });
@@ -26,8 +25,7 @@ describe("ConfigCatClient index (main)", () => {
 
     try {
       assert.isDefined(client);
-    }
-    finally {
+    } finally {
       client.dispose();
     }
   });
@@ -39,8 +37,7 @@ describe("ConfigCatClient index (main)", () => {
 
     try {
       assert.isDefined(client);
-    }
-    finally {
+    } finally {
       client.dispose();
     }
   });

@@ -31,8 +31,7 @@ export default {
       const value = await client.getValueAsync("isPOCFeatureEnabled", false, user);
 
       return await Promise.resolve(new Response(`isPOCFeatureEnabled: ${value}`));
-    }
-    finally {
+    } finally {
       client.dispose();
     }
   },

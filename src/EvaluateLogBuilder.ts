@@ -69,8 +69,7 @@ export class EvaluateLogBuilder {
     const comparatorFormatted = formatUserComparator(comparator);
     if (isSensitive) {
       return this.append(`User.${comparisonAttribute} ${comparatorFormatted} [<${comparisonValue.length} hashed ${comparisonValue.length === 1 ? valueText : valuesText}>]`);
-    }
-    else {
+    } else {
       const comparisonValueFormatted = formatStringList(comparisonValue, stringListMaxLength, count => `, ... <${count} more ${count === 1 ? valueText : valuesText}>`);
 
       return this.append(`User.${comparisonAttribute} ${comparatorFormatted} [${comparisonValueFormatted}]`);

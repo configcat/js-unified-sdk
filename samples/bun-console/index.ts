@@ -25,7 +25,6 @@ try {
   // Accessing feature flag or setting value
   const value = await client.getValueAsync("isPOCFeatureEnabled", false, user);
   console.log(`isPOCFeatureEnabled: ${value}`);
-}
-finally {
+} finally {
   client.dispose();
 }

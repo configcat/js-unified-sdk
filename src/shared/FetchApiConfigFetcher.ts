@@ -13,8 +13,7 @@ export class FetchApiConfigFetcher implements IConfigFetcher {
       const timeoutId = setTimeout(() => controller.abort(), options.requestTimeoutMs);
       requestInit.signal = controller.signal;
       cleanup = () => clearTimeout(timeoutId);
-    }
-    else {
+    } else {
       cleanup = () => { };
     }
 
@@ -35,24 +34,20 @@ export class FetchApiConfigFetcher implements IConfigFetcher {
         const body = await response.text();
         const eTag = response.headers.get("ETag") ?? void 0;
         return { statusCode, reasonPhrase, eTag, body };
-      }
-      else {
+      } else {
         return { statusCode, reasonPhrase };
       }
-    }
-    catch (err) {
+    } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         if (requestInit.signal?.aborted) {
           throw new FetchError("timeout", options.requestTimeoutMs);
-        }
-        else {
+        } else {
           throw new FetchError("abort");
         }
       }
 
       throw new FetchError("failure", err);
-    }
-    finally {
+    } finally {
       cleanup();
     }
   }

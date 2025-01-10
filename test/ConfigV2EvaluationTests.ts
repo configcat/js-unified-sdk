@@ -25,8 +25,7 @@ describe("Setting evaluation (config v2)", () => {
       try {
         evaluate(evaluator, config.settings, key, null, void 0, null, logger);
         assert.fail("evaluate should throw.");
-      }
-      catch (err) {
+      } catch (err) {
         const errMsg = errorToString(err);
         assert.include(errMsg, "Circular dependency detected");
         assert.include(errMsg, dependencyCycle);
@@ -95,19 +94,15 @@ describe("Setting evaluation (config v2)", () => {
           const errMsg = errorToString(err);
           if (prerequisiteFlagValue === null) {
             assert.include(errMsg, "Setting value is null");
-          }
-          else if (prerequisiteFlagValue === void 0) {
+          } else if (prerequisiteFlagValue === void 0) {
             assert.include(errMsg, "Setting value is undefined");
-          }
-          else if (!isAllowedValue(prerequisiteFlagValue)) {
+          } else if (!isAllowedValue(prerequisiteFlagValue)) {
             assert.match(errMsg, /Setting value '[^']+' is of an unsupported type/);
-          }
-          else {
+          } else {
             assert.match(errMsg, /Type mismatch between comparison value '[^']+' and prerequisite flag '[^']+'/);
           }
         }
-      }
-      finally {
+      } finally {
         client.dispose();
       }
     });
@@ -151,8 +146,7 @@ describe("Setting evaluation (config v2)", () => {
         const actualValue = await client.getValueAsync(key, null, new User(userId, email));
 
         assert.strictEqual(expectedValue, actualValue);
-      }
-      finally {
+      } finally {
         client.dispose();
       }
     });

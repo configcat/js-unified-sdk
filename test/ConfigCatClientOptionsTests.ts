@@ -337,11 +337,11 @@ describe("Options", () => {
 
       if (isValid) {
         action();
-      }
-      else {
+      } else {
         let ex: any;
-        try { action(); }
-        catch (err) { ex = err; }
+        try {
+          action();
+        } catch (err) { ex = err; }
         assert.instanceOf(ex, Error);
       }
     });
@@ -363,11 +363,9 @@ describe("Options", () => {
 
       if (isValid) {
         action();
-      }
-      else {
+      } else {
         let ex: any;
-        try { action(); }
-        catch (err) { ex = err; }
+        try { action(); } catch (err) { ex = err; }
         assert.instanceOf(ex, Error);
       }
     });
@@ -392,11 +390,9 @@ describe("Options", () => {
 
       if (isValid) {
         action();
-      }
-      else {
+      } else {
         let ex: any;
-        try { action(); }
-        catch (err) { ex = err; }
+        try { action(); } catch (err) { ex = err; }
         assert.instanceOf(ex, Error);
       }
     });

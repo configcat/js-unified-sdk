@@ -28,11 +28,9 @@ export class DefaultEventEmitter implements IEventEmitter {
     if (!listeners) {
       this.events[eventName] = listener;
       this.eventCount++;
-    }
-    else if (isSingle(listeners)) {
+    } else if (isSingle(listeners)) {
       this.events[eventName] = [listeners, listener];
-    }
-    else {
+    } else {
       listeners.push(listener);
     }
 
@@ -52,15 +50,13 @@ export class DefaultEventEmitter implements IEventEmitter {
           listeners.splice(i, 1);
           if (!listeners.length) {
             this.removeEvent(eventName);
-          }
-          else if (listeners.length === 1) {
+          } else if (listeners.length === 1) {
             this.events[eventName] = listeners[0];
           }
           break;
         }
       }
-    }
-    else if (isMatch(listeners, state)) {
+    } else if (isMatch(listeners, state)) {
       this.removeEvent(eventName);
     }
 
@@ -70,8 +66,7 @@ export class DefaultEventEmitter implements IEventEmitter {
   private removeEvent(eventName: string | symbol) {
     if (--this.eventCount === 0) {
       this.events = {};
-    }
-    else {
+    } else {
       delete this.events[eventName];
     }
   }
@@ -104,8 +99,7 @@ export class DefaultEventEmitter implements IEventEmitter {
     if (!eventName) {
       this.events = {};
       this.eventCount = 0;
-    }
-    else if (this.events[eventName]) {
+    } else if (this.events[eventName]) {
       this.removeEvent(eventName);
     }
 
@@ -176,8 +170,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
     if (isSingle(listeners)) {
       [listener, length] = [listeners, 1];
-    }
-    else {
+    } else {
       // According to the specification, potential removes during emit should not change the list of notified listeners,
       // so we need to create a local copy of the current listeners.
       listeners = listeners.slice();

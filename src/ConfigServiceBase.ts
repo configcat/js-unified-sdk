@@ -106,8 +106,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     if (!this.isOffline) {
       const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig);
       return [RefreshResult.from(fetchResult), config];
-    }
-    else {
+    } else {
       const errorMessage = this.options.logger.configServiceCannotInitiateHttpCalls().toString();
       return [RefreshResult.failure(errorMessage), latestConfig];
     }
@@ -148,8 +147,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return this.pendingFetch ??= (async () => {
       try {
         return await this.fetchLogicAsync(lastConfig);
-      }
-      finally {
+      } finally {
         this.pendingFetch = null;
       }
     })();
@@ -196,8 +194,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
           options.logger.debug("ConfigServiceBase.fetchLogicAsync(): fetch was unsuccessful. Returning null.");
           return FetchResult.error(lastConfig, errorMessage);
       }
-    }
-    catch (err) {
+    } catch (err) {
       errorMessage = (err instanceof FetchError && (err as FetchError).cause === "timeout"
         ? options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err)
         : options.logger.fetchFailedDueToUnexpectedError(err)).toString();
@@ -228,8 +225,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       let config: Config;
       try {
         config = Config.deserialize(response.body);
-      }
-      catch (err) {
+      } catch (err) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): invalid response body.");
         return [response, err];
       }
@@ -289,8 +285,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       this.setOnlineCore();
       this.status = ConfigServiceStatus.Online;
       this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
-    }
-    else if (this.disposed) {
+    } else if (this.disposed) {
       this.options.logger.configServiceMethodHasNoEffectDueToDisposedClient("setOnline");
     }
   }
@@ -302,8 +297,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       this.setOfflineCore();
       this.status = ConfigServiceStatus.Offline;
       this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
-    }
-    else if (this.disposed) {
+    } else if (this.disposed) {
       this.options.logger.configServiceMethodHasNoEffectDueToDisposedClient("setOffline");
     }
   }

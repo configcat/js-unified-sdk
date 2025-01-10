@@ -34,14 +34,14 @@ export function getLocalStorage(): Storage | undefined {
       storage.setItem(testKey, testKey);
 
       let retrievedItem: string | null;
-      try { retrievedItem = storage.getItem(testKey); }
-      finally { storage.removeItem(testKey); }
+      try {
+        retrievedItem = storage.getItem(testKey);
+      } finally { storage.removeItem(testKey); }
 
       if (retrievedItem === testKey) {
         return storage;
       }
-    }
-    catch { /* intentional no-op */ }
+    } catch { /* intentional no-op */ }
   }
 }
 

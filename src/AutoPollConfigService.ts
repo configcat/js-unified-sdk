@@ -42,8 +42,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
         this.initialized = true;
         return success;
       });
-    }
-    else {
+    } else {
       this.initialized = true;
       this.initializationPromise = Promise.resolve(false);
     }
@@ -95,8 +94,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     cachedConfig = await this.options.cache.get(this.cacheKey);
     if (!cachedConfig.isExpired(this.pollIntervalMs)) {
       logSuccess(this.options.logger);
-    }
-    else {
+    } else {
       this.options.logger.debug("AutoPollConfigService.getConfig() - cache is empty or expired.");
     }
 
@@ -139,8 +137,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
         const scheduledNextTimeMs = new Date().getTime() + this.pollIntervalMs;
         try {
           await this.refreshWorkerLogic(isFirstIteration, initialCacheSyncUp);
-        }
-        catch (err) {
+        } catch (err) {
           this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
         }
 
@@ -148,8 +145,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
         if (realNextTimeMs > 0) {
           await delay(realNextTimeMs, stopToken);
         }
-      }
-      catch (err) {
+      } catch (err) {
         this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
       }
 
@@ -177,8 +173,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
       if (isFirstIteration ? !this.isOfflineExactly : !this.isOffline) {
         await this.refreshConfigCoreAsync(latestConfig);
       }
-    }
-    else if (isFirstIteration) {
+    } else if (isFirstIteration) {
       this.signalInitialization();
     }
   }

@@ -88,8 +88,7 @@ function describeMatrixTest(title: string, configLocation: ConfigLocation, matri
       it(`${title} - ${configLocation} | ${key} | ${userAttributesJson}`, () =>
         runner(configLocation, key, user, expected, evaluator));
     }
-  }
-  else {
+  } else {
     it(`${title} - ${configLocation}`, async () => {
       for (const [key, user, , expected] of getMatrixTestCases(await matrixFileData)) {
         runner(configLocation, key, user, expected, evaluator);

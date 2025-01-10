@@ -78,8 +78,9 @@ export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
 
   return createFlagOverridesFromQueryParamsCommon(behaviour, false, paramPrefix, {
     get currentValue() {
-      try { return new URL(requestOrWatchChanges.url).search; }
-      catch { /* intentional no-op */ }
+      try {
+        return new URL(requestOrWatchChanges.url).search;
+      } catch { /* intentional no-op */ }
     },
   });
 }

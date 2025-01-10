@@ -27,8 +27,7 @@ export class IndexedDBConfigCache implements IConfigCatCache {
         const store = transaction.objectStore(OBJECT_STORE_NAME);
         store.put(value, key);
       });
-    }
-    finally { db.close(); }
+    } finally { db.close(); }
   }
 
   async get(key: string): Promise<string | undefined> {
@@ -43,8 +42,7 @@ export class IndexedDBConfigCache implements IConfigCatCache {
         const storeRequest = store.get(key);
         storeRequest.onsuccess = event => value = (event.target as IDBRequest<string | undefined>).result;
       });
-    }
-    finally { db.close(); }
+    } finally { db.close(); }
   }
 }
 
@@ -63,7 +61,6 @@ export function getDBConnectionFactory(): DBConnectionFactory | undefined {
       dbConnectionFactory().then(db => db.close()).catch(() => { /* intentional no-op */ });
 
       return dbConnectionFactory;
-    }
-    catch { /* intentional no-op */ }
+    } catch { /* intentional no-op */ }
   }
 }

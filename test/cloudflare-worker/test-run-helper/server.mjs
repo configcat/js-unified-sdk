@@ -57,13 +57,11 @@ http.createServer((req, res) => {
       res.socket.write("CF-Cache-Status: HIT\r\n");
       res.socket.write(message.substring(index));
       res.socket.end();
-    }
-    else {
+    } else {
       res.writeHead(200, { "CF-Cache-Status": "MISS" });
     }
     res.end();
-  }
-  else if (req.method === "PUT") {
+  } else if (req.method === "PUT") {
     let message = "";
     req.on("data", chunk => {
       message += chunk;

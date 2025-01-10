@@ -34,8 +34,7 @@ describe("HTTP tests", () => {
         assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Request timed out while trying to fetch config JSON.")));
 
         client.dispose();
-      }
-      finally {
+      } finally {
         fetchMock.reset();
       }
     });
@@ -61,8 +60,7 @@ describe("HTTP tests", () => {
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Your SDK Key seems to be wrong.")));
 
       client.dispose();
-    }
-    finally {
+    } finally {
       fetchMock.reset();
     }
   });
@@ -87,8 +85,7 @@ describe("HTTP tests", () => {
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected HTTP response was received while trying to fetch config JSON:")));
 
       client.dispose();
-    }
-    finally {
+    } finally {
       fetchMock.reset();
     }
   });
@@ -114,8 +111,7 @@ describe("HTTP tests", () => {
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected error occurred while trying to fetch config JSON.")));
 
       client.dispose();
-    }
-    finally {
+    } finally {
       fetchMock.reset();
     }
   });

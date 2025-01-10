@@ -54,8 +54,9 @@ describe("LocalStorageConfigCache tests", () => {
         return kernel;
       });
 
-    try { await client.getValueAsync("stringDefaultCat", ""); }
-    finally { client.dispose(); }
+    try {
+      await client.getValueAsync("stringDefaultCat", "");
+    } finally { client.dispose(); }
 
     assert.isDefined(fakeLogger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 2200 && err instanceof Error && err.message === errorMessage));
   });
@@ -74,8 +75,9 @@ describe("LocalStorageConfigCache tests", () => {
         return kernel;
       });
 
-    try { await client.getValueAsync("stringDefaultCat", ""); }
-    finally { client.dispose(); }
+    try {
+      await client.getValueAsync("stringDefaultCat", "");
+    } finally { client.dispose(); }
 
     assert.isDefined(fakeLogger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 2201 && err instanceof Error && err.message === errorMessage));
   });
@@ -93,8 +95,7 @@ function createFakeLocalStorage(): chrome.storage.LocalStorageArea {
       let result = localStorage;
       if (typeof keys === "string") {
         result = { [keys]: localStorage[keys] };
-      }
-      else if (keys != null) {
+      } else if (keys != null) {
         throw new Error("Not implemented.");
       }
       return Promise.resolve(result);

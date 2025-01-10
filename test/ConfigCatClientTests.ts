@@ -44,8 +44,7 @@ describe("ConfigCatClient", () => {
 
       if (isValid) {
         ConfigCatClient.get(sdkKey, PollingMode.ManualPoll, options, configCatKernel).dispose();
-      }
-      else {
+      } else {
         assert.throws(() => {
           ConfigCatClient.get(sdkKey, PollingMode.ManualPoll, options, configCatKernel).dispose();
         }, "Invalid 'sdkKey' value");
@@ -534,8 +533,7 @@ describe("ConfigCatClient", () => {
     if (typeof AggregateError !== "undefined") {
       assert.instanceOf(actualErrorException, AggregateError);
       assert.deepEqual(Array(actual.length).fill(err), actualErrorException.errors);
-    }
-    else {
+    } else {
       assert.strictEqual(err, actualErrorException);
     }
 
@@ -558,8 +556,7 @@ describe("ConfigCatClient", () => {
       await delay(2.5 * pollIntervalSeconds * 1000);
 
       assert.equal(configChangedEventCount, 3);
-    }
-    finally { client.dispose(); }
+    } finally { client.dispose(); }
   });
 
   it("Initialization With AutoPollOptions - config doesn't change - should fire configChanged only once", async () => {
@@ -578,8 +575,7 @@ describe("ConfigCatClient", () => {
       await delay(2.5 * pollIntervalSeconds * 1000);
 
       assert.equal(configChangedEventCount, 1);
-    }
-    finally { client.dispose(); }
+    } finally { client.dispose(); }
   });
 
   it("Initialization With AutoPollOptions - with maxInitWaitTimeSeconds - getValueAsync should wait", async () => {
@@ -1026,8 +1022,7 @@ describe("ConfigCatClient", () => {
 
       if (passOptionsToSecondGet) {
         assert.isNotEmpty(logEvents2.filter(([, , msg]) => msg.toString().indexOf("the specified options are ignored") >= 0));
-      }
-      else {
+      } else {
         assert.isEmpty(logEvents2.filter(([, , msg]) => msg.toString().indexOf("the specified options are ignored") >= 0));
       }
 
@@ -1170,8 +1165,7 @@ describe("ConfigCatClient", () => {
     if (isFinalizationRegistryAvailable) {
       assert.equal(0, instanceCount2);
       assert.equal(2, logger.events.filter(([, , msg]) => msg.toString().indexOf("finalize() called") >= 0).length);
-    }
-    else {
+    } else {
       // When finalization is not available, Auto Polling won't be stopped.
       assert.equal(1, instanceCount2);
     }
@@ -1559,8 +1553,7 @@ describe("ConfigCatClient", () => {
           await delay(asyncCacheDelayMs + 10);
           snapshot = client.snapshot();
           assert.equal(expectedDelayedCacheState, snapshot.cacheState);
-        }
-        finally {
+        } finally {
           client.dispose();
         }
       });

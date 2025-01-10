@@ -265,8 +265,7 @@ describe("Integration tests - Other cases", () => {
 
       actual = await clientOverride.getValueAsync("stringDefaultCat", defaultValue);
       assert.strictEqual(actual, "NOT_CAT");
-    }
-    finally { clientOverride.dispose(); }
+    } finally { clientOverride.dispose(); }
   });
 
   it("Override - local only - watch changes", async () => {
@@ -286,8 +285,7 @@ describe("Integration tests - Other cases", () => {
 
       actual = await clientOverride.getValueAsync("stringDefaultCat", defaultValue);
       assert.strictEqual(actual, "ANOTHER_CAT");
-    }
-    finally { clientOverride.dispose(); }
+    } finally { clientOverride.dispose(); }
   });
 
 });

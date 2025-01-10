@@ -80,8 +80,7 @@ async function* enumerateFiles(dir: string): AsyncIterableIterator<string> {
   for await (const entry of Deno.readDir(dir)) {
     if (entry.isDirectory) {
       yield* enumerateFiles(path.join(dir, entry.name));
-    }
-    else if (entry.isFile) {
+    } else if (entry.isFile) {
       yield path.join(dir, entry.name);
     }
   }

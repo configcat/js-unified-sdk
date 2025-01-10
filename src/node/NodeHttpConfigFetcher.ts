@@ -31,21 +31,18 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
           .on("end", () => {
             try {
               resolve({ statusCode, reasonPhrase, eTag, body: Buffer.concat(chunks).toString() });
-            }
-            catch (err) {
+            } catch (err) {
               reject(err);
             }
           })
           .on("error", err => reject(new FetchError("failure", err)));
-      }
-      else {
+      } else {
         // Consume response data to free up memory
         response.resume();
 
         resolve({ statusCode, reasonPhrase });
       }
-    }
-    catch (err) {
+    } catch (err) {
       reject(err);
     }
   }
@@ -63,8 +60,7 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
             let agentFactory: any;
             if (proxy.protocol === "https:") {
               agentFactory = isBaseUrlSecure ? tunnel.httpsOverHttps : tunnel.httpOverHttps;
-            }
-            else {
+            } else {
               agentFactory = isBaseUrlSecure ? tunnel.httpsOverHttp : tunnel.httpOverHttp;
             }
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
@@ -75,8 +71,7 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
                 proxyAuth: (proxy.username && proxy.password) ? `${proxy.username}:${proxy.password}` : null,
               },
             });
-          }
-          catch (err) {
+          } catch (err) {
             options.logger.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to parse \`options.proxy\`: '${this.proxy}'.`, err);
           }
         }
@@ -99,8 +94,7 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
           .on("timeout", () => {
             try {
               request.destroy();
-            }
-            finally {
+            } finally {
               reject(new FetchError("timeout", options.requestTimeoutMs));
             }
           })
@@ -108,8 +102,7 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
             reject(new FetchError("failure", err));
           })
           .end();
-      }
-      catch (err) {
+      } catch (err) {
         // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         reject(err);
       }

@@ -308,8 +308,7 @@ export class ConfigCatClient implements IConfigCatClient {
         : options instanceof ManualPollOptions ? new ManualPollConfigService(configCatKernel.configFetcher, options)
         : options instanceof LazyLoadOptions ? new LazyLoadConfigService(configCatKernel.configFetcher, options)
         : throwError(new Error("Invalid 'options' value"));
-    }
-    else {
+    } else {
       this.hooks.emit("clientReady", ClientCacheState.HasLocalOverrideFlagDataOnly);
     }
 
@@ -355,8 +354,7 @@ export class ConfigCatClient implements IConfigCatClient {
       try {
         ConfigCatClient.close(instance.configService, instance.options.logger, instance.hooks);
         instance.suppressFinalize();
-      }
-      catch (err) {
+      } catch (err) {
         errors ??= [];
         errors.push(err);
       }
@@ -381,8 +379,7 @@ export class ConfigCatClient implements IConfigCatClient {
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
       value = evaluationDetails.value;
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("getValueAsync", key, "defaultValue", defaultValue, err);
       evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
       value = defaultValue as SettingTypeOf<T>;
@@ -405,8 +402,7 @@ export class ConfigCatClient implements IConfigCatClient {
       let settings: { [key: string]: Setting } | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("getValueDetailsAsync", key, "defaultValue", defaultValue, err);
       evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
     }
@@ -425,8 +421,7 @@ export class ConfigCatClient implements IConfigCatClient {
         return [];
       }
       return Object.keys(settings);
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationError("getAllKeysAsync", defaultReturnValue, err);
       return [];
     }
@@ -442,8 +437,7 @@ export class ConfigCatClient implements IConfigCatClient {
       const [settings, remoteConfig] = await this.getSettingsAsync();
       [evaluationDetailsArray, evaluationErrors] = evaluateAll(this.evaluator, settings, user, remoteConfig, this.options.logger, defaultReturnValue);
       result = evaluationDetailsArray.map(details => ({ settingKey: details.key, settingValue: details.value }));
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationError("getAllValuesAsync", defaultReturnValue, err);
       return [];
     }
@@ -469,8 +463,7 @@ export class ConfigCatClient implements IConfigCatClient {
     try {
       const [settings, remoteConfig] = await this.getSettingsAsync();
       [evaluationDetailsArray, evaluationErrors] = evaluateAll(this.evaluator, settings, user, remoteConfig, this.options.logger, defaultReturnValue);
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationError("getAllValueDetailsAsync", defaultReturnValue, err);
       return [];
     }
@@ -513,8 +506,7 @@ export class ConfigCatClient implements IConfigCatClient {
                   return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
                 }
               }
-            }
-            else if (variationId === then.variationId) {
+            } else if (variationId === then.variationId) {
               return { settingKey, settingValue: ensureAllowedValue(then.value) };
             }
           }
@@ -532,8 +524,7 @@ export class ConfigCatClient implements IConfigCatClient {
       }
 
       this.options.logger.settingForVariationIdIsNotPresent(variationId);
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationError("getKeyAndValueAsync", defaultReturnValue, err);
     }
 
@@ -547,13 +538,11 @@ export class ConfigCatClient implements IConfigCatClient {
       try {
         const [result] = await this.configService.refreshConfigAsync();
         return result;
-      }
-      catch (err) {
+      } catch (err) {
         this.options.logger.forceRefreshError("forceRefreshAsync", err);
         return RefreshResult.failure(errorToString(err), err);
       }
-    }
-    else {
+    } else {
       return RefreshResult.failure("Client is configured to use the LocalOnly override behavior, which prevents making HTTP requests.");
     }
   }
@@ -573,8 +562,7 @@ export class ConfigCatClient implements IConfigCatClient {
   setOnline(): void {
     if (this.configService) {
       this.configService.setOnline();
-    }
-    else {
+    } else {
       this.options.logger.configServiceMethodHasNoEffectDueToOverrideBehavior(nameOfOverrideBehaviour(OverrideBehaviour.LocalOnly), "setOnline");
     }
   }
@@ -733,8 +721,7 @@ class Snapshot implements IConfigCatClientSnapshot {
     try {
       evaluationDetails = evaluate(this.evaluator, this.mergedSettings, key, defaultValue, user, this.remoteConfig, this.options.logger);
       value = evaluationDetails.value;
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("Snapshot.getValue", key, "defaultValue", defaultValue, err);
       evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user, errorToString(err), err);
       value = defaultValue as SettingTypeOf<T>;
@@ -754,8 +741,7 @@ class Snapshot implements IConfigCatClientSnapshot {
     user ??= this.defaultUser;
     try {
       evaluationDetails = evaluate(this.evaluator, this.mergedSettings, key, defaultValue, user, this.remoteConfig, this.options.logger);
-    }
-    catch (err) {
+    } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("Snapshot.getValueDetails", key, "defaultValue", defaultValue, err);
       evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user, errorToString(err), err);
     }
@@ -822,12 +808,11 @@ let registerForFinalization = function(client: ConfigCatClient, data: IFinalizat
       finalizationRegistry.register(client, data, unregisterToken);
       return () => finalizationRegistry.unregister(unregisterToken);
     };
-  }
-  // If FinalizationRegistry is unavailable, we can't really track finalization.
-  // (Although we could implement something which resembles finalization callbacks using a weak map + a timer,
-  // since ConfigCatClientCache also needs to keep (weak) references to the created client instances,
-  // this hypothetical approach wouldn't work without a complete WeakRef polyfill, which is kind of impossible.
-  else {
+  } else {
+    // If FinalizationRegistry is unavailable, we can't really track finalization.
+    // (Although we could implement something which resembles finalization callbacks using a weak map + a timer,
+    // since ConfigCatClientCache also needs to keep (weak) references to the created client instances,
+    // this hypothetical approach wouldn't work without a complete WeakRef polyfill, which is kind of impossible.
     registerForFinalization = () => () => { /* Intentional no-op */ };
   }
 

@@ -69,7 +69,7 @@ export default [
       "@stylistic/ts/block-spacing": ["warn", "always"],
       "@stylistic/ts/brace-style": [
         "warn",
-        "stroustrup",
+        "1tbs",
         {
           "allowSingleLine": true,
         },
