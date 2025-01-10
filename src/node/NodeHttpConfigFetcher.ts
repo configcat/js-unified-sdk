@@ -72,8 +72,8 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
               proxy: {
                 host: proxy.hostname,
                 port: proxy.port,
-                proxyAuth: (proxy.username && proxy.password) ? `${proxy.username}:${proxy.password}` : null
-              }
+                proxyAuth: (proxy.username && proxy.password) ? `${proxy.username}:${proxy.password}` : null,
+              },
             });
           }
           catch (err) {
@@ -82,7 +82,7 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
         }
 
         const headers: http.OutgoingHttpHeaders = {
-          "User-Agent": options.clientVersion
+          "User-Agent": options.clientVersion,
         };
         if (lastEtag) {
           headers["If-None-Match"] = lastEtag;

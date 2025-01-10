@@ -21,7 +21,7 @@ describe("HTTP tests", () => {
         const client = platform.createClientWithManualPoll(sdkKey, {
           requestTimeoutMs,
           baseUrl,
-          logger
+          logger,
         });
         const startTime = new Date().getTime();
         await client.forceRefreshAsync();
@@ -50,7 +50,7 @@ describe("HTTP tests", () => {
       const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
-        logger
+        logger,
       });
 
       await client.forceRefreshAsync();
@@ -76,7 +76,7 @@ describe("HTTP tests", () => {
       const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
-        logger
+        logger,
       });
 
       await client.forceRefreshAsync();
@@ -103,7 +103,7 @@ describe("HTTP tests", () => {
       const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
         baseUrl,
-        logger
+        logger,
       });
 
       await client.forceRefreshAsync();

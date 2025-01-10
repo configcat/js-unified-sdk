@@ -1,7 +1,7 @@
 const target = "ES2015";
 
 const entryPoints = [
-  "./src/browser/index.ts"
+  "./src/browser/index.ts",
 ];
 
 module.exports = {
@@ -13,18 +13,18 @@ module.exports = {
   optimization: {
     minimize: true,
     minimizer: [new (require("terser-webpack-plugin"))({
-      include: /\.min\.js$/
-    })]
+      include: /\.min\.js$/,
+    })],
   },
   output: {
     filename: "[name].js",
     library: { type: "module" },
   },
   experiments: {
-    outputModule: true
+    outputModule: true,
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js"]
+    extensions: [".ts", ".tsx", ".js"],
   },
   module: {
     rules: [
@@ -38,11 +38,11 @@ module.exports = {
             compilerOptions: {
               target,
               importHelpers: true,
-              declaration: false
-            }
-          }
-        }]
-      }
-    ]
-  }
+              declaration: false,
+            },
+          },
+        }],
+      },
+    ],
+  },
 };

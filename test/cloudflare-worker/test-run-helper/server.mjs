@@ -26,19 +26,19 @@ http.createServer((req, res) => {
     protocol,
     hostname,
     path: pathname + search,
-    headers: { ...req.headers, "host": hostname }
+    headers: { ...req.headers, "host": hostname },
   };
 
   const isHTTPS = protocol.toLowerCase() === "https:";
   const proxy = (isHTTPS ? https : http).request(serverReqOptions, serverRes => {
     res.writeHead(serverRes.statusCode, serverRes.headers);
     serverRes.pipe(res, {
-      end: true
+      end: true,
     });
   });
 
   req.pipe(proxy, {
-    end: true
+    end: true,
   });
 }).listen(proxyPort);
 

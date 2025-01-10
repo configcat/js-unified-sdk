@@ -66,13 +66,13 @@ describe("Setting evaluation (config v2)", () => {
   ]) {
     it(`Prerequisite flag comparison value type mismatch - key: ${key} | prerequisiteFlagKey: ${prerequisiteFlagKey} | prerequisiteFlagValue: ${prerequisiteFlagValue}`, async () => {
       const overrideMap: { [key: string]: NonNullable<SettingValue> } = {
-        [prerequisiteFlagKey]: prerequisiteFlagValue as NonNullable<SettingValue>
+        [prerequisiteFlagKey]: prerequisiteFlagValue as NonNullable<SettingValue>,
       };
 
       const fakeLogger = new FakeLogger();
       const options: IManualPollOptions = {
         flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: OverrideBehaviour.LocalOverRemote },
-        logger: fakeLogger
+        logger: fakeLogger,
       };
 
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
@@ -133,11 +133,11 @@ describe("Setting evaluation (config v2)", () => {
     it(`Prerequisite flag override - key: ${key} | userId: ${userId} | email: ${email} | overrideBehavior: ${overrideBehaviour}`, async () => {
       const overrideMap: { [key: string]: NonNullable<SettingValue> } = {
         ["mainStringFlag"]: "private", // to check the case where a prerequisite flag is overridden (dependent flag: 'stringDependsOnString')
-        ["stringDependsOnInt"]: "Falcon" // to check the case where a dependent flag is overridden (prerequisite flag: 'mainIntFlag')
+        ["stringDependsOnInt"]: "Falcon", // to check the case where a dependent flag is overridden (prerequisite flag: 'mainIntFlag')
       };
 
       const options: IManualPollOptions = {
-        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour }
+        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour },
       };
 
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
@@ -387,7 +387,7 @@ describe("Setting evaluation (config v2)", () => {
       const user = new User(" 12345 ", void 0, "[\" USA \"]", {
         ["Version"]: " 1.0.0 ",
         ["Number"]: " 3 ",
-        ["Date"]: " 1705253400 "
+        ["Date"]: " 1705253400 ",
       });
 
       const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
@@ -439,7 +439,7 @@ describe("Setting evaluation (config v2)", () => {
       const user = new User("12345", void 0, "[\"USA\"]", {
         ["Version"]: "1.0.0",
         ["Number"]: "3",
-        ["Date"]: "1705253400"
+        ["Date"]: "1705253400",
       });
 
       const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);

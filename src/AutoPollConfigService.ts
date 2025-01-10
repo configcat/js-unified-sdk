@@ -67,7 +67,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     const abortToken = new AbortToken();
     const success = await Promise.race([
       initSignalPromise.then(() => true),
-      delay(this.options.maxInitWaitTimeSeconds * 1000, abortToken).then(() => false)
+      delay(this.options.maxInitWaitTimeSeconds * 1000, abortToken).then(() => false),
     ]);
     abortToken.abort();
     return success;

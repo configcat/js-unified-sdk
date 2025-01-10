@@ -227,7 +227,7 @@ describe("Options", () => {
       {
         logger: fakeLogger,
         cacheTimeToLiveSeconds: 59,
-        requestTimeoutMs: 20
+        requestTimeoutMs: 20,
       },
       kernel
     );
@@ -332,7 +332,7 @@ describe("Options", () => {
   ]) {
     it(`AutoPollOptions initialization - pollIntervalSeconds range validation works - ${pollIntervalSecs} (${typeof pollIntervalSecs})`, () => {
       const action = () => createAutoPollOptions("SDKKEY", {
-        pollIntervalSeconds: pollIntervalSecs as unknown as number
+        pollIntervalSeconds: pollIntervalSecs as unknown as number,
       });
 
       if (isValid) {
@@ -358,7 +358,7 @@ describe("Options", () => {
   ]) {
     it(`AutoPollOptions initialization - maxInitWaitTimeSeconds range validation works - ${maxInitWaitTimeSecs} (${typeof maxInitWaitTimeSecs})`, () => {
       const action = () => createAutoPollOptions("SDKKEY", {
-        maxInitWaitTimeSeconds: maxInitWaitTimeSecs as unknown as number
+        maxInitWaitTimeSeconds: maxInitWaitTimeSecs as unknown as number,
       });
 
       if (isValid) {
@@ -387,7 +387,7 @@ describe("Options", () => {
   ]) {
     it(`LazyLoadOptions initialization - cacheTimeToLiveSeconds range validation works - ${cacheTimeToLiveSecs} (${typeof cacheTimeToLiveSecs})`, () => {
       const action = () => createLazyLoadOptions("SDKKEY", {
-        cacheTimeToLiveSeconds: cacheTimeToLiveSecs as unknown as number
+        cacheTimeToLiveSeconds: cacheTimeToLiveSecs as unknown as number,
       });
 
       if (isValid) {

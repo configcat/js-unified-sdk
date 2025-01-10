@@ -24,7 +24,7 @@ export class EvaluateContext {
     readonly key: string,
     readonly setting: Setting,
     readonly user: IUser | undefined,
-    readonly settings: Readonly<{ [key: string]: Setting }>,
+    readonly settings: Readonly<{ [key: string]: Setting }>
   ) {
   }
 
@@ -856,7 +856,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
     isDefaultValue: true,
     errorMessage,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    errorException
+    errorException,
   };
 }
 

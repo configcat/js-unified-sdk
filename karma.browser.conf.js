@@ -6,32 +6,32 @@ module.exports = function(config) {
 
     files: [
       { pattern: "test/browser/index.ts", watched: false },
-      { pattern: "test/data/**", included: false, watched: false, served: true }
+      { pattern: "test/data/**", included: false, watched: false, served: true },
     ],
 
     preprocessors: {
       ["test/**/*.ts"]: ["webpack", "sourcemap"],
-      ["lib/esm/**/*.js"]: ["sourcemap"]
+      ["lib/esm/**/*.js"]: ["sourcemap"],
     },
 
     mime: {
-      "text/x-typescript": ["ts", "tsx"]
+      "text/x-typescript": ["ts", "tsx"],
     },
 
     webpack: new require("./webpack.karma.browser.config.js").constructor({ enableCoverage }),
     webpackMiddleware: {
-      noInfo: true
+      noInfo: true,
     },
 
     client: {
       mocha: {
-        timeout: 30000
-      }
+        timeout: 30000,
+      },
     },
 
     reporters: [
       "progress",
-      ...(enableCoverage ? ["coverage-istanbul"] : [])
+      ...(enableCoverage ? ["coverage-istanbul"] : []),
     ],
 
     ...(enableCoverage
@@ -39,12 +39,12 @@ module.exports = function(config) {
         coverageIstanbulReporter: {
           reports: ["text-summary", "lcov"],
           dir: "coverage/browser",
-          skipFilesWithNoCoverage: true
+          skipFilesWithNoCoverage: true,
         },
       }
       : {}
     ),
 
-    singleRun: true
+    singleRun: true,
   });
 };

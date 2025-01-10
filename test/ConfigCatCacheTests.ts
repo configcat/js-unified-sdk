@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { FakeLogger, createManualPollOptions } from "./helpers/fakes";
-import { ExternalConfigCache, IConfigCache, IConfigCatCache, InMemoryConfigCache, } from "#lib/ConfigCatCache";
+import { ExternalConfigCache, IConfigCache, IConfigCatCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
 import { Config, ProjectConfig } from "#lib/ProjectConfig";
 
@@ -13,11 +13,11 @@ describe("ConfigCatCache", () => {
       const [configCache, getLocalCachedConfig] = isExternal
         ? [
           new ExternalConfigCache(externalCache = new FakeExternalCache(), new LoggerWrapper(new FakeLogger())),
-          (cache: IConfigCache) => (cache as ExternalConfigCache)["cachedConfig"]
+          (cache: IConfigCache) => (cache as ExternalConfigCache)["cachedConfig"],
         ]
         : [
           new InMemoryConfigCache(),
-          (cache: IConfigCache) => (cache as InMemoryConfigCache)["cachedConfig"]
+          (cache: IConfigCache) => (cache as InMemoryConfigCache)["cachedConfig"],
         ];
 
       // 1. Cache should return the empty config initially

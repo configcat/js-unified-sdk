@@ -550,7 +550,7 @@ describe("ConfigCatClient", () => {
     const userOptions: IAutoPollOptions = {
       logger: null,
       pollIntervalSeconds,
-      setupHooks: hooks => hooks.on("configChanged", () => configChangedEventCount++)
+      setupHooks: hooks => hooks.on("configChanged", () => configChangedEventCount++),
     };
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", userOptions, configCatKernel);
     const client = new ConfigCatClient(options, configCatKernel);
@@ -570,7 +570,7 @@ describe("ConfigCatClient", () => {
     const userOptions: IAutoPollOptions = {
       logger: null,
       pollIntervalSeconds,
-      setupHooks: hooks => hooks.on("configChanged", () => configChangedEventCount++)
+      setupHooks: hooks => hooks.on("configChanged", () => configChangedEventCount++),
     };
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", userOptions, configCatKernel);
     const client = new ConfigCatClient(options, configCatKernel);
@@ -653,7 +653,7 @@ describe("ConfigCatClient", () => {
       statusCode: 500,
       reasonPhrase: "",
       eTag: (lastETag as any | 0) + 1 + "",
-      body: lastConfig
+      body: lastConfig,
     } as IFetchResponse));
 
     it("AutoPoll - should wait", async () => {
@@ -700,12 +700,12 @@ describe("ConfigCatClient", () => {
         statusCode: 500,
         reasonPhrase: "",
         eTag: (lastETag as any | 0) + 1 + "",
-        body: lastConfig
+        body: lastConfig,
       } as IFetchResponse));
       const configCatKernel = createKernel({ configFetcher });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", {
         maxInitWaitTimeSeconds: maxInitWaitTimeSeconds,
-        cache: new FakeExternalCacheWithInitialData(120_000)
+        cache: new FakeExternalCacheWithInitialData(120_000),
       }, configCatKernel);
 
       const startDate: number = new Date().getTime();
@@ -731,7 +731,7 @@ describe("ConfigCatClient", () => {
 
       const configCatKernel = createKernel({ configFetcher });
       const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", {
-        cache: new FakeExternalCacheWithInitialData()
+        cache: new FakeExternalCacheWithInitialData(),
       }, configCatKernel);
 
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -747,7 +747,7 @@ describe("ConfigCatClient", () => {
 
       const configCatKernel = createKernel({ configFetcher });
       const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", {
-        cache: new FakeExternalCacheWithInitialData(120_000)
+        cache: new FakeExternalCacheWithInitialData(120_000),
       }, configCatKernel);
 
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -763,7 +763,7 @@ describe("ConfigCatClient", () => {
 
       const configCatKernel = createKernel({ configFetcher });
       const options: ManualPollOptions = createManualPollOptions("APIKEY", {
-        cache: new FakeExternalCacheWithInitialData()
+        cache: new FakeExternalCacheWithInitialData(),
       }, configCatKernel);
 
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -785,8 +785,8 @@ describe("ConfigCatClient", () => {
           dataSource: new MapOverrideDataSource({
             "fakeKey": true,
           }),
-          behaviour: OverrideBehaviour.LocalOnly
-        }
+          behaviour: OverrideBehaviour.LocalOnly,
+        },
       }, configCatKernel);
 
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -1228,7 +1228,7 @@ describe("ConfigCatClient", () => {
         statusCode: 200,
         reasonPhrase: "OK",
         eTag: (lastETag as any | 0) + 1 + "",
-        body: lastConfig
+        body: lastConfig,
       } as IFetchResponse));
       const configCache = new FakeCache();
       const configCatKernel = createKernel({ configFetcher, defaultCacheFactory: () => configCache });
@@ -1295,7 +1295,7 @@ describe("ConfigCatClient", () => {
         statusCode: 200,
         reasonPhrase: "OK",
         eTag: (lastETag as any | 0) + 1 + "",
-        body: lastConfig
+        body: lastConfig,
       } as IFetchResponse));
 
       const configCache = new FakeCache();
@@ -1513,7 +1513,7 @@ describe("ConfigCatClient", () => {
     if (pollingMode !== PollingMode.ManualPoll) {
       testCases.push(
         [true, false, "fresh", ClientCacheState.HasUpToDateFlagData, ClientCacheState.HasUpToDateFlagData],
-        [true, true, "fresh", ClientCacheState.NoFlagData, ClientCacheState.HasUpToDateFlagData],
+        [true, true, "fresh", ClientCacheState.NoFlagData, ClientCacheState.HasUpToDateFlagData]
       );
     }
 
@@ -1526,7 +1526,7 @@ describe("ConfigCatClient", () => {
         const asyncCacheDelayMs = 1, expirationSeconds = 5;
 
         const clientOptions: IOptions = {
-          cache: externalCache ? (asyncCacheGet ? new FakeExternalAsyncCache(asyncCacheDelayMs) : new FakeExternalCache()) : null
+          cache: externalCache ? (asyncCacheGet ? new FakeExternalAsyncCache(asyncCacheDelayMs) : new FakeExternalCache()) : null,
         };
         let options: OptionsBase;
         switch (pollingMode) {

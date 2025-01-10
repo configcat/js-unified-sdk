@@ -84,7 +84,7 @@ describe("User Object", () => {
       myCustomAttribute: "myCustomAttributeValue",
       [identifierAttribute]: "myIdentifier",
       [countryAttribute]: "United States",
-      [emailAttribute]: "otherEmail@example.com"
+      [emailAttribute]: "otherEmail@example.com",
     });
 
     // Act
@@ -145,8 +145,8 @@ describe("User Object", () => {
       email: "id@example.com",
       country: "US",
       custom: {
-        myCustomAttribute: "myCustomAttributeValue"
-      }
+        myCustomAttribute: "myCustomAttributeValue",
+      },
     };
 
     // Act

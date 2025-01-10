@@ -246,7 +246,7 @@ export const enum PrerequisiteFlagComparator {
   /** EQUALS - Checks whether the evaluated value of the specified prerequisite flag is equal to the comparison value. */
   Equals = 0,
   /** NOT EQUALS - Checks whether the evaluated value of the specified prerequisite flag is not equal to the comparison value. */
-  NotEquals = 1
+  NotEquals = 1,
 }
 
 /** Segment comparison operator used during the evaluation process. */

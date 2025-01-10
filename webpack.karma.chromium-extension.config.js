@@ -10,14 +10,14 @@ module.exports = new function(options) {
       // Add `.ts` and `.tsx` as a resolvable extension.
       extensions: [".ts", ".tsx", ".js"],
       plugins: [new TsconfigPathsPlugin({
-        configFile: "tsconfig.karma.chromium-extension.json"
-      })]
+        configFile: "tsconfig.karma.chromium-extension.json",
+      })],
     },
     devtool: "inline-source-map",
     optimization: {
       // This is a workaround necessary because source maps are broken by default in karma-webpack 5.0.0
       // (see https://github.com/ryanclark/karma-webpack/issues/493#issuecomment-780411348)
-      splitChunks: false
+      splitChunks: false,
     },
     module: {
       rules: [
@@ -27,9 +27,9 @@ module.exports = new function(options) {
           use: [{
             loader: "ts-loader",
             options: {
-              configFile: "tsconfig.karma.chromium-extension.json"
-            }
-          }]
+              configFile: "tsconfig.karma.chromium-extension.json",
+            },
+          }],
         },
         ...(options.enableCoverage
           ? [{
@@ -51,16 +51,16 @@ module.exports = new function(options) {
           test: /\.m?js$/,
           include: [
             path.resolve("node_modules/fetch-mock"),
-            path.resolve("node_modules/mock-xmlhttprequest")
+            path.resolve("node_modules/mock-xmlhttprequest"),
           ],
           use: [{
             loader: "babel-loader",
             options: {
-              "presets": ["@babel/preset-env"]
-            }
-          }]
-        }
-      ]
-    }
+              "presets": ["@babel/preset-env"],
+            },
+          }],
+        },
+      ],
+    },
   });
 }();

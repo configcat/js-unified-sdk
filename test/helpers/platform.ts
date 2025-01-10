@@ -22,7 +22,7 @@ export type AugmentedOptions<TOptions extends OptionsBase> = TOptions & {
 export abstract class PlatformAbstractions<
   TAutoPollOptions extends IAutoPollOptions = IAutoPollOptions,
   TManualPollOptions extends IManualPollOptions = IManualPollOptions,
-  TLazyLoadingOptions extends ILazyLoadingOptions = ILazyLoadingOptions,
+  TLazyLoadingOptions extends ILazyLoadingOptions = ILazyLoadingOptions
 > {
   gc?(): Promise<void>;
 

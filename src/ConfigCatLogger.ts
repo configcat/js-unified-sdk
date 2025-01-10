@@ -15,7 +15,7 @@ export const enum LogLevel {
   /** Error events are logged. All other events are discarded. */
   Error = 1,
   /** No events are logged. */
-  Off = -1
+  Off = -1,
 }
 
 export function nameOfLogLevel(value: LogLevel): string {
@@ -153,7 +153,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     return this.log(
       LogLevel.Error, 1002,
       FormattableLogMessage.from(
-        "METHOD_NAME", "DEFAULT_RETURN_VALUE",
+        "METHOD_NAME", "DEFAULT_RETURN_VALUE"
       )`Error occurred in the \`${methodName}\` method. Returning ${defaultReturnValue}.`,
       ex
     );
@@ -163,7 +163,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     return this.log(
       LogLevel.Error, 1002,
       FormattableLogMessage.from(
-        "METHOD_NAME", "KEY", "DEFAULT_PARAM_NAME", "DEFAULT_PARAM_VALUE",
+        "METHOD_NAME", "KEY", "DEFAULT_PARAM_NAME", "DEFAULT_PARAM_VALUE"
       )`Error occurred in the \`${methodName}\` method while evaluating setting '${key}'. Returning the \`${defaultParamName}\` parameter that you specified in your application: '${defaultParamValue}'.`,
       ex
     );

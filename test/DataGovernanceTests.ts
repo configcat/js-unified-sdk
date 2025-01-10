@@ -303,9 +303,9 @@ export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
       p: {
         u: jsonBaseUrl,
         r: jsonRedirect,
-        s: ""
+        s: "",
       },
-      f: jsonFeatureFlags
+      f: jsonFeatureFlags,
     };
 
     configFetcher.prepareResponse(this.getUrl(baseUrl),

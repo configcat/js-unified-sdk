@@ -33,7 +33,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       // NOTE: The IndexedDB API is asynchronous, so it's not possible to check here if it actually works. For this reason,
       // we'd rather not fall back to IndexedDB if LocalStorage doesn't work. (In that case, IndexedDB is unlikely to work anyway.)
       ? LocalStorageConfigCache.tryGetFactory()
-      : IndexedDBConfigCache.tryGetFactory()
+      : IndexedDBConfigCache.tryGetFactory(),
   });
 }
 

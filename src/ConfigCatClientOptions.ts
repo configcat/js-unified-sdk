@@ -19,7 +19,7 @@ export const enum PollingMode {
   /** The ConfigCat SDK downloads the latest setting values only if they are not present in the local cache, or if the cache entry has expired. */
   LazyLoad = 1,
   /** The ConfigCat SDK will not download the config JSON automatically. You need to update the cache manually, by calling `forceRefresh()`. */
-  ManualPoll = 2
+  ManualPoll = 2,
 }
 
 /** Controls the location of the config JSON files containing your feature flags and settings within the ConfigCat CDN. */
@@ -27,7 +27,7 @@ export const enum DataGovernance {
   /** Choose this option if your config JSON files are published to all global CDN nodes. */
   Global = 0,
   /** Choose this option if your config JSON files are published to CDN nodes only in the EU. */
-  EuOnly = 1
+  EuOnly = 1,
 }
 
 /** Options used to configure the ConfigCat SDK. */
@@ -183,7 +183,7 @@ export abstract class OptionsBase {
       hooksWeakRef,
       emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean {
         return this.hooksWeakRef.deref()?.emit(eventName, ...args) ?? false;
-      }
+      },
     };
 
     let logger: IConfigCatLogger | null | undefined;

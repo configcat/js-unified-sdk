@@ -8,26 +8,26 @@ module.exports = {
     path: path.resolve("test/cloudflare-worker/dist"),
     filename: "worker.js",
     library: {
-      type: "module"
-    }
+      type: "module",
+    },
   },
   experiments: {
-    outputModule: true
+    outputModule: true,
   },
   resolve: {
     // Add `.ts` and `.tsx` as a resolvable extension.
     extensions: [".ts", ".tsx", ".js"],
     plugins: [new TsconfigPathsPlugin({
-      configFile: "tsconfig.workerd.cloudflare-worker.json"
+      configFile: "tsconfig.workerd.cloudflare-worker.json",
     })],
     fallback: {
       "stream": false,
-      "util": false
-    }
+      "util": false,
+    },
   },
   devtool: "source-map",
   optimization: {
-    splitChunks: false
+    splitChunks: false,
   },
   module: {
     rules: [
@@ -37,10 +37,10 @@ module.exports = {
         use: [{
           loader: "ts-loader",
           options: {
-            configFile: "tsconfig.workerd.cloudflare-worker.json"
-          }
-        }]
-      }
-    ]
-  }
+            configFile: "tsconfig.workerd.cloudflare-worker.json",
+          },
+        }],
+      },
+    ],
+  },
 };

@@ -131,5 +131,5 @@ export default {
         resolve();
       }).globals(["onerror"]);
     });
-  }
+  },
 } as cloudflare.ExportedHandler<WorkerEnv>;

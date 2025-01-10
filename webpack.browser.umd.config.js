@@ -2,7 +2,7 @@ const target = "ES5";
 
 const entryPoints = [
   "core-js/features/promise",
-  "./src/browser/index.ts"
+  "./src/browser/index.ts",
 ];
 
 module.exports = {
@@ -14,15 +14,15 @@ module.exports = {
   optimization: {
     minimize: true,
     minimizer: [new (require("terser-webpack-plugin"))({
-      include: /\.min\.js$/
-    })]
+      include: /\.min\.js$/,
+    })],
   },
   output: {
     filename: "[name].js",
     library: { name: "configcat", type: "umd", umdNamedDefine: true },
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js"]
+    extensions: [".ts", ".tsx", ".js"],
   },
   module: {
     rules: [
@@ -36,11 +36,11 @@ module.exports = {
             compilerOptions: {
               target,
               importHelpers: true,
-              declaration: false
-            }
-          }
-        }]
-      }
-    ]
-  }
+              declaration: false,
+            },
+          },
+        }],
+      },
+    ],
+  },
 };
