@@ -70,11 +70,15 @@ export abstract class PlatformAbstractions<
     return new ConfigCatClient(this.createLazyLoadOptions(sdkKey, options, configCatKernel), configCatKernel);
   };
 
-  getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode, TAutoPollOptions, TManualPollOptions, TLazyLoadingOptions>): IConfigCatClient {
+  getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode,
+    options?: OptionsForPollingMode<TMode, TAutoPollOptions, TManualPollOptions, TLazyLoadingOptions>
+  ): IConfigCatClient {
     return this.getClientImpl(sdkKey, pollingMode, this.adjustOptions(options));
   }
 
-  protected abstract getClientImpl<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode, TAutoPollOptions, TManualPollOptions, TLazyLoadingOptions>): IConfigCatClient;
+  protected abstract getClientImpl<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode,
+    options?: OptionsForPollingMode<TMode, TAutoPollOptions, TManualPollOptions, TLazyLoadingOptions>
+  ): IConfigCatClient;
 
   protected adjustOptions<TOptions extends IOptions>(options?: TOptions): TOptions | undefined {
     return options;

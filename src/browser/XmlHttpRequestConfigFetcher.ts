@@ -38,7 +38,8 @@ export class XmlHttpRequestConfigFetcher implements IConfigFetcher {
 
         let url = options.getUrl();
         if (lastEtag) {
-          // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header, we can transorm this query param to the header in our CDN provider.
+          // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
+          // we can transorm this query param to the header in our CDN provider.
           url += "&ccetag=" + encodeURIComponent(lastEtag);
         }
         httpRequest.open("GET", url, true);

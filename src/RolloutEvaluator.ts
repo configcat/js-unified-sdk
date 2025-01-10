@@ -183,7 +183,9 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
   }
 
-  private evaluatePercentageOptions(percentageOptions: ReadonlyArray<PercentageOption>, matchedTargetingRule: TargetingRule | undefined, context: EvaluateContext): IEvaluateResult | undefined {
+  private evaluatePercentageOptions(percentageOptions: ReadonlyArray<PercentageOption>,
+    matchedTargetingRule: TargetingRule | undefined, context: EvaluateContext
+  ): IEvaluateResult | undefined {
     const logBuilder = context.logBuilder;
 
     if (!context.user) {
@@ -466,7 +468,9 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return negate;
   }
 
-  private evaluateSensitiveTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>, configJsonSalt: string, contextSalt: string, startsWith: boolean, negate: boolean): boolean {
+  private evaluateSensitiveTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>,
+    configJsonSalt: string, contextSalt: string, startsWith: boolean, negate: boolean
+  ): boolean {
     const textUtf8 = utf8Encode(text);
 
     for (let i = 0; i < comparisonValues.length; i++) {
@@ -550,8 +554,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   }
 
   private evaluateNumberRelation(number: number,
-    comparator: UserComparator.NumberEquals | UserComparator.NumberNotEquals | UserComparator.NumberLess | UserComparator.NumberLessOrEquals | UserComparator.NumberGreater | UserComparator.NumberGreaterOrEquals,
-    comparisonValue: number): boolean {
+    comparator: UserComparator.NumberEquals | UserComparator.NumberNotEquals
+      | UserComparator.NumberLess | UserComparator.NumberLessOrEquals
+      | UserComparator.NumberGreater | UserComparator.NumberGreaterOrEquals,
+    comparisonValue: number
+  ): boolean {
     switch (comparator) {
       case UserComparator.NumberEquals: return number === comparisonValue;
       case UserComparator.NumberNotEquals: return number !== comparisonValue;
@@ -578,7 +585,9 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return negate;
   }
 
-  private evaluateSensitiveArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ReadonlyArray<string>, configJsonSalt: string, contextSalt: string, negate: boolean): boolean {
+  private evaluateSensitiveArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ReadonlyArray<string>,
+    configJsonSalt: string, contextSalt: string, negate: boolean
+  ): boolean {
     for (let i = 0; i < array.length; i++) {
       const hash = hashComparisonValue(array[i], configJsonSalt, contextSalt);
       // NOTE: Array.prototype.indexOf uses strict equality.
@@ -724,7 +733,9 @@ function userAttributeValueToString(userAttributeValue: UserAttributeValue) {
     : userAttributeValue + "";
 }
 
-function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): string {
+function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): string {
   if (typeof attributeValue === "string") {
     return attributeValue;
   }
@@ -734,7 +745,9 @@ function getUserAttributeValueAsText(attributeName: string, attributeValue: User
   return attributeValue;
 }
 
-function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): ISemVer | string {
+function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): ISemVer | string {
   let version: ISemVer | null;
   if (typeof attributeValue === "string" && (version = parseSemVer(attributeValue.trim()))) {
     return version;
@@ -742,7 +755,9 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid semantic version`);
 }
 
-function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): number | string {
+function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): number | string {
   if (typeof attributeValue === "number") {
     return attributeValue;
   }
@@ -754,7 +769,9 @@ function getUserAttributeValueAsNumber(attributeName: string, attributeValue: Us
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid decimal number`);
 }
 
-function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): number | string {
+function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): number | string {
   if (attributeValue instanceof Date) {
     return attributeValue.getTime() / 1000;
   }
@@ -769,7 +786,9 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid Unix timestamp (number of seconds elapsed since Unix epoch)`);
 }
 
-function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): ReadonlyArray<string> | string {
+function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): ReadonlyArray<string> | string {
   let stringArray: unknown = attributeValue;
   if (typeof stringArray === "string") {
     try { stringArray = JSON.parse(stringArray); }
@@ -834,7 +853,9 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
 
 /* Helper functions */
 
-function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult, fetchTime?: Date, user?: IUser): IEvaluationDetails<SettingTypeOf<T>> {
+function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult,
+  fetchTime?: Date, user?: IUser
+): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: evaluateResult.selectedValue.value as SettingTypeOf<T>,
@@ -847,7 +868,9 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
   };
 }
 
-export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T, fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any): IEvaluationDetails<SettingTypeOf<T>> {
+export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
+  fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any
+): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: defaultValue as SettingTypeOf<T>,
@@ -909,7 +932,9 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [
   return [evaluationDetailsArray, errors];
 }
 
-export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setting }> | null, logger: LoggerWrapper, defaultReturnValue: string): settings is Readonly<{ [key: string]: Setting }> {
+export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setting }> | null, logger: LoggerWrapper,
+  defaultReturnValue: string
+): settings is Readonly<{ [key: string]: Setting }> {
   if (!settings) {
     logger.configJsonIsNotPresent(defaultReturnValue);
     return false;

@@ -14,6 +14,8 @@ type MatrixTestCase = [key: string, user: User | undefined, userAttributesJson: 
 const logger = new LoggerWrapper(createConsoleLogger(LogLevel.Error));
 const evaluator = new RolloutEvaluator(logger);
 
+/* eslint-disable @stylistic/js/max-len */
+
 describe("MatrixTests (config v1)", () => {
   // https://app.configcat.com/08d5a03c-feb7-af1e-a1fa-40b3329f8bed/08d62463-86ec-8fde-f5b5-1c5c426fc830/244cf8b0-f604-11e8-b543-f23c917f9d8d
   describeMatrixTest("Basic operators", new CdnConfigLocation("PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A"), "testmatrix.csv", evaluator);
@@ -74,6 +76,8 @@ describe("MatrixTests (config v2)", () => {
   // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbd63c-9774-49d6-8187-5f2aab7bd606/08dbc325-9ebd-4587-8171-88f76a3004cb
   describeMatrixTest("Unicode texts", new CdnConfigLocation("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/Da6w8dBbmUeMUBhh0iEeQQ"), "testmatrix_unicode.csv", evaluator);
 });
+
+/* eslint-enable @stylistic/js/max-len */
 
 function describeMatrixTest(title: string, configLocation: ConfigLocation, matrixFilePath: string, evaluator: RolloutEvaluator,
   runner: (configLocation: ConfigLocation, key: string, user: User | undefined, expected: string, evaluator: RolloutEvaluator) => void = runMatrixTest) {

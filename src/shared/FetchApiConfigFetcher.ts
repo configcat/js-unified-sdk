@@ -21,7 +21,8 @@ export class FetchApiConfigFetcher implements IConfigFetcher {
     try {
       let url = options.getUrl();
       if (lastEtag) {
-        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header, we can transform this query param to the header in our CDN provider.
+        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
+        // we can transform this query param to the header in our CDN provider.
         url += "&ccetag=" + encodeURIComponent(lastEtag);
       }
       // NOTE: It's intentional that we don't specify the If-None-Match header.

@@ -75,6 +75,7 @@ describe("Setting evaluation (config v2)", () => {
         logger: fakeLogger,
       };
 
+      // eslint-disable-next-line @stylistic/js/max-len
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
       const client = createClientWithManualPoll("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/JoGwdqJZQ0K2xDy7LnbyOg",
         void 0, options);
@@ -140,6 +141,7 @@ describe("Setting evaluation (config v2)", () => {
         flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour },
       };
 
+      // eslint-disable-next-line @stylistic/js/max-len
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
       const client = createClientWithManualPoll("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/JoGwdqJZQ0K2xDy7LnbyOg",
         void 0, options);
@@ -156,6 +158,7 @@ describe("Setting evaluation (config v2)", () => {
     });
   }
 
+  // eslint-disable-next-line @stylistic/js/max-len
   // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9e4e-4f59-86b2-5da50924b6ca/08dbc325-9ebd-4587-8171-88f76a3004cb
   for (const [sdkKey, key, userId, email, percentageBase, expectedReturnValue, expectedIsExpectedMatchedTargetingRuleSet, expectedIsExpectedMatchedPercentageOptionSet] of
     <[string, string, string | null, string | null, string | null, string, boolean, boolean][]>[

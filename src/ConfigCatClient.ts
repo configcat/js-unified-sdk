@@ -242,7 +242,9 @@ export class ConfigCatClient implements IConfigCatClient {
 
   private static get instanceCache() { return clientInstanceCache; }
 
-  static get<TMode extends PollingMode>(sdkKey: string, pollingMode: TMode, options: OptionsForPollingMode<TMode> | undefined | null, configCatKernel: IConfigCatKernel): IConfigCatClient {
+  static get<TMode extends PollingMode>(sdkKey: string, pollingMode: TMode,
+    options: OptionsForPollingMode<TMode> | undefined | null, configCatKernel: IConfigCatKernel
+  ): IConfigCatClient {
     const invalidSdkKeyError = "Invalid 'sdkKey' value";
     if (!sdkKey) {
       throw new Error(invalidSdkKeyError);
@@ -254,7 +256,8 @@ export class ConfigCatClient implements IConfigCatClient {
       : pollingMode === PollingMode.LazyLoad ? LazyLoadOptions
       : throwError(new Error("Invalid 'pollingMode' value"));
 
-    const actualOptions = new optionsClass(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options, configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory);
+    const actualOptions = new optionsClass(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options,
+      configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory);
 
     if (actualOptions.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly && !isValidSdkKey(sdkKey, actualOptions.baseUrlOverriden)) {
       throw new Error(invalidSdkKeyError);

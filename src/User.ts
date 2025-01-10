@@ -51,7 +51,8 @@ export interface IUser {
  * Contains user attributes which are used for evaluating targeting rules and percentage options.
  * @remarks
  * Please note that the `User` class is not designed to be used as a DTO (data transfer object).
- * (Since the type of the `custom` property is polymorphic, it's not guaranteed that deserializing a serialized instance produces an instance with an identical or even valid data content.)
+ * (Since the type of the `custom` property is polymorphic, it's not guaranteed that deserializing
+ * a serialized instance produces an instance with an identical or even valid data content.)
  **/
 export class User implements IUser {
   // NOTE: We keep this class for backward compatibility only. It was an oversight to introduce it instead of a plain interface as

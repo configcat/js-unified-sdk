@@ -138,9 +138,9 @@ export default [
         },
       ],
       "@stylistic/js/max-len": [
-        "off",
+        "warn",
         {
-          "code": 160,
+          "code": 180,
           "ignoreStrings": true,
           "ignoreTemplateLiterals": true,
           "ignoreRegExpLiterals": true,
