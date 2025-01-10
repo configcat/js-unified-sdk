@@ -11,7 +11,7 @@ describe("ConfigCatLogger", () => {
         log(level: LogLevel, eventId: LogEventId, message: LogMessage, exception?: any) {
           messages.push([level, eventId, message, exception]);
         }
-      };
+      }();
 
       const logger = new LoggerWrapper(loggerImpl);
       const err = new Error();

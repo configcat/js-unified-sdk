@@ -14,7 +14,8 @@ export default [
       reportUnusedDisableDirectives: "error",
     },
     plugins: {
-      "@stylistic/js": stylisticJs
+      "@stylistic/js": stylisticJs,
+      "@stylistic/ts": stylisticTs,
     },
     rules: {
       /* Suggestions (https://eslint.org/docs/latest/rules/#suggestions) */
@@ -55,11 +56,9 @@ export default [
           "allowSeparatedGroups": true
         }
       ],
-      /* Layout & Formatting (https://eslint.style/packages/js) */
-      "@stylistic/js/array-bracket-spacing": [
-        "warn",
-        "never"
-      ],
+      /* Layout & Formatting (https://eslint.style/packages/js, https://eslint.style/packages/ts) */
+      // NOTE: When a rule has both TS and JS version, use the TS one!
+      "@stylistic/js/array-bracket-spacing": ["warn", "never"],
       "@stylistic/js/arrow-spacing": [
         "warn",
         {
@@ -67,39 +66,24 @@ export default [
           "after": true
         }
       ],
-      "@stylistic/js/block-spacing": [
-        "warn",
-        "always"
-      ],
-      "@stylistic/js/brace-style": [
+      "@stylistic/ts/block-spacing": ["warn", "always"],
+      "@stylistic/ts/brace-style": [
         "warn",
         "stroustrup",
         {
           "allowSingleLine": true
         }
       ],
-      "@stylistic/js/comma-spacing": [
+      "@stylistic/ts/comma-spacing": [
         "warn",
         {
           "after": true
         }
       ],
-      "@stylistic/js/computed-property-spacing": [
-        "warn",
-        "never"
-      ],
-      "@stylistic/js/dot-location": [
-        "warn",
-        "property"
-      ],
-      "@stylistic/js/eol-last": [
-        "warn",
-        "always"
-      ],
-      "@stylistic/js/func-call-spacing": [
-        "warn",
-        "never"
-      ],
+      "@stylistic/js/computed-property-spacing": ["warn", "never"],
+      "@stylistic/js/dot-location": ["warn", "property"],
+      "@stylistic/js/eol-last": ["warn", "always"],
+      "@stylistic/ts/func-call-spacing": ["warn", "never"],
       "@stylistic/js/generator-star-spacing": [
         "warn",
         {
@@ -111,15 +95,19 @@ export default [
           }
         }
       ],
-      "@stylistic/js/indent": [
+      "@stylistic/ts/indent": [
         "warn",
         2,
         {
           "SwitchCase": 1,
-          "flatTernaryExpressions": true
+          "flatTernaryExpressions": true,
+          "ignoredNodes": [
+            // https://github.com/typescript-eslint/typescript-eslint/issues/1824#issuecomment-1378327382
+            "TSUnionType"
+          ]
         }
       ],
-      "@stylistic/js/key-spacing": [
+      "@stylistic/ts/key-spacing": [
         "warn",
         {
           "beforeColon": false,
@@ -127,7 +115,7 @@ export default [
           "mode": "strict"
         }
       ],
-      "@stylistic/js/keyword-spacing": [
+      "@stylistic/ts/keyword-spacing": [
         "warn",
         {
           "before": true,
@@ -143,6 +131,9 @@ export default [
           "ignoreRegExpLiterals": true
         }
       ],
+      "@stylistic/ts/member-delimiter-style": "warn",
+      "@stylistic/js/new-parens": "warn",
+      "@stylistic/ts/no-extra-semi": "warn",
       "@stylistic/js/no-multi-spaces": "warn",
       "@stylistic/js/no-multiple-empty-lines": [
         "warn",
@@ -154,25 +145,16 @@ export default [
       "@stylistic/js/no-tabs": "warn",
       "@stylistic/js/no-trailing-spaces": "warn",
       "@stylistic/js/no-whitespace-before-property": "warn",
-      "@stylistic/js/object-curly-spacing": [
-        "warn",
-        "always"
-      ],
-      "@stylistic/js/quotes": [
+      "@stylistic/ts/object-curly-spacing": ["warn", "always"],
+      "@stylistic/ts/quotes": [
         "warn",
         "double",
         {
           "avoidEscape": true
         }
       ],
-      "@stylistic/js/rest-spread-spacing": [
-        "warn",
-        "never"
-      ],
-      "@stylistic/js/semi": [
-        "error",
-        "always"
-      ],
+      "@stylistic/js/rest-spread-spacing": ["warn", "never"],
+      "@stylistic/ts/semi": ["warn", "always"],
       "@stylistic/js/semi-spacing": [
         "warn",
         {
@@ -181,11 +163,8 @@ export default [
         }
       ],
       "@stylistic/js/semi-style": "warn",
-      "@stylistic/js/space-before-blocks": [
-        "warn",
-        "always"
-      ],
-      "@stylistic/js/space-before-function-paren": [
+      "@stylistic/ts/space-before-blocks": ["warn", "always"],
+      "@stylistic/ts/space-before-function-paren": [
         "warn",
         {
           "anonymous": "never",
@@ -193,11 +172,8 @@ export default [
           "asyncArrow": "always"
         }
       ],
-      "@stylistic/js/space-in-parens": [
-        "warn",
-        "never"
-      ],
-      "@stylistic/js/space-infix-ops": "warn",
+      "@stylistic/js/space-in-parens": ["warn", "never"],
+      "@stylistic/ts/space-infix-ops": "warn",
       "@stylistic/js/space-unary-ops": [
         "warn",
         {
@@ -212,19 +188,11 @@ export default [
           "after": true
         }
       ],
-      "@stylistic/js/template-curly-spacing": [
-        "warn",
-        "never"
-      ],
-      "@stylistic/js/template-tag-spacing": [
-        "warn",
-        "never"
-      ],
-      "@stylistic/js/yield-star-spacing": [
-        "warn",
-        "after"
-      ],
-      // Import declarations (https://github.com/import-js/eslint-plugin-import)
+      "@stylistic/js/template-curly-spacing": ["warn", "never"],
+      "@stylistic/js/template-tag-spacing": ["warn", "never"],
+      "@stylistic/ts/type-annotation-spacing": "warn",
+      "@stylistic/js/yield-star-spacing": ["warn", "after"],
+      /* Import declarations (https://github.com/import-js/eslint-plugin-import) */
       "import/order": [
         "warn",
         {
@@ -264,9 +232,6 @@ export default [
         ...tseslint.configs.strictTypeChecked,
         ...tseslint.configs.stylisticTypeChecked,
       ],
-      plugins: {
-        "@stylistic/ts": stylisticTs
-      },
       languageOptions: {
         parserOptions: {
           ecmaVersion: "latest",
@@ -286,19 +251,6 @@ export default [
         "@typescript-eslint/dot-notation": "off",
         "@typescript-eslint/no-confusing-void-expression": "off",
         "@typescript-eslint/no-dynamic-delete": "off",
-        // https://github.com/typescript-eslint/typescript-eslint/issues/1824#issuecomment-1378327382
-        "indent": "off",
-        "@stylistic/ts/indent": [
-          "warn",
-          2,
-          {
-            "SwitchCase": 1,
-            "flatTernaryExpressions": true,
-            "ignoredNodes": [
-              "TSUnionType"
-            ]
-          }
-        ],
         "@typescript-eslint/no-empty-function": "off",
         "@typescript-eslint/no-empty-interface": "off",
         "@typescript-eslint/no-empty-object-type": "off",
@@ -337,7 +289,6 @@ export default [
         "@typescript-eslint/restrict-plus-operands": "off",
         "@typescript-eslint/restrict-template-expressions": "off",
         "@typescript-eslint/switch-exhaustiveness-check": "warn",
-        "@stylistic/ts/type-annotation-spacing": "warn",
         "@typescript-eslint/unbound-method": ["error", { ignoreStatic: true }],
 
         "@typescript-eslint/explicit-member-accessibility": [
@@ -352,7 +303,6 @@ export default [
             "allowArgumentsExplicitlyTypedAsAny": true
           }
         ],
-        "@stylistic/ts/member-delimiter-style": "warn",
         // Based on: https://typescript-eslint.io/rules/naming-convention/#enforce-the-codebase-follows-eslints-camelcase-conventions
         "@typescript-eslint/naming-convention": [
           "warn",

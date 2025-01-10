@@ -17,7 +17,7 @@ type TestSet = {
   baseUrl?: string;
   jsonOverride?: string;
   tests?: ReadonlyArray<TestCase>;
-}
+};
 
 type TestCase = {
   key: string;
@@ -25,7 +25,7 @@ type TestCase = {
   returnValue: NonNullable<SettingValue>;
   expectedLog: string;
   user?: Readonly<{ [key: string]: string }>;
-}
+};
 
 describe("Evaluation log", () => {
   describeTestSet("simple_value");

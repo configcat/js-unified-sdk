@@ -15,7 +15,7 @@ export type Config = {
    * Setting definitions.
    */
   f?: { [key: string]: SettingUnion };
-}
+};
 
 export type Preferences = {
   /**
@@ -30,12 +30,12 @@ export type Preferences = {
    * The salt that, combined with the feature flag key or segment name, is used to hash values for sensitive text comparisons.
    */
   s: string;
-}
+};
 
 export type Segment = {
   n: string;
   r: [UserConditionUnion, ...UserConditionUnion[]];
-}
+};
 
 export type SettingUnion = { [K in SettingType]: Setting<K> }[SettingType];
 
@@ -54,12 +54,12 @@ export type TargetingRule<TSetting extends SettingType = SettingType> = {
 } & (
     { s: ServedValue<TSetting>; p?: never }
     | { p: PercentageOption<TSetting>[]; s?: never }
-)
+);
 
 export type ConditionUnion =
   { u: UserConditionUnion; p?: never; s?: never }
   | { p: PrerequisiteFlagCondition; u?: never; s?: never }
-  | { s: SegmentCondition; u?: never; p?: never }
+  | { s: SegmentCondition; u?: never; p?: never };
 
 export type PercentageOption<TSetting extends SettingType = SettingType> = {
   p: number;
@@ -80,7 +80,7 @@ export type UserCondition<TComparator extends UserComparator = UserComparator> =
    */
   a: string;
   c: TComparator;
-} & UserConditionComparisonValue<TComparator>
+} & UserConditionComparisonValue<TComparator>;
 
 export type UserConditionComparisonValue<TComparator extends UserComparator = UserComparator> = {
   [UserComparator.TextIsOneOf]: UserConditionStringListComparisonValue;
@@ -132,7 +132,7 @@ export type PrerequisiteFlagCondition = {
   f: string;
   c: PrerequisiteFlagComparator;
   v: SettingValue;
-}
+};
 
 export type SegmentCondition = {
   /**
@@ -140,12 +140,12 @@ export type SegmentCondition = {
    */
   s: number;
   c: SegmentComparator;
-}
+};
 
 export type ServedValue<TSetting extends SettingType = SettingType> = {
   v: SettingValue<TSetting>;
   i: string;
-}
+};
 
 export const enum RedirectMode {
   No = 0,

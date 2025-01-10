@@ -387,7 +387,7 @@ describe("ConfigCatClient", () => {
       evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult {
         throw err;
       }
-    };
+    }();
 
     const user = new User("a@configcat.com");
 
@@ -494,7 +494,7 @@ describe("ConfigCatClient", () => {
       evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult {
         throw err;
       }
-    };
+    }();
 
     const user = new User("a@configcat.com");
 
@@ -1411,7 +1411,7 @@ describe("ConfigCatClient", () => {
         setOffline(): void { }
         getCacheState(): ClientCacheState { return ClientCacheState.NoFlagData; }
         dispose(): void { }
-      };
+      }();
 
       await client.forceRefreshAsync();
 
@@ -1490,7 +1490,7 @@ describe("ConfigCatClient", () => {
       setOffline(): void { }
       getCacheState(): ClientCacheState { return ClientCacheState.NoFlagData; }
       dispose(): void { }
-    };
+    }();
 
     const refreshResult = await client.forceRefreshAsync();
 

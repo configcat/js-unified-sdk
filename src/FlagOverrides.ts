@@ -5,7 +5,7 @@ import { isArray, parseFloatStrict } from "./Utils";
 export type FlagOverrides = {
   dataSource: IOverrideDataSource;
   behaviour: OverrideBehaviour;
-}
+};
 
 /**
  * Specifies the behaviours for flag overrides.

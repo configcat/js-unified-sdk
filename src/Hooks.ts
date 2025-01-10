@@ -102,4 +102,4 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
 // AutoPollConfigService -> Hooks -> event handler -> ConfigCatClient can be created, it is the hooks reference that we need to make weak.
 export type SafeHooksWrapper = {
   emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean;
-}
+};

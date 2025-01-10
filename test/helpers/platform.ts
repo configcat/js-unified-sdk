@@ -17,7 +17,7 @@ type OptionsForPollingMode<
 
 export type AugmentedOptions<TOptions extends OptionsBase> = TOptions & {
   getRealUrl(): string;
-}
+};
 
 export abstract class PlatformAbstractions<
   TAutoPollOptions extends IAutoPollOptions = IAutoPollOptions,

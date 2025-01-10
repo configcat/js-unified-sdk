@@ -267,7 +267,7 @@ export type ConditionTypeMap = {
   ["UserCondition"]: IUserConditionUnion;
   ["PrerequisiteFlagCondition"]: IPrerequisiteFlagCondition;
   ["SegmentCondition"]: ISegmentCondition;
-}
+};
 
 export type IConditionUnion = ConditionTypeMap[keyof ConditionTypeMap];
 
@@ -316,7 +316,7 @@ export type UserConditionComparisonValueTypeMap = {
   [UserComparator.TextNotEndsWithAnyOf]: Readonly<string[]>;
   [UserComparator.ArrayContainsAnyOf]: Readonly<string[]>;
   [UserComparator.ArrayNotContainsAnyOf]: Readonly<string[]>;
-}
+};
 
 export type IUserConditionUnion = { [K in UserComparator]: IUserCondition<K> }[UserComparator];
 

@@ -766,7 +766,7 @@ class Snapshot implements IConfigCatClientSnapshot {
 export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
   settingKey: string;
   settingValue: TValue;
-}
+};
 
 function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {
   const proxyPrefix = "configcat-proxy/";
