@@ -324,9 +324,13 @@ export default [
         "@typescript-eslint/no-useless-constructor": "warn",
         "@typescript-eslint/prefer-for-of": "off", // for compatibility reasons
         "@typescript-eslint/prefer-includes": "off",
+        "prefer-promise-reject-errors": "off",
+        "@typescript-eslint/prefer-promise-reject-errors": "warn",
         "@typescript-eslint/prefer-readonly": "warn",
         "@typescript-eslint/prefer-return-this-type": "warn",
         "@typescript-eslint/prefer-string-starts-ends-with": "off",
+        "require-await": "off",
+        "@typescript-eslint/require-await": "warn",
         "@typescript-eslint/restrict-plus-operands": "off",
         "@typescript-eslint/restrict-template-expressions": "off",
         "@typescript-eslint/switch-exhaustiveness-check": "warn",
