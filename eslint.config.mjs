@@ -9,6 +9,7 @@ export default [
   /* Base configuration (@eslint/js, eslint-plugin-import) */
   eslint.configs.recommended,
   importPlugin.flatConfigs.recommended,
+  importPlugin.flatConfigs.typescript,
   {
     linterOptions: {
       reportUnusedDisableDirectives: "error",
