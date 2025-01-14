@@ -1,6 +1,6 @@
 import type * as cloudflare from "@cloudflare/workers-types/2023-03-01";
 import { assert } from "chai";
-import { FakeConfigFetcherBase, createAutoPollOptions, createKernel } from "../helpers/fakes";
+import { createAutoPollOptions, createKernel, FakeConfigFetcherBase } from "../helpers/fakes";
 import { createFlagOverridesFromQueryParams } from "#lib/cloudflare-worker";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions } from "#lib/ConfigCatClientOptions";

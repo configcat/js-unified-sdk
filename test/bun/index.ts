@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as glob from "glob";
 import * as path from "path";
-import { PlatformAbstractions, initPlatform } from "../helpers/platform";
+import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import { normalizePathSeparator } from "../helpers/utils";
 import { isTestSpec } from "../index";
 import type { IBunAutoPollOptions, IBunLazyLoadingOptions, IBunManualPollOptions } from "#lib/bun";

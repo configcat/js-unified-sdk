@@ -1,4 +1,4 @@
-import { PlatformAbstractions, initPlatform } from "../helpers/platform";
+import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/browser";
 import { getClient } from "#lib/browser";
 import { LocalStorageConfigCache } from "#lib/browser/LocalStorageConfigCache";

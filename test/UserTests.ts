@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { User } from "#lib";
-import { WellKnownUserObjectAttribute, getUserAttribute, getUserAttributes } from "#lib/User";
+import { getUserAttribute, getUserAttributes, WellKnownUserObjectAttribute } from "#lib/User";
 
 const identifierAttribute: WellKnownUserObjectAttribute = "Identifier";
 const emailAttribute: WellKnownUserObjectAttribute = "Email";

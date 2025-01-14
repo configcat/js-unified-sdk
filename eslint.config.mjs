@@ -11,12 +11,12 @@ export default [
   importPlugin.flatConfigs.recommended,
   importPlugin.flatConfigs.typescript,
   {
-    linterOptions: {
-      reportUnusedDisableDirectives: "error",
-    },
     plugins: {
       "@stylistic/js": stylisticJs,
       "@stylistic/ts": stylisticTs,
+    },
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
     },
     rules: {
       /* Suggestions (https://eslint.org/docs/latest/rules/#suggestions) */
@@ -47,16 +47,6 @@ export default [
       "prefer-promise-reject-errors": "warn",
       "prefer-rest-params": "warn",
       "require-await": "warn",
-      "sort-imports": [
-        "warn",
-        {
-          "ignoreCase": false,
-          "ignoreDeclarationSort": true,
-          "ignoreMemberSort": false,
-          "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
-          "allowSeparatedGroups": true,
-        },
-      ],
       /* Layout & Formatting (https://eslint.style/packages/js, https://eslint.style/packages/ts) */
       // NOTE: When a rule has both TS and JS version, use the TS one!
       "@stylistic/js/array-bracket-spacing": ["warn", "never"],
@@ -254,8 +244,17 @@ export default [
         },
       ],
       "import/newline-after-import": "warn",
-      // This rule seems broken, so we disable it for now.
       "import/no-unresolved": "off",
+      "sort-imports": [
+        "warn",
+        {
+          "ignoreCase": true,
+          "ignoreDeclarationSort": true,
+          "ignoreMemberSort": false,
+          "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
+          "allowSeparatedGroups": true,
+        },
+      ],
     },
   },
   /* Additional configuration for build scripts */

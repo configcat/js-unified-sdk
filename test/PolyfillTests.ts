@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { ObjectEntriesPolyfill, ObjectValuesPolyfill, getWeakRefStub } from "#lib/Polyfills";
+import { getWeakRefStub, ObjectEntriesPolyfill, ObjectValuesPolyfill } from "#lib/Polyfills";
 
 describe("Polyfills", () => {
   it("Object.values polyfill should work", () => {

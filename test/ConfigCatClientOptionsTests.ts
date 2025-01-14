@@ -1,8 +1,8 @@
 import { assert, expect } from "chai";
-import { FakeExternalCache, createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions } from "./helpers/fakes";
+import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeExternalCache } from "./helpers/fakes";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { OptionsBase } from "#lib/ConfigCatClientOptions";
-import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogLevel, LogMessage, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
 import { ProjectConfig } from "#lib/ProjectConfig";
 
 describe("Options", () => {

@@ -4,9 +4,9 @@ import { FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
 import { normalizeLineEndings } from "./helpers/utils";
 import { User } from "#lib";
-import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { SettingValue } from "#lib/ProjectConfig";
-import { RolloutEvaluator, evaluate } from "#lib/RolloutEvaluator";
+import { evaluate, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { WellKnownUserObjectAttribute } from "#lib/User";
 import { errorToString } from "#lib/Utils";
 

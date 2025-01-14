@@ -4,7 +4,7 @@ import { platform } from "./helpers/platform";
 import { LogLevel, SettingType, SettingValue, User } from "#lib";
 import { LoggerWrapper } from "#lib/ConfigCatLogger";
 import { createConsoleLogger } from "#lib/index.pubternals";
-import { RolloutEvaluator, evaluate } from "#lib/RolloutEvaluator";
+import { evaluate, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { getUserAttributes } from "#lib/User";
 
 const testDataBasePath = platform().pathJoin("test", "data");

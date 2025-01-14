@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { FakeConfigFetcherWithRules, createClientWithAutoPoll, createKernel } from "./helpers/fakes";
+import { createClientWithAutoPoll, createKernel, FakeConfigFetcherWithRules } from "./helpers/fakes";
 import { LogLevel } from "#lib";
 import { IConfigCatClient } from "#lib/ConfigCatClient";
 import { createConsoleLogger } from "#lib/index.pubternals";

@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { IConfigCatLogger, LogEventId, LogLevel, LogMessage, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { IConfigCatLogger, LogEventId, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
 
 describe("ConfigCatLogger", () => {
   for (const level of Object.values(LogLevel).filter(key => typeof key === "number") as LogLevel[]) {

@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel } from "#lib";
-import { LocalStorageConfigCache, fromUtf8Base64, getLocalStorage, toUtf8Base64 } from "#lib/browser/LocalStorageConfigCache";
+import { fromUtf8Base64, getLocalStorage, LocalStorageConfigCache, toUtf8Base64 } from "#lib/browser/LocalStorageConfigCache";
 import { ExternalConfigCache } from "#lib/ConfigCatCache";
 
 describe("Base64 encode/decode test", () => {

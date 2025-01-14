@@ -1,10 +1,10 @@
 import { assert } from "chai";
 import { CdnConfigLocation, LocalFileConfigLocation } from "./helpers/ConfigLocation";
-import { FakeLogger, createClientWithManualPoll } from "./helpers/fakes";
+import { createClientWithManualPoll, FakeLogger } from "./helpers/fakes";
 import { IManualPollOptions, OverrideBehaviour, SettingValue, User, UserAttributeValue } from "#lib";
-import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { MapOverrideDataSource } from "#lib/FlagOverrides";
-import { RolloutEvaluator, evaluate, isAllowedValue } from "#lib/RolloutEvaluator";
+import { evaluate, isAllowedValue, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { errorToString } from "#lib/Utils";
 
 describe("Setting evaluation (config v2)", () => {

@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig, createAutoPollOptions, createKernel, createManualPollOptions } from "./helpers/fakes";
+import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig } from "./helpers/fakes";
 import { SettingKeyValue } from "#lib";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";

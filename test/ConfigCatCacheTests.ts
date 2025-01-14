@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { FakeLogger, createManualPollOptions } from "./helpers/fakes";
+import { createManualPollOptions, FakeLogger } from "./helpers/fakes";
 import { ExternalConfigCache, IConfigCache, IConfigCatCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
-import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { Config, ProjectConfig } from "#lib/ProjectConfig";
 
 describe("ConfigCatCache", () => {
