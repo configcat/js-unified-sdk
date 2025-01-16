@@ -13,15 +13,15 @@ export class FetchApiConfigFetcher implements IConfigFetcher {
       const timeoutId = setTimeout(() => controller.abort(), options.requestTimeoutMs);
       requestInit.signal = controller.signal;
       cleanup = () => clearTimeout(timeoutId);
-    }
-    else {
+    } else {
       cleanup = () => { };
     }
 
     try {
       let url = options.getUrl();
       if (lastEtag) {
-        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header, we can transform this query param to the header in our CDN provider.
+        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
+        // we can transform this query param to the header in our CDN provider.
         url += "&ccetag=" + encodeURIComponent(lastEtag);
       }
       // NOTE: It's intentional that we don't specify the If-None-Match header.
@@ -34,24 +34,20 @@ export class FetchApiConfigFetcher implements IConfigFetcher {
         const body = await response.text();
         const eTag = response.headers.get("ETag") ?? void 0;
         return { statusCode, reasonPhrase, eTag, body };
-      }
-      else {
+      } else {
         return { statusCode, reasonPhrase };
       }
-    }
-    catch (err) {
+    } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         if (requestInit.signal?.aborted) {
           throw new FetchError("timeout", options.requestTimeoutMs);
-        }
-        else {
+        } else {
           throw new FetchError("abort");
         }
       }
 
       throw new FetchError("failure", err);
-    }
-    finally {
+    } finally {
       cleanup();
     }
   }

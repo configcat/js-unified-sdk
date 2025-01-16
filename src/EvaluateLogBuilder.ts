@@ -69,8 +69,7 @@ export class EvaluateLogBuilder {
     const comparatorFormatted = formatUserComparator(comparator);
     if (isSensitive) {
       return this.append(`User.${comparisonAttribute} ${comparatorFormatted} [<${comparisonValue.length} hashed ${comparisonValue.length === 1 ? valueText : valuesText}>]`);
-    }
-    else {
+    } else {
       const comparisonValueFormatted = formatStringList(comparisonValue, stringListMaxLength, count => `, ... <${count} more ${count === 1 ? valueText : valuesText}>`);
 
       return this.append(`User.${comparisonAttribute} ${comparatorFormatted} [${comparisonValueFormatted}]`);
@@ -149,9 +148,9 @@ export class EvaluateLogBuilder {
 
   appendPrerequisiteFlagCondition(condition: PrerequisiteFlagCondition, settings: Readonly<{ [key: string]: Setting }>): this {
     const prerequisiteFlagKey =
-      typeof condition.prerequisiteFlagKey !== "string" ? invalidNamePlaceholder :
-      !(condition.prerequisiteFlagKey in settings) ? invalidReferencePlaceholder :
-      condition.prerequisiteFlagKey;
+      typeof condition.prerequisiteFlagKey !== "string" ? invalidNamePlaceholder
+      : !(condition.prerequisiteFlagKey in settings) ? invalidReferencePlaceholder
+      : condition.prerequisiteFlagKey;
 
     const comparator = condition.comparator;
     const comparisonValue = condition.comparisonValue;
@@ -164,9 +163,9 @@ export class EvaluateLogBuilder {
     const comparator = condition.comparator;
 
     const segmentName =
-      segment == null ? invalidReferencePlaceholder :
-      typeof segment.name !== "string" || !segment.name ? invalidNamePlaceholder :
-      segment.name;
+      segment == null ? invalidReferencePlaceholder
+      : typeof segment.name !== "string" || !segment.name ? invalidNamePlaceholder
+      : segment.name;
 
     return this.append(`User ${formatSegmentComparator(comparator)} '${segmentName}'`);
   }

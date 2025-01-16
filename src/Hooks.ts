@@ -40,9 +40,9 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.on;
+    this.on;
 
   /** @inheritdoc */
   on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
@@ -63,9 +63,9 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this
+  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.removeListener;
+    this.removeListener;
 
   /** @inheritdoc */
   removeAllListeners(eventName?: keyof HookEvents): this {
@@ -102,4 +102,4 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
 // AutoPollConfigService -> Hooks -> event handler -> ConfigCatClient can be created, it is the hooks reference that we need to make weak.
 export type SafeHooksWrapper = {
   emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean;
-}
+};

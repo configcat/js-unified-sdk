@@ -37,13 +37,13 @@ export class CdnConfigLocation extends ConfigLocation {
   private $options?: AugmentedOptions<ManualPollOptions>;
   get options(): AugmentedOptions<ManualPollOptions> {
     return this.$options ??= createManualPollOptions(this.sdkKey, {
-      baseUrl: this.baseUrl ?? CdnConfigLocation.getDefaultCdnUrl()
+      baseUrl: this.baseUrl ?? CdnConfigLocation.getDefaultCdnUrl(),
     });
   }
 
   constructor(
     readonly sdkKey: string,
-    readonly baseUrl?: string,
+    readonly baseUrl?: string
   ) {
     super();
   }

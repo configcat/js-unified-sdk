@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { FakeConfigFetcherWithNullNewConfig, FakeConfigFetcherWithPercentageOptionsWithinTargetingRule, FakeConfigFetcherWithTwoKeysAndRules, createAutoPollOptions, createKernel } from "./helpers/fakes";
+import { createAutoPollOptions, createKernel, FakeConfigFetcherWithNullNewConfig, FakeConfigFetcherWithPercentageOptionsWithinTargetingRule, FakeConfigFetcherWithTwoKeysAndRules } from "./helpers/fakes";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions } from "#lib/ConfigCatClientOptions";
 

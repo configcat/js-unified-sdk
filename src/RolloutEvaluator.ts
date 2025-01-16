@@ -24,7 +24,7 @@ export class EvaluateContext {
     readonly key: string,
     readonly setting: Setting,
     readonly user: IUser | undefined,
-    readonly settings: Readonly<{ [key: string]: Setting }>,
+    readonly settings: Readonly<{ [key: string]: Setting }>
   ) {
   }
 
@@ -98,8 +98,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         // When a default value other than null or undefined is specified, the return value must have the same type as the default value
         // so that the consistency between TS (compile-time) and JS (run-time) return value types is maintained.
         isValidReturnValue = typeof returnValue === typeof defaultValue;
-      }
-      else {
+      } else {
         result = this.evaluateSetting(context);
         returnValue = result.selectedValue.value;
 
@@ -112,14 +111,12 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       }
 
       return result;
-    }
-    catch (err) {
+    } catch (err) {
       logBuilder?.resetIndent().increaseIndent();
 
       returnValue = defaultValue;
       throw err;
-    }
-    finally {
+    } finally {
       if (logBuilder) {
         logBuilder.newLine(`Returning '${returnValue}'.`)
           .decreaseIndent();
@@ -183,7 +180,9 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
   }
 
-  private evaluatePercentageOptions(percentageOptions: ReadonlyArray<PercentageOption>, matchedTargetingRule: TargetingRule | undefined, context: EvaluateContext): IEvaluateResult | undefined {
+  private evaluatePercentageOptions(percentageOptions: ReadonlyArray<PercentageOption>,
+    matchedTargetingRule: TargetingRule | undefined, context: EvaluateContext
+  ): IEvaluateResult | undefined {
     const logBuilder = context.logBuilder;
 
     if (!context.user) {
@@ -252,8 +251,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         if (!i) {
           logBuilder.append("IF ")
             .increaseIndent();
-        }
-        else {
+        } else {
           logBuilder.increaseIndent()
             .newLine("AND ");
         }
@@ -466,7 +464,9 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return negate;
   }
 
-  private evaluateSensitiveTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>, configJsonSalt: string, contextSalt: string, startsWith: boolean, negate: boolean): boolean {
+  private evaluateSensitiveTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>,
+    configJsonSalt: string, contextSalt: string, startsWith: boolean, negate: boolean
+  ): boolean {
     const textUtf8 = utf8Encode(text);
 
     for (let i = 0; i < comparisonValues.length; i++) {
@@ -550,8 +550,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   }
 
   private evaluateNumberRelation(number: number,
-    comparator: UserComparator.NumberEquals | UserComparator.NumberNotEquals | UserComparator.NumberLess | UserComparator.NumberLessOrEquals | UserComparator.NumberGreater | UserComparator.NumberGreaterOrEquals,
-    comparisonValue: number): boolean {
+    comparator: UserComparator.NumberEquals | UserComparator.NumberNotEquals
+      | UserComparator.NumberLess | UserComparator.NumberLessOrEquals
+      | UserComparator.NumberGreater | UserComparator.NumberGreaterOrEquals,
+    comparisonValue: number
+  ): boolean {
     switch (comparator) {
       case UserComparator.NumberEquals: return number === comparisonValue;
       case UserComparator.NumberNotEquals: return number !== comparisonValue;
@@ -578,7 +581,9 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return negate;
   }
 
-  private evaluateSensitiveArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ReadonlyArray<string>, configJsonSalt: string, contextSalt: string, negate: boolean): boolean {
+  private evaluateSensitiveArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ReadonlyArray<string>,
+    configJsonSalt: string, contextSalt: string, negate: boolean
+  ): boolean {
     for (let i = 0; i < array.length; i++) {
       const hash = hashComparisonValue(array[i], configJsonSalt, contextSalt);
       // NOTE: Array.prototype.indexOf uses strict equality.
@@ -620,8 +625,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     if (typeof prerequisiteFlagValue !== typeof condition.comparisonValue) {
       if (isAllowedValue(prerequisiteFlagValue)) {
         throw new Error(`Type mismatch between comparison value '${condition.comparisonValue}' and prerequisite flag '${prerequisiteFlagKey}'.`);
-      }
-      else {
+      } else {
         handleInvalidReturnValue(prerequisiteFlagValue);
       }
     }
@@ -718,13 +722,15 @@ function hashComparisonValueSlice(sliceUtf8: string, configJsonSalt: string, con
 }
 
 function userAttributeValueToString(userAttributeValue: UserAttributeValue) {
-  return typeof userAttributeValue === "string" ? userAttributeValue :
-    userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + "" :
-    isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue) :
-    userAttributeValue + "";
+  return typeof userAttributeValue === "string" ? userAttributeValue
+    : userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + ""
+    : isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue)
+    : userAttributeValue + "";
 }
 
-function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): string {
+function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): string {
   if (typeof attributeValue === "string") {
     return attributeValue;
   }
@@ -734,7 +740,9 @@ function getUserAttributeValueAsText(attributeName: string, attributeValue: User
   return attributeValue;
 }
 
-function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): ISemVer | string {
+function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): ISemVer | string {
   let version: ISemVer | null;
   if (typeof attributeValue === "string" && (version = parseSemVer(attributeValue.trim()))) {
     return version;
@@ -742,7 +750,9 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid semantic version`);
 }
 
-function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): number | string {
+function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): number | string {
   if (typeof attributeValue === "number") {
     return attributeValue;
   }
@@ -754,7 +764,9 @@ function getUserAttributeValueAsNumber(attributeName: string, attributeValue: Us
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid decimal number`);
 }
 
-function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): number | string {
+function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): number | string {
   if (attributeValue instanceof Date) {
     return attributeValue.getTime() / 1000;
   }
@@ -769,11 +781,14 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid Unix timestamp (number of seconds elapsed since Unix epoch)`);
 }
 
-function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue, condition: UserConditionUnion, key: string, logger: LoggerWrapper): ReadonlyArray<string> | string {
+function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue,
+  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+): ReadonlyArray<string> | string {
   let stringArray: unknown = attributeValue;
   if (typeof stringArray === "string") {
-    try { stringArray = JSON.parse(stringArray); }
-    catch { /* intentional no-op */ }
+    try {
+      stringArray = JSON.parse(stringArray);
+    } catch { /* intentional no-op */ }
   }
   if (isStringArray(stringArray)) {
     return stringArray;
@@ -834,7 +849,9 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
 
 /* Helper functions */
 
-function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult, fetchTime?: Date, user?: IUser): IEvaluationDetails<SettingTypeOf<T>> {
+function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult,
+  fetchTime?: Date, user?: IUser
+): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: evaluateResult.selectedValue.value as SettingTypeOf<T>,
@@ -847,7 +864,9 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
   };
 }
 
-export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T, fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any): IEvaluationDetails<SettingTypeOf<T>> {
+export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
+  fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any
+): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: defaultValue as SettingTypeOf<T>,
@@ -856,7 +875,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
     isDefaultValue: true,
     errorMessage,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    errorException
+    errorException,
   };
 }
 
@@ -896,8 +915,7 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [
     try {
       const evaluateResult = evaluator.evaluate(null, new EvaluateContext(key, setting, user, settings));
       evaluationDetails = evaluationDetailsFromEvaluateResult(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
-    }
-    catch (err) {
+    } catch (err) {
       errors ??= [];
       errors.push(err);
       evaluationDetails = evaluationDetailsFromDefaultValue(key, null, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
@@ -909,7 +927,9 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [
   return [evaluationDetailsArray, errors];
 }
 
-export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setting }> | null, logger: LoggerWrapper, defaultReturnValue: string): settings is Readonly<{ [key: string]: Setting }> {
+export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setting }> | null, logger: LoggerWrapper,
+  defaultReturnValue: string
+): settings is Readonly<{ [key: string]: Setting }> {
   if (!settings) {
     logger.configJsonIsNotPresent(defaultReturnValue);
     return false;
@@ -934,10 +954,10 @@ function isCompatibleValue(value: SettingValue, settingType: SettingType): boole
 
 export function handleInvalidReturnValue(value: unknown): never {
   throw new TypeError(
-    value === null ? "Setting value is null." :
-    value === void 0 ? "Setting value is undefined." :
+    value === null ? "Setting value is null."
+    : value === void 0 ? "Setting value is undefined."
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    `Setting value '${value}' is of an unsupported type (${typeof value}).`);
+    : `Setting value '${value}' is of an unsupported type (${typeof value}).`);
 }
 
 export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | undefined {

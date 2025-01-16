@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { ObjectEntriesPolyfill, ObjectValuesPolyfill, getWeakRefStub } from "#lib/Polyfills";
+import { getWeakRefStub, ObjectEntriesPolyfill, ObjectValuesPolyfill } from "#lib/Polyfills";
 
 describe("Polyfills", () => {
   it("Object.values polyfill should work", () => {
@@ -10,6 +10,7 @@ describe("Polyfills", () => {
     expect(ObjectValuesPolyfill<any>([1, , "b"])).to.have.members([1, "b"]);
 
     assert.deepEqual([], ObjectValuesPolyfill<any>({}));
+    // eslint-disable-next-line @stylistic/ts/quote-props
     expect(ObjectValuesPolyfill<any>({ "a": 1, 2: "b" })).to.have.members([1, "b"]);
   });
 
@@ -21,6 +22,7 @@ describe("Polyfills", () => {
     expect(ObjectEntriesPolyfill<any>([1, , "b"])).to.have.deep.members([["0", 1], ["2", "b"]]);
 
     assert.deepEqual([], ObjectEntriesPolyfill<any>({}));
+    // eslint-disable-next-line @stylistic/ts/quote-props
     expect(ObjectEntriesPolyfill<any>({ "a": 1, 2: "b" })).to.have.deep.members([["a", 1], ["2", "b"]]);
   });
 

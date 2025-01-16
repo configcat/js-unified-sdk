@@ -1,4 +1,5 @@
 import eslint from "@eslint/js";
+import stylisticJs from "@stylistic/eslint-plugin-js";
 import stylisticTs from "@stylistic/eslint-plugin-ts";
 import importPlugin from "eslint-plugin-import";
 import globals from "globals";
@@ -8,7 +9,12 @@ export default [
   /* Base configuration (@eslint/js, eslint-plugin-import) */
   eslint.configs.recommended,
   importPlugin.flatConfigs.recommended,
+  importPlugin.flatConfigs.typescript,
   {
+    plugins: {
+      "@stylistic/js": stylisticJs,
+      "@stylistic/ts": stylisticTs,
+    },
     linterOptions: {
       reportUnusedDisableDirectives: "error",
     },
@@ -17,14 +23,14 @@ export default [
       "curly": [
         "error",
         "multi-line",
-        "consistent"
+        "consistent",
       ],
       "eqeqeq": [
         "error",
         "always",
         {
-          "null": "ignore"
-        }
+          "null": "ignore",
+        },
       ],
       "grouped-accessor-pairs": "warn",
       "no-case-declarations": "off",
@@ -41,186 +47,184 @@ export default [
       "prefer-promise-reject-errors": "warn",
       "prefer-rest-params": "warn",
       "require-await": "warn",
-      "sort-imports": [
-        "warn",
-        {
-          "ignoreCase": false,
-          "ignoreDeclarationSort": true,
-          "ignoreMemberSort": false,
-          "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
-          "allowSeparatedGroups": true
-        }
-      ],
-      /* Layout & Formatting (https://eslint.org/docs/latest/rules/#layout--formatting) */
-      "array-bracket-spacing": [
-        "warn",
-        "never"
-      ],
-      "arrow-spacing": [
+      /* Layout & Formatting (https://eslint.style/packages/js, https://eslint.style/packages/ts) */
+      // NOTE: When a rule has both TS and JS version, use the TS one!
+      "@stylistic/js/array-bracket-spacing": ["warn", "never"],
+      "@stylistic/js/arrow-spacing": [
         "warn",
         {
           "before": true,
-          "after": true
-        }
+          "after": true,
+        },
       ],
-      "block-spacing": [
+      "@stylistic/ts/block-spacing": ["warn", "always"],
+      "@stylistic/ts/brace-style": [
         "warn",
-        "always"
-      ],
-      "brace-style": [
-        "warn",
-        "stroustrup",
+        "1tbs",
         {
-          "allowSingleLine": true
-        }
+          "allowSingleLine": true,
+        },
       ],
-      "comma-spacing": [
+      "@stylistic/ts/comma-dangle": [
         "warn",
         {
-          "after": true
-        }
+          "arrays": "always-multiline",
+          "objects": "always-multiline",
+          "imports": "always-multiline",
+          "exports": "always-multiline",
+          "functions": "never",
+          "importAttributes": "always-multiline",
+          "dynamicImports": "never",
+          "enums": "always-multiline",
+          "generics": "never",
+          "tuples": "always-multiline",
+        },
       ],
-      "computed-property-spacing": [
+      "@stylistic/ts/comma-spacing": [
         "warn",
-        "never"
+        {
+          "after": true,
+        },
       ],
-      "dot-location": [
-        "warn",
-        "property"
-      ],
-      "eol-last": [
-        "warn",
-        "always"
-      ],
-      "func-call-spacing": [
-        "warn",
-        "never"
-      ],
-      "generator-star-spacing": [
+      "@stylistic/js/computed-property-spacing": ["warn", "never"],
+      "@stylistic/js/dot-location": ["warn", "property"],
+      "@stylistic/js/eol-last": ["warn", "always"],
+      "@stylistic/ts/func-call-spacing": ["warn", "never"],
+      "@stylistic/js/generator-star-spacing": [
         "warn",
         {
           "before": false,
           "after": true,
           "method": {
             "before": true,
-            "after": false
-          }
-        }
+            "after": false,
+          },
+        },
       ],
-      "indent": [
+      "@stylistic/ts/indent": [
         "warn",
         2,
         {
           "SwitchCase": 1,
-          "flatTernaryExpressions": true
-        }
+          "flatTernaryExpressions": true,
+          "ignoredNodes": [
+            // https://github.com/typescript-eslint/typescript-eslint/issues/1824#issuecomment-1378327382
+            "TSUnionType",
+          ],
+        },
       ],
-      "key-spacing": [
+      "@stylistic/ts/key-spacing": [
         "warn",
         {
           "beforeColon": false,
           "afterColon": true,
-          "mode": "strict"
-        }
+          "mode": "strict",
+        },
       ],
-      "keyword-spacing": [
+      "@stylistic/ts/keyword-spacing": [
         "warn",
         {
           "before": true,
-          "after": true
-        }
+          "after": true,
+        },
       ],
-      "max-len": [
-        "off",
+      "@stylistic/js/max-len": [
+        "warn",
         {
-          "code": 160,
+          "code": 180,
           "ignoreStrings": true,
           "ignoreTemplateLiterals": true,
-          "ignoreRegExpLiterals": true
-        }
+          "ignoreRegExpLiterals": true,
+        },
       ],
-      "no-multi-spaces": "warn",
-      "no-multiple-empty-lines": [
+      "@stylistic/ts/member-delimiter-style": "warn",
+      "@stylistic/js/new-parens": "warn",
+      "@stylistic/ts/no-extra-semi": "warn",
+      "@stylistic/js/no-multi-spaces": "warn",
+      "@stylistic/js/no-multiple-empty-lines": [
         "warn",
         {
           "max": 1,
-          "maxBOF": 0
-        }
+          "maxBOF": 0,
+        },
       ],
-      "no-tabs": "warn",
-      "no-trailing-spaces": "warn",
-      "no-whitespace-before-property": "warn",
-      "object-curly-spacing": [
+      "@stylistic/js/no-tabs": "warn",
+      "@stylistic/js/no-trailing-spaces": "warn",
+      "@stylistic/js/no-whitespace-before-property": "warn",
+      "@stylistic/ts/object-curly-spacing": ["warn", "always"],
+      "@stylistic/js/operator-linebreak": [
         "warn",
-        "always"
+        "after",
+        {
+          "overrides": {
+            "**": "before",
+            "*": "before",
+            "/": "before",
+            "%": "before",
+            "+": "before",
+            "-": "before",
+            "<<": "before",
+            ">>": "before",
+            ">>>": "before",
+            "&&": "before",
+            "||": "before",
+            "??": "before",
+            "&": "before",
+            "|": "before",
+            "^": "before",
+            "?": "before",
+            ":": "before",
+          },
+        },
       ],
-      "quotes": [
+      "@stylistic/ts/quote-props": ["warn", "consistent"],
+      "@stylistic/ts/quotes": [
         "warn",
         "double",
         {
-          "avoidEscape": true
-        }
+          "avoidEscape": true,
+        },
       ],
-      "rest-spread-spacing": [
-        "warn",
-        "never"
-      ],
-      "semi": [
-        "error",
-        "always"
-      ],
-      "semi-spacing": [
+      "@stylistic/js/rest-spread-spacing": ["warn", "never"],
+      "@stylistic/ts/semi": ["warn", "always"],
+      "@stylistic/js/semi-spacing": [
         "warn",
         {
           "before": false,
-          "after": true
-        }
+          "after": true,
+        },
       ],
-      "semi-style": "warn",
-      "space-before-blocks": [
-        "warn",
-        "always"
-      ],
-      "space-before-function-paren": [
+      "@stylistic/js/semi-style": "warn",
+      "@stylistic/ts/space-before-blocks": ["warn", "always"],
+      "@stylistic/ts/space-before-function-paren": [
         "warn",
         {
           "anonymous": "never",
           "named": "never",
-          "asyncArrow": "always"
-        }
+          "asyncArrow": "always",
+        },
       ],
-      "space-in-parens": [
-        "warn",
-        "never"
-      ],
-      "space-infix-ops": "warn",
-      "space-unary-ops": [
+      "@stylistic/js/space-in-parens": ["warn", "never"],
+      "@stylistic/ts/space-infix-ops": "warn",
+      "@stylistic/js/space-unary-ops": [
         "warn",
         {
           "words": true,
-          "nonwords": false
-        }
+          "nonwords": false,
+        },
       ],
-      "switch-colon-spacing": [
+      "@stylistic/js/switch-colon-spacing": [
         "warn",
         {
           "before": false,
-          "after": true
-        }
+          "after": true,
+        },
       ],
-      "template-curly-spacing": [
-        "warn",
-        "never"
-      ],
-      "template-tag-spacing": [
-        "warn",
-        "never"
-      ],
-      "yield-star-spacing": [
-        "warn",
-        "after"
-      ],
-      // Import declarations (https://github.com/import-js/eslint-plugin-import)
+      "@stylistic/js/template-curly-spacing": ["warn", "never"],
+      "@stylistic/js/template-tag-spacing": ["warn", "never"],
+      "@stylistic/ts/type-annotation-spacing": "warn",
+      "@stylistic/js/yield-star-spacing": ["warn", "after"],
+      /* Import declarations (https://github.com/import-js/eslint-plugin-import) */
       "import/order": [
         "warn",
         {
@@ -230,27 +234,36 @@ export default [
             "parent",
             "sibling",
             "index",
-            "unknown"
+            "unknown",
           ],
           "newlines-between": "never",
           "alphabetize": {
             "order": "asc",
-            "caseInsensitive": true
-          }
-        }
+            "caseInsensitive": true,
+          },
+        },
       ],
       "import/newline-after-import": "warn",
-      // This rule seems broken, so we disable it for now.
       "import/no-unresolved": "off",
-    }
+      "sort-imports": [
+        "warn",
+        {
+          "ignoreCase": true,
+          "ignoreDeclarationSort": true,
+          "ignoreMemberSort": false,
+          "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
+          "allowSeparatedGroups": true,
+        },
+      ],
+    },
   },
   /* Additional configuration for build scripts */
   {
     files: ["**/*.{js,cjs,mjs}"],
     languageOptions: {
       ecmaVersion: 2022,
-      globals: globals.node
-    }
+      globals: globals.node,
+    },
   },
   /* Configuration for src & test files (typescript-eslint) */
   ...tseslint.config(
@@ -260,21 +273,18 @@ export default [
         ...tseslint.configs.strictTypeChecked,
         ...tseslint.configs.stylisticTypeChecked,
       ],
-      plugins: {
-        "@stylistic/ts": stylisticTs
-      },
       languageOptions: {
         parserOptions: {
           ecmaVersion: "latest",
           sourceType: "module",
-          project: "tsconfig.json"
+          project: "tsconfig.json",
         },
       },
       rules: {
         // Supported rules (https://typescript-eslint.io/rules/#supported-rules)
         "@typescript-eslint/array-type": ["error", {
           "default": "array",
-          "readonly": "generic" // to support older TS versions
+          "readonly": "generic", // to support older TS versions
         }],
         "@typescript-eslint/consistent-indexed-object-style": "off",
         "@typescript-eslint/consistent-type-assertions": "off",
@@ -282,19 +292,6 @@ export default [
         "@typescript-eslint/dot-notation": "off",
         "@typescript-eslint/no-confusing-void-expression": "off",
         "@typescript-eslint/no-dynamic-delete": "off",
-        // https://github.com/typescript-eslint/typescript-eslint/issues/1824#issuecomment-1378327382
-        "indent": "off",
-        "@stylistic/ts/indent": [
-          "warn",
-          2,
-          {
-            "SwitchCase": 1,
-            "flatTernaryExpressions": true,
-            "ignoredNodes": [
-              "TSUnionType"
-            ]
-          }
-        ],
         "@typescript-eslint/no-empty-function": "off",
         "@typescript-eslint/no-empty-interface": "off",
         "@typescript-eslint/no-empty-object-type": "off",
@@ -320,34 +317,37 @@ export default [
         "@typescript-eslint/no-unused-vars": [
           "warn",
           {
-            "args": "none"
-          }
+            "args": "none",
+          },
         ],
         "no-useless-constructor": "off",
         "@typescript-eslint/no-useless-constructor": "warn",
         "@typescript-eslint/prefer-for-of": "off", // for compatibility reasons
         "@typescript-eslint/prefer-includes": "off",
+        "prefer-promise-reject-errors": "off",
+        "@typescript-eslint/prefer-promise-reject-errors": "warn",
         "@typescript-eslint/prefer-readonly": "warn",
         "@typescript-eslint/prefer-return-this-type": "warn",
         "@typescript-eslint/prefer-string-starts-ends-with": "off",
+        "require-await": "off",
+        "@typescript-eslint/require-await": "warn",
         "@typescript-eslint/restrict-plus-operands": "off",
         "@typescript-eslint/restrict-template-expressions": "off",
         "@typescript-eslint/switch-exhaustiveness-check": "warn",
-        "@stylistic/ts/type-annotation-spacing": "warn",
+        "@typescript-eslint/unbound-method": ["error", { ignoreStatic: true }],
 
         "@typescript-eslint/explicit-member-accessibility": [
           "warn",
           {
-            "accessibility": "no-public"
-          }
+            "accessibility": "no-public",
+          },
         ],
         "@typescript-eslint/explicit-module-boundary-types": [
           "warn",
           {
-            "allowArgumentsExplicitlyTypedAsAny": true
-          }
+            "allowArgumentsExplicitlyTypedAsAny": true,
+          },
         ],
-        "@stylistic/ts/member-delimiter-style": "warn",
         // Based on: https://typescript-eslint.io/rules/naming-convention/#enforce-the-codebase-follows-eslints-camelcase-conventions
         "@typescript-eslint/naming-convention": [
           "warn",
@@ -355,64 +355,64 @@ export default [
             "selector": "variable",
             "format": [
               "camelCase",
-              "UPPER_CASE"
-            ]
+              "UPPER_CASE",
+            ],
           },
           {
             "selector": "parameter",
             "format": [
-              "camelCase"
+              "camelCase",
             ],
-            "leadingUnderscore": "allow"
+            "leadingUnderscore": "allow",
           },
           {
             "selector": "variableLike",
             "format": [
-              "camelCase"
-            ]
+              "camelCase",
+            ],
           },
           {
             "selector": "enumMember",
             "format": [
-              "PascalCase"
-            ]
+              "PascalCase",
+            ],
           },
           {
             "selector": [
               "classProperty",
               "objectLiteralProperty",
               "typeProperty",
-              "accessor"
+              "accessor",
             ],
             "modifiers": [
-              "requiresQuotes"
+              "requiresQuotes",
             ],
-            "format": null
+            "format": null,
           },
           {
             "selector": [
               "classProperty",
               "objectLiteralProperty",
               "typeProperty",
-              "accessor"
+              "accessor",
             ],
             "format": [
               "camelCase",
-              "UPPER_CASE"
-            ]
+              "UPPER_CASE",
+            ],
           },
           {
             "selector": "memberLike",
             "format": [
-              "camelCase"
-            ]
+              "camelCase",
+            ],
           },
           {
             "selector": "typeLike",
             "format": [
-              "PascalCase"
-            ]
-          }
+              "PascalCase",
+            ],
+          },
         ],
       },
     },
@@ -424,18 +424,18 @@ export default [
         "@typescript-eslint/consistent-type-exports": [
           "error",
           {
-            "fixMixedExportsWithInlineTypeSpecifier": false
-          }
+            "fixMixedExportsWithInlineTypeSpecifier": false,
+          },
         ],
         "@typescript-eslint/consistent-type-imports": [
           "error",
           {
             "prefer": "type-imports",
-            "fixStyle": "separate-type-imports"
-          }
+            "fixStyle": "separate-type-imports",
+          },
         ],
-        "@typescript-eslint/no-import-type-side-effects": "warn"
-      }
+        "@typescript-eslint/no-import-type-side-effects": "warn",
+      },
     },
     /* Additional configuration for test files */
     {
@@ -452,8 +452,8 @@ export default [
         "@typescript-eslint/no-unsafe-return": "off",
         "@typescript-eslint/only-throw-error": "off",
         "@typescript-eslint/unbound-method": "off",
-      }
-    },
+      },
+    }
   ),
   /* Ignored files (https://github.com/eslint/eslint/issues/17400) */
   {
@@ -467,7 +467,7 @@ export default [
       "samples/",
       "src/Hash.ts",
       "src/Semver.ts",
-      "test/cloudflare-worker/dist/"
-    ]
-  }
+      "test/cloudflare-worker/dist/",
+    ],
+  },
 ];

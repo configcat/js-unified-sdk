@@ -116,13 +116,11 @@ export function utf8Encode(text: string): string {
     if (cp <= 0x7FF) {
       utf8text += fromCharCode(0xC0 | (cp >> 6));
       utf8text += fromCharCode(0x80 | (cp & 0x3F));
-    }
-    else if (cp <= 0xFFFF) {
+    } else if (cp <= 0xFFFF) {
       utf8text += fromCharCode(0xE0 | (cp >> 12));
       utf8text += fromCharCode(0x80 | ((cp >> 6) & 0x3F));
       utf8text += fromCharCode(0x80 | (cp & 0x3F));
-    }
-    else {
+    } else {
       utf8text += fromCharCode(0xF0 | (cp >> 18));
       utf8text += fromCharCode(0x80 | ((cp >> 12) & 0x3F));
       utf8text += fromCharCode(0x80 | ((cp >> 6) & 0x3F));

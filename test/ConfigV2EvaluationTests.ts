@@ -1,10 +1,10 @@
 import { assert } from "chai";
 import { CdnConfigLocation, LocalFileConfigLocation } from "./helpers/ConfigLocation";
-import { FakeLogger, createClientWithManualPoll } from "./helpers/fakes";
+import { createClientWithManualPoll, FakeLogger } from "./helpers/fakes";
 import { IManualPollOptions, OverrideBehaviour, SettingValue, User, UserAttributeValue } from "#lib";
-import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { MapOverrideDataSource } from "#lib/FlagOverrides";
-import { RolloutEvaluator, evaluate, isAllowedValue } from "#lib/RolloutEvaluator";
+import { evaluate, isAllowedValue, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { errorToString } from "#lib/Utils";
 
 describe("Setting evaluation (config v2)", () => {
@@ -25,8 +25,7 @@ describe("Setting evaluation (config v2)", () => {
       try {
         evaluate(evaluator, config.settings, key, null, void 0, null, logger);
         assert.fail("evaluate should throw.");
-      }
-      catch (err) {
+      } catch (err) {
         const errMsg = errorToString(err);
         assert.include(errMsg, "Circular dependency detected");
         assert.include(errMsg, dependencyCycle);
@@ -66,15 +65,16 @@ describe("Setting evaluation (config v2)", () => {
   ]) {
     it(`Prerequisite flag comparison value type mismatch - key: ${key} | prerequisiteFlagKey: ${prerequisiteFlagKey} | prerequisiteFlagValue: ${prerequisiteFlagValue}`, async () => {
       const overrideMap: { [key: string]: NonNullable<SettingValue> } = {
-        [prerequisiteFlagKey]: prerequisiteFlagValue as NonNullable<SettingValue>
+        [prerequisiteFlagKey]: prerequisiteFlagValue as NonNullable<SettingValue>,
       };
 
       const fakeLogger = new FakeLogger();
       const options: IManualPollOptions = {
         flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: OverrideBehaviour.LocalOverRemote },
-        logger: fakeLogger
+        logger: fakeLogger,
       };
 
+      // eslint-disable-next-line @stylistic/js/max-len
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
       const client = createClientWithManualPoll("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/JoGwdqJZQ0K2xDy7LnbyOg",
         void 0, options);
@@ -94,19 +94,15 @@ describe("Setting evaluation (config v2)", () => {
           const errMsg = errorToString(err);
           if (prerequisiteFlagValue === null) {
             assert.include(errMsg, "Setting value is null");
-          }
-          else if (prerequisiteFlagValue === void 0) {
+          } else if (prerequisiteFlagValue === void 0) {
             assert.include(errMsg, "Setting value is undefined");
-          }
-          else if (!isAllowedValue(prerequisiteFlagValue)) {
+          } else if (!isAllowedValue(prerequisiteFlagValue)) {
             assert.match(errMsg, /Setting value '[^']+' is of an unsupported type/);
-          }
-          else {
+          } else {
             assert.match(errMsg, /Type mismatch between comparison value '[^']+' and prerequisite flag '[^']+'/);
           }
         }
-      }
-      finally {
+      } finally {
         client.dispose();
       }
     });
@@ -133,13 +129,14 @@ describe("Setting evaluation (config v2)", () => {
     it(`Prerequisite flag override - key: ${key} | userId: ${userId} | email: ${email} | overrideBehavior: ${overrideBehaviour}`, async () => {
       const overrideMap: { [key: string]: NonNullable<SettingValue> } = {
         ["mainStringFlag"]: "private", // to check the case where a prerequisite flag is overridden (dependent flag: 'stringDependsOnString')
-        ["stringDependsOnInt"]: "Falcon" // to check the case where a dependent flag is overridden (prerequisite flag: 'mainIntFlag')
+        ["stringDependsOnInt"]: "Falcon", // to check the case where a dependent flag is overridden (prerequisite flag: 'mainIntFlag')
       };
 
       const options: IManualPollOptions = {
-        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour }
+        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour },
       };
 
+      // eslint-disable-next-line @stylistic/js/max-len
       // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9b74-45cb-86d0-4d61c25af1aa/08dbc325-9ebd-4587-8171-88f76a3004cb
       const client = createClientWithManualPoll("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/JoGwdqJZQ0K2xDy7LnbyOg",
         void 0, options);
@@ -149,13 +146,13 @@ describe("Setting evaluation (config v2)", () => {
         const actualValue = await client.getValueAsync(key, null, new User(userId, email));
 
         assert.strictEqual(expectedValue, actualValue);
-      }
-      finally {
+      } finally {
         client.dispose();
       }
     });
   }
 
+  // eslint-disable-next-line @stylistic/js/max-len
   // https://app.configcat.com/v2/e7a75611-4256-49a5-9320-ce158755e3ba/08dbc325-7f69-4fd4-8af4-cf9f24ec8ac9/08dbc325-9e4e-4f59-86b2-5da50924b6ca/08dbc325-9ebd-4587-8171-88f76a3004cb
   for (const [sdkKey, key, userId, email, percentageBase, expectedReturnValue, expectedIsExpectedMatchedTargetingRuleSet, expectedIsExpectedMatchedPercentageOptionSet] of
     <[string, string, string | null, string | null, string | null, string, boolean, boolean][]>[
@@ -387,7 +384,7 @@ describe("Setting evaluation (config v2)", () => {
       const user = new User(" 12345 ", void 0, "[\" USA \"]", {
         ["Version"]: " 1.0.0 ",
         ["Number"]: " 3 ",
-        ["Date"]: " 1705253400 "
+        ["Date"]: " 1705253400 ",
       });
 
       const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
@@ -439,7 +436,7 @@ describe("Setting evaluation (config v2)", () => {
       const user = new User("12345", void 0, "[\"USA\"]", {
         ["Version"]: "1.0.0",
         ["Number"]: "3",
-        ["Date"]: "1705253400"
+        ["Date"]: "1705253400",
       });
 
       const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);

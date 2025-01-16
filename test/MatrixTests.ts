@@ -4,7 +4,7 @@ import { platform } from "./helpers/platform";
 import { LogLevel, SettingType, SettingValue, User } from "#lib";
 import { LoggerWrapper } from "#lib/ConfigCatLogger";
 import { createConsoleLogger } from "#lib/index.pubternals";
-import { RolloutEvaluator, evaluate } from "#lib/RolloutEvaluator";
+import { evaluate, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { getUserAttributes } from "#lib/User";
 
 const testDataBasePath = platform().pathJoin("test", "data");
@@ -13,6 +13,8 @@ type MatrixTestCase = [key: string, user: User | undefined, userAttributesJson: 
 
 const logger = new LoggerWrapper(createConsoleLogger(LogLevel.Error));
 const evaluator = new RolloutEvaluator(logger);
+
+/* eslint-disable @stylistic/js/max-len */
 
 describe("MatrixTests (config v1)", () => {
   // https://app.configcat.com/08d5a03c-feb7-af1e-a1fa-40b3329f8bed/08d62463-86ec-8fde-f5b5-1c5c426fc830/244cf8b0-f604-11e8-b543-f23c917f9d8d
@@ -75,6 +77,8 @@ describe("MatrixTests (config v2)", () => {
   describeMatrixTest("Unicode texts", new CdnConfigLocation("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/Da6w8dBbmUeMUBhh0iEeQQ"), "testmatrix_unicode.csv", evaluator);
 });
 
+/* eslint-enable @stylistic/js/max-len */
+
 function describeMatrixTest(title: string, configLocation: ConfigLocation, matrixFilePath: string, evaluator: RolloutEvaluator,
   runner: (configLocation: ConfigLocation, key: string, user: User | undefined, expected: string, evaluator: RolloutEvaluator) => void = runMatrixTest) {
 
@@ -84,8 +88,7 @@ function describeMatrixTest(title: string, configLocation: ConfigLocation, matri
       it(`${title} - ${configLocation} | ${key} | ${userAttributesJson}`, () =>
         runner(configLocation, key, user, expected, evaluator));
     }
-  }
-  else {
+  } else {
     it(`${title} - ${configLocation}`, async () => {
       for (const [key, user, , expected] of getMatrixTestCases(await matrixFileData)) {
         runner(configLocation, key, user, expected, evaluator);

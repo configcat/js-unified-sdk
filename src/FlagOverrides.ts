@@ -5,7 +5,7 @@ import { isArray, parseFloatStrict } from "./Utils";
 export type FlagOverrides = {
   dataSource: IOverrideDataSource;
   behaviour: OverrideBehaviour;
-}
+};
 
 /**
  * Specifies the behaviours for flag overrides.
@@ -171,8 +171,7 @@ function getSettingsFromQueryString(queryStringOrParams: string | { [key: string
 
   if (typeof queryStringOrParams === "string") {
     extractSettingFromQueryString(queryStringOrParams, paramPrefix, settings);
-  }
-  else if (queryStringOrParams != null) {
+  } else if (queryStringOrParams != null) {
     extractSettingsFromQueryParams(queryStringOrParams, paramPrefix, settings);
   }
 
@@ -230,8 +229,7 @@ function extractSettingFromQueryParam(key: string, value: string, paramPrefix: s
 
   if (interpretValueAsString) {
     key = key.substring(0, key.length - FORCE_STRING_VALUE_SUFFIX.length);
-  }
-  else {
+  } else {
     value = parseSettingValue(value) as unknown as string;
   }
 

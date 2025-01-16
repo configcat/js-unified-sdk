@@ -51,8 +51,7 @@ describe("Utils", () => {
       assert.isNumber(actualOutput);
       if (isNaN(expectedOutput)) {
         assert.isNaN(actualOutput);
-      }
-      else {
+      } else {
         assert.strictEqual(actualOutput, expectedOutput);
       }
     });

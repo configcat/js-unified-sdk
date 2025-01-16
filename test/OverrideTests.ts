@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig, createAutoPollOptions, createKernel, createManualPollOptions } from "./helpers/fakes";
+import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig } from "./helpers/fakes";
 import { SettingKeyValue } from "#lib";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
@@ -19,14 +19,14 @@ describe("Local Overrides", () => {
       disabledFeature: false,
       intSetting: 5,
       doubleSetting: 3.14,
-      stringSetting: "test"
+      stringSetting: "test",
     };
 
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
         dataSource: new MapOverrideDataSource(overrideMap),
-        behaviour: OverrideBehaviour.LocalOnly
-      }
+        behaviour: OverrideBehaviour.LocalOnly,
+      },
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -58,14 +58,14 @@ describe("Local Overrides", () => {
       disabledFeature: false,
       intSetting: 5,
       doubleSetting: 3.14,
-      stringSetting: "test"
+      stringSetting: "test",
     };
 
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
         dataSource: new MapOverrideDataSource(overrideMap, true),
-        behaviour: OverrideBehaviour.LocalOnly
-      }
+        behaviour: OverrideBehaviour.LocalOnly,
+      },
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -97,14 +97,14 @@ describe("Local Overrides", () => {
       disabledFeature: false,
       intSetting: 5,
       doubleSetting: 3.14,
-      stringSetting: "test"
+      stringSetting: "test",
     };
 
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
         dataSource: new MapOverrideDataSource(overrideMap, true),
-        behaviour: OverrideBehaviour.LocalOnly
-      }
+        behaviour: OverrideBehaviour.LocalOnly,
+      },
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -136,10 +136,10 @@ describe("Local Overrides", () => {
       flagOverrides: {
         dataSource: new MapOverrideDataSource({
           fakeKey: true,
-          nonexisting: true
+          nonexisting: true,
         }),
-        behaviour: OverrideBehaviour.LocalOverRemote
-      }
+        behaviour: OverrideBehaviour.LocalOverRemote,
+      },
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -157,10 +157,10 @@ describe("Local Overrides", () => {
       flagOverrides: {
         dataSource: new MapOverrideDataSource({
           fakeKey: true,
-          nonexisting: true
+          nonexisting: true,
         }),
-        behaviour: OverrideBehaviour.RemoteOverLocal
-      }
+        behaviour: OverrideBehaviour.RemoteOverLocal,
+      },
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -178,11 +178,11 @@ describe("Local Overrides", () => {
       flagOverrides: {
         dataSource: new MapOverrideDataSource({
           fakeKey: true,
-          nonexisting: true
+          nonexisting: true,
         }),
-        behaviour: OverrideBehaviour.RemoteOverLocal
+        behaviour: OverrideBehaviour.RemoteOverLocal,
       },
-      maxInitWaitTimeSeconds: 1
+      maxInitWaitTimeSeconds: 1,
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -205,8 +205,8 @@ describe("Local Overrides", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
         dataSource: new MapOverrideDataSource(dataSource),
-        behaviour: OverrideBehaviour.RemoteOverLocal
-      }
+        behaviour: OverrideBehaviour.RemoteOverLocal,
+      },
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -288,7 +288,7 @@ describe("Local Overrides", () => {
     assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
 
     currentQueryString = {
-      "cc-stringDefaultCat": "CHANGED_OVERRIDE_CAT"
+      "cc-stringDefaultCat": "CHANGED_OVERRIDE_CAT",
     };
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "CHANGED_OVERRIDE_CAT");
@@ -364,8 +364,8 @@ describe("Local Overrides", () => {
           "fakeKey": true,
           "nonexisting": true,
         }),
-        behaviour: OverrideBehaviour.LocalOnly
-      }
+        behaviour: OverrideBehaviour.LocalOnly,
+      },
     }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
@@ -413,8 +413,8 @@ describe("Local Overrides", () => {
       const options: ManualPollOptions = createManualPollOptions("localhost", {
         flagOverrides: {
           dataSource: new MapOverrideDataSource(map),
-          behaviour: OverrideBehaviour.LocalOnly
-        }
+          behaviour: OverrideBehaviour.LocalOnly,
+        },
       }, configCatKernel);
 
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -426,7 +426,7 @@ describe("Local Overrides", () => {
 
       const expectedEvaluatedValues: SettingKeyValue[] = [{
         settingKey: key,
-        settingValue: isAllowedValue(overrideValue) ? overrideValue : null
+        settingValue: isAllowedValue(overrideValue) ? overrideValue : null,
       }];
       assert.deepEqual(expectedEvaluatedValues, actualEvaluatedValues);
 

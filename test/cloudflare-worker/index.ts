@@ -1,7 +1,7 @@
 import "mocha/mocha.js";
 import * as cloudflare from "@cloudflare/workers-types/2023-03-01";
 import { CdnConfigLocation } from "../helpers/ConfigLocation";
-import { AugmentedOptions, PlatformAbstractions, initPlatform } from "../helpers/platform";
+import { AugmentedOptions, initPlatform, PlatformAbstractions } from "../helpers/platform";
 import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions, IOptions } from "#lib/cloudflare-worker";
 import { getClient } from "#lib/cloudflare-worker";
 import { CloudflareConfigCache } from "#lib/cloudflare-worker/CloudflareConfigCache";
@@ -46,8 +46,7 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
     const response = await workerEnv.data.fetch("http://dummy" + path, { method: "GET" });
     if (response.status === 200) {
       return await response.text();
-    }
-    else {
+    } else {
       throw Error(`unexpected response: ${response.status} ${response.statusText}`);
     }
   }
@@ -131,5 +130,5 @@ export default {
         resolve();
       }).globals(["onerror"]);
     });
-  }
+  },
 } as cloudflare.ExportedHandler<WorkerEnv>;

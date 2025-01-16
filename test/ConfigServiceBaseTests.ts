@@ -3,7 +3,7 @@ import { assert } from "chai";
 import { EqualMatchingInjectorConfig, It, Mock, RejectedPromiseFactory, ResolvedPromiseFactory, Times } from "moq.ts";
 import { MimicsRejectedAsyncPresetFactory, MimicsResolvedAsyncPresetFactory, Presets, ReturnsAsyncPresetFactory, RootMockProvider, ThrowsAsyncPresetFactory } from "moq.ts/internal";
 /* eslint-enable import/no-duplicates */
-import { FakeCache, createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions } from "./helpers/fakes";
+import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeCache } from "./helpers/fakes";
 import { AutoPollConfigService, POLL_EXPIRATION_TOLERANCE_MS } from "#lib/AutoPollConfigService";
 import { IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { OptionsBase } from "#lib/ConfigCatClientOptions";
@@ -20,14 +20,14 @@ describe("ConfigServiceBaseTests", () => {
       {
         provide: ReturnsAsyncPresetFactory,
         useClass: MimicsResolvedAsyncPresetFactory,
-        deps: [RootMockProvider, Presets, ResolvedPromiseFactory]
+        deps: [RootMockProvider, Presets, ResolvedPromiseFactory],
       },
       {
         provide: ThrowsAsyncPresetFactory,
         useClass: MimicsRejectedAsyncPresetFactory,
-        deps: [RootMockProvider, Presets, RejectedPromiseFactory]
+        deps: [RootMockProvider, Presets, RejectedPromiseFactory],
       },
-    ])
+    ]),
   };
 
   it("AutoPollConfigService - backgroundworker only - config doesn't exist in the cache - invokes 'cache.set' operation 3 times", async () => {
@@ -185,7 +185,7 @@ describe("ConfigServiceBaseTests", () => {
       "APIKEY",
       {
         pollIntervalSeconds: pollInterval,
-        maxInitWaitTimeSeconds: 100
+        maxInitWaitTimeSeconds: 100,
       },
       createKernel({ defaultCacheFactory: () => cache })
     );
@@ -233,7 +233,7 @@ describe("ConfigServiceBaseTests", () => {
       "APIKEY",
       {
         pollIntervalSeconds: pollInterval,
-        maxInitWaitTimeSeconds: 100
+        maxInitWaitTimeSeconds: 100,
       },
       createKernel({ defaultCacheFactory: () => cache })
     );
@@ -280,7 +280,7 @@ describe("ConfigServiceBaseTests", () => {
       "APIKEY",
       {
         pollIntervalSeconds: pollIntervalSeconds,
-        maxInitWaitTimeSeconds: 1
+        maxInitWaitTimeSeconds: 1,
       },
       createKernel({ defaultCacheFactory: () => cache })
     );
@@ -491,7 +491,7 @@ describe("ConfigServiceBaseTests", () => {
       "APIKEY",
       {
         pollIntervalSeconds,
-        maxInitWaitTimeSeconds: 500
+        maxInitWaitTimeSeconds: 500,
       },
       createKernel({ defaultCacheFactory: () => cache })
     );
@@ -535,7 +535,7 @@ describe("ConfigServiceBaseTests", () => {
       "APIKEY",
       {
         pollIntervalSeconds,
-        maxInitWaitTimeSeconds: 1000
+        maxInitWaitTimeSeconds: 1000,
       },
       createKernel({ defaultCacheFactory: () => cache })
     );
@@ -580,7 +580,7 @@ describe("ConfigServiceBaseTests", () => {
     const options = createLazyLoadOptions(
       "APIKEY",
       {
-        cacheTimeToLiveSeconds
+        cacheTimeToLiveSeconds,
       },
       createKernel({ defaultCacheFactory: () => cache })
     );
@@ -621,7 +621,7 @@ describe("ConfigServiceBaseTests", () => {
     const options = createLazyLoadOptions(
       "APIKEY",
       {
-        cacheTimeToLiveSeconds
+        cacheTimeToLiveSeconds,
       },
       createKernel({ defaultCacheFactory: () => cache })
     );

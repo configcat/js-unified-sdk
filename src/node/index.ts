@@ -25,7 +25,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       configFetcher: new NodeHttpConfigFetcher(options),
       sdkType: "ConfigCat-UnifiedJS-Node",
       sdkVersion: CONFIGCAT_SDK_VERSION,
-      eventEmitterFactory: () => new EventEmitter()
+      eventEmitterFactory: () => new EventEmitter(),
     });
 }
 

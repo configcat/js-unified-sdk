@@ -1,8 +1,8 @@
 import { assert, expect } from "chai";
-import { FakeExternalCache, createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions } from "./helpers/fakes";
+import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeExternalCache } from "./helpers/fakes";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { OptionsBase } from "#lib/ConfigCatClientOptions";
-import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogLevel, LogMessage, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
 import { ProjectConfig } from "#lib/ProjectConfig";
 
 describe("Options", () => {
@@ -227,7 +227,7 @@ describe("Options", () => {
       {
         logger: fakeLogger,
         cacheTimeToLiveSeconds: 59,
-        requestTimeoutMs: 20
+        requestTimeoutMs: 20,
       },
       kernel
     );
@@ -332,16 +332,16 @@ describe("Options", () => {
   ]) {
     it(`AutoPollOptions initialization - pollIntervalSeconds range validation works - ${pollIntervalSecs} (${typeof pollIntervalSecs})`, () => {
       const action = () => createAutoPollOptions("SDKKEY", {
-        pollIntervalSeconds: pollIntervalSecs as unknown as number
+        pollIntervalSeconds: pollIntervalSecs as unknown as number,
       });
 
       if (isValid) {
         action();
-      }
-      else {
+      } else {
         let ex: any;
-        try { action(); }
-        catch (err) { ex = err; }
+        try {
+          action();
+        } catch (err) { ex = err; }
         assert.instanceOf(ex, Error);
       }
     });
@@ -358,16 +358,14 @@ describe("Options", () => {
   ]) {
     it(`AutoPollOptions initialization - maxInitWaitTimeSeconds range validation works - ${maxInitWaitTimeSecs} (${typeof maxInitWaitTimeSecs})`, () => {
       const action = () => createAutoPollOptions("SDKKEY", {
-        maxInitWaitTimeSeconds: maxInitWaitTimeSecs as unknown as number
+        maxInitWaitTimeSeconds: maxInitWaitTimeSecs as unknown as number,
       });
 
       if (isValid) {
         action();
-      }
-      else {
+      } else {
         let ex: any;
-        try { action(); }
-        catch (err) { ex = err; }
+        try { action(); } catch (err) { ex = err; }
         assert.instanceOf(ex, Error);
       }
     });
@@ -387,16 +385,14 @@ describe("Options", () => {
   ]) {
     it(`LazyLoadOptions initialization - cacheTimeToLiveSeconds range validation works - ${cacheTimeToLiveSecs} (${typeof cacheTimeToLiveSecs})`, () => {
       const action = () => createLazyLoadOptions("SDKKEY", {
-        cacheTimeToLiveSeconds: cacheTimeToLiveSecs as unknown as number
+        cacheTimeToLiveSeconds: cacheTimeToLiveSecs as unknown as number,
       });
 
       if (isValid) {
         action();
-      }
-      else {
+      } else {
         let ex: any;
-        try { action(); }
-        catch (err) { ex = err; }
+        try { action(); } catch (err) { ex = err; }
         assert.instanceOf(ex, Error);
       }
     });

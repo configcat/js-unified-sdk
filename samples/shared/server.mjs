@@ -44,8 +44,7 @@ http.createServer(function (req, res) {
       if (err) {
         res.statusCode = 500;
         res.end(`Error getting the file: ${err}.`);
-      }
-      else {
+      } else {
         res.setHeader("Content-type", map[ext] || "text/plain" );
         res.end(data);
       }

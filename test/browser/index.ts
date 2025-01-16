@@ -1,4 +1,4 @@
-import { PlatformAbstractions, initPlatform } from "../helpers/platform";
+import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/browser";
 import { getClient } from "#lib/browser";
 import { LocalStorageConfigCache } from "#lib/browser/LocalStorageConfigCache";
@@ -21,8 +21,7 @@ class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManual
         if (request.readyState === 4) {
           if (request.status === 200) {
             resolve(request.responseText);
-          }
-          else if (request.status) {
+          } else if (request.status) {
             reject(Error(`unexpected response: ${request.status} ${request.statusText}`));
           }
         }

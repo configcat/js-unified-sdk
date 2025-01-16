@@ -19,7 +19,7 @@ describe("Base64 encode/decode test", () => {
     "",
     "\n",
     "äöüÄÖÜçéèñışğâ¢™✓😀",
-    allBmpChars
+    allBmpChars,
   ]) {
     it(`Base64 encode/decode works - input: ${input.slice(0, Math.min(input.length, 128))}`, () => {
       assert.strictEqual(fromUtf8Base64(toUtf8Base64(input)), input);
@@ -43,7 +43,7 @@ describe("LocalStorageConfigCache tests", () => {
   it("Error is logged when LocalStorageConfigCache.get throws", async () => {
     const errorMessage = "Something went wrong.";
     const faultyLocalStorage = Object.assign(createFakeLocalStorage(), {
-      get() { return Promise.reject(new Error(errorMessage)); }
+      get() { return Promise.reject(new Error(errorMessage)); },
     });
 
     const fakeLogger = new FakeLogger();
@@ -54,8 +54,9 @@ describe("LocalStorageConfigCache tests", () => {
         return kernel;
       });
 
-    try { await client.getValueAsync("stringDefaultCat", ""); }
-    finally { client.dispose(); }
+    try {
+      await client.getValueAsync("stringDefaultCat", "");
+    } finally { client.dispose(); }
 
     assert.isDefined(fakeLogger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 2200 && err instanceof Error && err.message === errorMessage));
   });
@@ -63,7 +64,7 @@ describe("LocalStorageConfigCache tests", () => {
   it("Error is logged when LocalStorageConfigCache.set throws", async () => {
     const errorMessage = "Something went wrong.";
     const faultyLocalStorage = Object.assign(createFakeLocalStorage(), {
-      set() { return Promise.reject(new Error(errorMessage)); }
+      set() { return Promise.reject(new Error(errorMessage)); },
     });
 
     const fakeLogger = new FakeLogger();
@@ -74,8 +75,9 @@ describe("LocalStorageConfigCache tests", () => {
         return kernel;
       });
 
-    try { await client.getValueAsync("stringDefaultCat", ""); }
-    finally { client.dispose(); }
+    try {
+      await client.getValueAsync("stringDefaultCat", "");
+    } finally { client.dispose(); }
 
     assert.isDefined(fakeLogger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 2201 && err instanceof Error && err.message === errorMessage));
   });
@@ -93,11 +95,10 @@ function createFakeLocalStorage(): chrome.storage.LocalStorageArea {
       let result = localStorage;
       if (typeof keys === "string") {
         result = { [keys]: localStorage[keys] };
-      }
-      else if (keys != null) {
+      } else if (keys != null) {
         throw new Error("Not implemented.");
       }
       return Promise.resolve(result);
-    }
+    },
   } as chrome.storage.LocalStorageArea;
 }

@@ -28,8 +28,7 @@ export class CloudflareConfigCache implements IConfigCatCache {
     try {
       const cache = await (this.cache ?? caches.open(CACHE_NAME));
       await cache.put(cacheUrlFor(key), new Response(value));
-    }
-    catch (err) {
+    } catch (err) {
       this.cache = void 0;
       throw err;
     }
@@ -42,8 +41,7 @@ export class CloudflareConfigCache implements IConfigCatCache {
       if (response) {
         return await response.text();
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.cache = void 0;
       throw err;
     }
@@ -52,8 +50,9 @@ export class CloudflareConfigCache implements IConfigCatCache {
 
 export function getCloudflareCache(): Promise<cloudflare.Cache> | undefined {
   if (typeof caches !== "undefined") {
-    try { return caches.open(CACHE_NAME); }
-    catch { /* intentional no-op */ }
+    try {
+      return caches.open(CACHE_NAME);
+    } catch { /* intentional no-op */ }
   }
 }
 

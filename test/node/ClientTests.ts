@@ -21,7 +21,7 @@ describe("ConfigCatClient tests", () => {
       const proxy = "http://fake-proxy.com:8080";
 
       const client: IConfigCatClient = configcatClient.getClient("SDKKEY-890123456789012/1234567890123456789012", pollingMode, {
-        proxy
+        proxy,
       });
 
       assert.isDefined(client);

@@ -69,8 +69,7 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
           const fileContent = `export * from "${normalizePathSeparator(importFile)}";`;
           await fsp.writeFile(file, fileContent, "utf8", { flush: true });
           continue;
-        }
-        else {
+        } else {
           // Strip const from enums to provide normal enums to consumers.
           let fileContent = await fsp.readFile(file, "utf8");
           fileContent = fileContent.replace(/declare\s+const\s+enum/g, () => {
@@ -82,8 +81,7 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
             continue;
           }
         }
-      }
-      else if (importExtension == null || !file.endsWith(importExtension)) {
+      } else if (importExtension == null || !file.endsWith(importExtension)) {
         continue;
       }
 

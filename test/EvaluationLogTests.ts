@@ -4,9 +4,9 @@ import { FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
 import { normalizeLineEndings } from "./helpers/utils";
 import { User } from "#lib";
-import { LogLevel, LoggerWrapper } from "#lib/ConfigCatLogger";
+import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { SettingValue } from "#lib/ProjectConfig";
-import { RolloutEvaluator, evaluate } from "#lib/RolloutEvaluator";
+import { evaluate, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { WellKnownUserObjectAttribute } from "#lib/User";
 import { errorToString } from "#lib/Utils";
 
@@ -17,7 +17,7 @@ type TestSet = {
   baseUrl?: string;
   jsonOverride?: string;
   tests?: ReadonlyArray<TestCase>;
-}
+};
 
 type TestCase = {
   key: string;
@@ -25,7 +25,7 @@ type TestCase = {
   returnValue: NonNullable<SettingValue>;
   expectedLog: string;
   user?: Readonly<{ [key: string]: string }>;
-}
+};
 
 describe("Evaluation log", () => {
   describeTestSet("simple_value");
@@ -53,8 +53,7 @@ function describeTestSet(testSetName: string) {
       it(`${testSetName} - ${configLocation} | ${testCase.key} | ${testCase.defaultValue} | ${userJson}`, () =>
         runTest(testSetName, configLocation, testCase));
     }
-  }
-  else {
+  } else {
     it(testSetName, async () => {
       for (const [configLocation, testCase] of getTestCases(await testSetData)) {
         runTest(testSetName, configLocation, testCase);
@@ -110,11 +109,11 @@ function formatLogEvent(event: FakeLogger["events"][0]) {
   const [level, eventId, message, exception] = event;
 
   const levelString =
-    level === LogLevel.Debug ? "DEBUG" :
-    level === LogLevel.Info ? "INFO" :
-    level === LogLevel.Warn ? "WARNING" :
-    level === LogLevel.Error ? "ERROR" :
-    LogLevel[level].toUpperCase().padStart(5);
+    level === LogLevel.Debug ? "DEBUG"
+    : level === LogLevel.Info ? "INFO"
+    : level === LogLevel.Warn ? "WARNING"
+    : level === LogLevel.Error ? "ERROR"
+    : LogLevel[level].toUpperCase().padStart(5);
 
   const exceptionString = exception !== void 0 ? "\n" + errorToString(exception, true) : "";
 

@@ -1,4 +1,4 @@
-import { PlatformAbstractions, initPlatform } from "../helpers/platform";
+import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/chromium-extension";
 import { getClient } from "#lib/chromium-extension";
 import { ChromeLocalStorageConfigCache } from "#lib/chromium-extension/ChromeLocalStorageConfigCache";
@@ -18,8 +18,7 @@ class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions,
     const response = await fetch("base/" + path, { method: "GET" });
     if (response.status === 200) {
       return await response.text();
-    }
-    else {
+    } else {
       throw Error(`unexpected response: ${response.status} ${response.statusText}`);
     }
   }

@@ -1,7 +1,7 @@
 import * as path from "https://deno.land/std@0.224.0/path/mod.ts";
 // @deno-types="npm:@types/mocha"
 import "npm:mocha/browser-entry.js";
-import { PlatformAbstractions, initPlatform } from "../helpers/platform";
+import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import { isTestSpec } from "../index";
 import { IConfigCatKernel } from "#lib/ConfigCatClient";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
@@ -80,8 +80,7 @@ async function* enumerateFiles(dir: string): AsyncIterableIterator<string> {
   for await (const entry of Deno.readDir(dir)) {
     if (entry.isDirectory) {
       yield* enumerateFiles(path.join(dir, entry.name));
-    }
-    else if (entry.isFile) {
+    } else if (entry.isFile) {
       yield path.join(dir, entry.name);
     }
   }

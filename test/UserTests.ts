@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { User } from "#lib";
-import { WellKnownUserObjectAttribute, getUserAttribute, getUserAttributes } from "#lib/User";
+import { getUserAttribute, getUserAttributes, WellKnownUserObjectAttribute } from "#lib/User";
 
 const identifierAttribute: WellKnownUserObjectAttribute = "Identifier";
 const emailAttribute: WellKnownUserObjectAttribute = "Email";
@@ -84,7 +84,7 @@ describe("User Object", () => {
       myCustomAttribute: "myCustomAttributeValue",
       [identifierAttribute]: "myIdentifier",
       [countryAttribute]: "United States",
-      [emailAttribute]: "otherEmail@example.com"
+      [emailAttribute]: "otherEmail@example.com",
     });
 
     // Act
@@ -145,8 +145,8 @@ describe("User Object", () => {
       email: "id@example.com",
       country: "US",
       custom: {
-        myCustomAttribute: "myCustomAttributeValue"
-      }
+        myCustomAttribute: "myCustomAttributeValue",
+      },
     };
 
     // Act

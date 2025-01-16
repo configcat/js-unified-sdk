@@ -107,9 +107,9 @@ export interface IEventEmitter<TEvents extends Events = Events> extends IEventPr
 }
 
 export class NullEventEmitter implements IEventEmitter {
-  addListener: () => this
+  addListener: () => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.on;
+    this.on;
 
   on(): this { return this; }
 
@@ -117,9 +117,9 @@ export class NullEventEmitter implements IEventEmitter {
 
   removeListener(): this { return this; }
 
-  off: () => this
+  off: () => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    = this.removeListener;
+    this.removeListener;
 
   removeAllListeners(): this { return this; }
 

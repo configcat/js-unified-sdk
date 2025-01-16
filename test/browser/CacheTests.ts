@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel } from "#lib";
-import { LocalStorageConfigCache, fromUtf8Base64, getLocalStorage, toUtf8Base64 } from "#lib/browser/LocalStorageConfigCache";
+import { fromUtf8Base64, getLocalStorage, LocalStorageConfigCache, toUtf8Base64 } from "#lib/browser/LocalStorageConfigCache";
 import { ExternalConfigCache } from "#lib/ConfigCatCache";
 
 describe("Base64 encode/decode test", () => {
@@ -17,7 +17,7 @@ describe("Base64 encode/decode test", () => {
     "",
     "\n",
     "äöüÄÖÜçéèñışğâ¢™✓😀",
-    allBmpChars
+    allBmpChars,
   ]) {
     it(`Base64 encode/decode works - input: ${input.slice(0, Math.min(input.length, 128))}`, () => {
       assert.strictEqual(fromUtf8Base64(toUtf8Base64(input)), input);
@@ -47,7 +47,7 @@ describe("LocalStorageConfigCache tests", () => {
       getItem() { throw Error(errorMessage); },
       setItem() { },
       removeItem() { },
-      key() { return null; }
+      key() { return null; },
     };
 
     const fakeLogger = new FakeLogger();
@@ -58,8 +58,9 @@ describe("LocalStorageConfigCache tests", () => {
         return kernel;
       });
 
-    try { await client.getValueAsync("stringDefaultCat", ""); }
-    finally { client.dispose(); }
+    try {
+      await client.getValueAsync("stringDefaultCat", "");
+    } finally { client.dispose(); }
 
     assert.isDefined(fakeLogger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 2200 && err instanceof Error && err.message === errorMessage));
   });
@@ -72,7 +73,7 @@ describe("LocalStorageConfigCache tests", () => {
       getItem() { return null; },
       setItem() { throw Error(errorMessage); },
       removeItem() { },
-      key() { return null; }
+      key() { return null; },
     };
 
     const fakeLogger = new FakeLogger();
@@ -83,8 +84,9 @@ describe("LocalStorageConfigCache tests", () => {
         return kernel;
       });
 
-    try { await client.getValueAsync("stringDefaultCat", ""); }
-    finally { client.dispose(); }
+    try {
+      await client.getValueAsync("stringDefaultCat", "");
+    } finally { client.dispose(); }
 
     assert.isDefined(fakeLogger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 2201 && err instanceof Error && err.message === errorMessage));
   });

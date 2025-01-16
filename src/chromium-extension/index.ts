@@ -29,7 +29,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
-    defaultCacheFactory: ChromeLocalStorageConfigCache.tryGetFactory() ?? IndexedDBConfigCache.tryGetFactory()
+    defaultCacheFactory: ChromeLocalStorageConfigCache.tryGetFactory() ?? IndexedDBConfigCache.tryGetFactory(),
   });
 }
 

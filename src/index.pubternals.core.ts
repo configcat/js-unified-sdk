@@ -22,7 +22,9 @@ import type { SettingValue } from "./ProjectConfig";
  * @param pollingMode The polling mode to use.
  * @param options Options for the specified polling mode.
  */
-export function getClient<TMode extends PollingMode>(sdkKey: string, pollingMode: TMode, options: OptionsForPollingMode<TMode> | undefined | null, configCatKernel: IConfigCatKernel): IConfigCatClient {
+export function getClient<TMode extends PollingMode>(sdkKey: string, pollingMode: TMode,
+  options: OptionsForPollingMode<TMode> | undefined | null, configCatKernel: IConfigCatKernel
+): IConfigCatClient {
   return ConfigCatClient.get(sdkKey, pollingMode, options, configCatKernel);
 }
 

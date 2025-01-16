@@ -109,7 +109,7 @@ for (const pollingMode of [PollingMode.AutoPoll, PollingMode.ManualPoll, Polling
         "integerDefaultOne",
         "doubleDefaultPi",
         "double25Pi25E25Gr25Zero",
-        "keySampleText"
+        "keySampleText",
       ]);
     });
 
@@ -255,7 +255,7 @@ describe("Integration tests - Other cases", () => {
 
     const clientOverride: IConfigCatClient = platform().getClient("localonly", PollingMode.AutoPoll, {
       flagOverrides: createFlagOverridesFromMap(overrideMap, OverrideBehaviour.LocalOnly),
-      logger: createConsoleLogger(LogLevel.Off)
+      logger: createConsoleLogger(LogLevel.Off),
     });
     try {
       let actual = await clientOverride.getValueAsync("stringDefaultCat", defaultValue);
@@ -265,8 +265,7 @@ describe("Integration tests - Other cases", () => {
 
       actual = await clientOverride.getValueAsync("stringDefaultCat", defaultValue);
       assert.strictEqual(actual, "NOT_CAT");
-    }
-    finally { clientOverride.dispose(); }
+    } finally { clientOverride.dispose(); }
   });
 
   it("Override - local only - watch changes", async () => {
@@ -276,7 +275,7 @@ describe("Integration tests - Other cases", () => {
 
     const clientOverride: IConfigCatClient = platform().getClient("localonly", PollingMode.AutoPoll, {
       flagOverrides: createFlagOverridesFromMap(overrideMap, OverrideBehaviour.LocalOnly, true),
-      logger: createConsoleLogger(LogLevel.Off)
+      logger: createConsoleLogger(LogLevel.Off),
     });
     try {
       let actual = await clientOverride.getValueAsync("stringDefaultCat", defaultValue);
@@ -286,8 +285,7 @@ describe("Integration tests - Other cases", () => {
 
       actual = await clientOverride.getValueAsync("stringDefaultCat", defaultValue);
       assert.strictEqual(actual, "ANOTHER_CAT");
-    }
-    finally { clientOverride.dispose(); }
+    } finally { clientOverride.dispose(); }
   });
 
 });

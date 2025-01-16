@@ -14,8 +14,8 @@ describe("HTTP tests", () => {
     server = mockttp.getLocal({
       https: {
         keyPath: "./test/node/cert/testCA.key",
-        certPath: "./test/node/cert/testCA.pem"
-      }
+        certPath: "./test/node/cert/testCA.pem",
+      },
     });
     await server.start();
   });
@@ -29,7 +29,7 @@ describe("HTTP tests", () => {
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
-      logger
+      logger,
     });
     const startTime = new Date().getTime();
     await client.forceRefreshAsync();
@@ -52,7 +52,7 @@ describe("HTTP tests", () => {
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
-      logger
+      logger,
     });
 
     await client.forceRefreshAsync();
@@ -73,7 +73,7 @@ describe("HTTP tests", () => {
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
-      logger
+      logger,
     });
 
     await client.forceRefreshAsync();
@@ -94,7 +94,7 @@ describe("HTTP tests", () => {
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
       baseUrl: server.url,
-      logger
+      logger,
     });
 
     await client.forceRefreshAsync();
@@ -112,11 +112,11 @@ describe("HTTP tests", () => {
     server.forAnyRequest().forHost("cdn-global.configcat.com").thenPassThrough({
       beforeRequest: (_: any) => {
         proxyCalled = true;
-      }
+      },
     });
 
     const client = platform.createClientWithManualPoll(sdkKey, {
-      proxy: server.url
+      proxy: server.url,
     });
     await client.forceRefreshAsync();
     assert.isTrue(proxyCalled);
