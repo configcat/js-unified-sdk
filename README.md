@@ -221,7 +221,7 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
 - @configcat/sdk/browser:
   - Chrome (stable, latest, beta)
   - Chromium (64.0.3282.0, 72.0.3626.0, 80.0.3987.0)
-  - Firefox (latest, latest-beta, 84.0)
+  - Firefox (84.0, latest, latest-beta)
 - @configcat/sdk/bun:
   - Bun (v1.1.0, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/deno:
@@ -242,17 +242,6 @@ You can view a sample run [here](https://github.com/configcat/js-unified-sdk/act
 
 > We strive to provide an extensive support for the various JS runtimes and build tools. If you still encounter an issue with the SDK on some platform, please open a [GitHub issue](https://github.com/configcat/js-unified-sdk/issues/new/choose) or [contact support](https://configcat.com/support).
 
-## Need help?
-https://configcat.com/support
-
-## Contributing
-Contributions are welcome. For more info please read the [Contribution Guideline](CONTRIBUTING.md).
-
-## About ConfigCat
-- [Official ConfigCat SDK's for other platforms](https://github.com/configcat)
-- [Documentation](https://configcat.com/docs)
-- [Blog](https://blog.configcat.com)
-
 ## Troubleshooting
 
 ### Make sure you have the proper Node.js version installed
@@ -262,6 +251,12 @@ You might run into errors caused by the wrong version of Node.js. To make sure y
 1. Have nvm (Node Version Manager - https://github.com/nvm-sh/nvm ) installed:
 1. Run `nvm install`. This will install the compatible version of Node.js.
 1. Run `nvm use`. This will use the compatible version of Node.js.
+
+## Need help?
+https://configcat.com/support
+
+## Contributing
+Contributions are welcome. For more info please read the [Contribution Guideline](CONTRIBUTING.md).
 
 ## About ConfigCat
 
