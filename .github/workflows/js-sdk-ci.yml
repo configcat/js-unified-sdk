@@ -84,9 +84,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        # "latest-beta" is temporary removed until browser-actions/setup-firefox@latest is fixed
-        # (see also https://github.com/browser-actions/setup-firefox/issues/621)
-        firefox: ["84.0", "latest"]
+        firefox: ["84.0", "latest", "latest-beta"]
     name: Browser - Firefox ${{ matrix.firefox }} test
     steps:
       - uses: actions/checkout@v4
