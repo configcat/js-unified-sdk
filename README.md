@@ -220,7 +220,7 @@ This SDK should be compatible with all modern, widely used JS runtimes (executio
 The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.github/workflows/js-sdk-ci.yml) against the following runtimes:
 - @configcat/sdk/browser:
   - Chrome (stable, latest, beta)
-  - Chromium (64.0.3282.0, 72.0.3626.0, 80.0.3987.0)
+  - Chromium (71.0.3556.0, 72.0.3626.0, 80.0.3987.0)
   - Firefox (84.0, latest, latest-beta)
 - @configcat/sdk/bun:
   - Bun (v1.1.0, latest stable) on Windows / Ubuntu / macOS

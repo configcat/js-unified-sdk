@@ -55,10 +55,10 @@ jobs:
         run: CHROME_BIN=$(which chrome) npm run test:browser:chrome
 
   test-browser-chromium:
-    runs-on: ubuntu-20.04
+    runs-on: windows-latest
     strategy:
       matrix:
-        chrome: ["520847", "612434", "722278"]
+        chrome: ["592002", "612439", "722274"]
     name: Browser - Chromium ${{ matrix.chrome }} test
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +68,7 @@ jobs:
           node-version: 18
 
       - name: Setup chrome
+        id: setup-chrome
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
@@ -76,7 +77,8 @@ jobs:
         run: npm install
 
       - name: Test
-        run: CHROMIUM_BIN=$(which chrome) npm run test:browser:chromium
+        run: |
+          $env:CHROMIUM_BIN='${{ steps.setup-chrome.outputs.chrome-path }}'; npm run test:browser:chromium
 
   test-browser-firefox:
     # Runner image version is temporarily pinned to `ubuntu-22.04`.
@@ -151,10 +153,10 @@ jobs:
         run: CHROME_BIN=$(which chrome) npm run test:chromium-extension:chrome
 
   test-chromium-extension-chromium:
-    runs-on: ubuntu-20.04
+    runs-on: windows-latest
     strategy:
       matrix:
-        chrome: ["612434", "722278"]
+        chrome: ["612439", "722274"]
     name: Chromium Extension - Chromium ${{ matrix.chrome }} test
     steps:
       - uses: actions/checkout@v4
@@ -164,6 +166,7 @@ jobs:
           node-version: 18
 
       - name: Setup chrome
+        id: setup-chrome
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
@@ -172,7 +175,8 @@ jobs:
         run: npm install
 
       - name: Test
-        run: CHROMIUM_BIN=$(which chrome) npm run test:chromium-extension:chromium
+        run: |
+          $env:CHROMIUM_BIN='${{ steps.setup-chrome.outputs.chrome-path }}'; npm run test:chromium-extension:chromium
 
   test-cloudflare-worker:
     runs-on: ${{ matrix.os }}
