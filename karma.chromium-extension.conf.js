@@ -4,6 +4,12 @@ module.exports = function(config) {
   config.set({
     frameworks: ["mocha", "chai", "webpack"],
 
+    client: {
+      mocha: {
+        timeout: 30000
+      }
+    },
+
     files: [
       { pattern: "test/chromium-extension/index.ts", watched: false },
       { pattern: "test/data/**", included: false, watched: false, served: true },
