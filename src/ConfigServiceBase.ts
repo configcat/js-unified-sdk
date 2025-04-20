@@ -308,9 +308,14 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return this.options.cache.get(this.cacheKey);
   }
 
-  protected async getReadyPromise<TState>(state: TState, waitForReadyAsync: (state: TState) => Promise<ClientCacheState>): Promise<ClientCacheState> {
-    const cacheState = await waitForReadyAsync(state);
-    this.options.hooks.emit("clientReady", cacheState);
-    return cacheState;
+  protected async waitForReadyAsync(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig>): Promise<ClientCacheState> {
+    return this.getCacheState(await initialCacheSyncUp);
+  }
+
+  protected getReadyPromise(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig>): Promise<ClientCacheState> {
+    return this.waitForReadyAsync(initialCacheSyncUp).then(cacheState => {
+      this.options.hooks.emit("clientReady", cacheState);
+      return cacheState;
+    });
   }
 }

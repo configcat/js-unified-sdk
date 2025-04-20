@@ -47,10 +47,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
       this.initializationPromise = Promise.resolve(false);
     }
 
-    this.readyPromise = this.getReadyPromise(this.initializationPromise, async initializationPromise => {
-      await initializationPromise;
-      return this.getCacheState(this.options.cache.getInMemory());
-    });
+    this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
 
     if (!options.offline) {
       this.startRefreshWorker(initialCacheSyncUp, this.stopToken);
@@ -70,6 +67,11 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     ]);
     abortToken.abort();
     return success;
+  }
+
+  protected override async waitForReadyAsync(): Promise<ClientCacheState> {
+    await this.initializationPromise;
+    return this.getCacheState(this.options.cache.getInMemory());
   }
 
   async getConfig(): Promise<ProjectConfig> {

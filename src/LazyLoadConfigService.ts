@@ -17,7 +17,7 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
     this.cacheTimeToLiveMs = options.cacheTimeToLiveSeconds * 1000;
 
     const initialCacheSyncUp = this.syncUpWithCache();
-    this.readyPromise = this.getReadyPromise(initialCacheSyncUp, async initialCacheSyncUp => this.getCacheState(await initialCacheSyncUp));
+    this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
   }
 
   async getConfig(): Promise<ProjectConfig> {

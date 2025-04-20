@@ -13,7 +13,7 @@ export class ManualPollConfigService extends ConfigServiceBase<ManualPollOptions
     super(configFetcher, options);
 
     const initialCacheSyncUp = this.syncUpWithCache();
-    this.readyPromise = this.getReadyPromise(initialCacheSyncUp, async initialCacheSyncUp => this.getCacheState(await initialCacheSyncUp));
+    this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
   }
 
   getCacheState(cachedConfig: ProjectConfig): ClientCacheState {
