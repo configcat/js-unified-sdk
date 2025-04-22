@@ -82,7 +82,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
 
     let cachedConfig: ProjectConfig;
     if (!this.initialized) {
-      cachedConfig = await this.options.cache.get(this.cacheKey);
+      cachedConfig = await this.syncUpWithCache();
       if (!cachedConfig.isExpired(this.pollIntervalMs)) {
         logSuccess(this.options.logger);
         return cachedConfig;
@@ -92,7 +92,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
       await this.initializationPromise;
     }
 
-    cachedConfig = await this.options.cache.get(this.cacheKey);
+    cachedConfig = await this.syncUpWithCache();
     if (!cachedConfig.isExpired(this.pollIntervalMs)) {
       logSuccess(this.options.logger);
     } else {
@@ -160,7 +160,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
   private async refreshWorkerLogic(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig> | null) {
     this.options.logger.debug("AutoPollConfigService.refreshWorkerLogic() called.");
 
-    const latestConfig = await (initialCacheSyncUp ?? this.options.cache.get(this.cacheKey));
+    const latestConfig = await (initialCacheSyncUp ?? this.syncUpWithCache());
     if (latestConfig.isExpired(this.pollExpirationMs)) {
       // Even if the service gets disposed immediately, we allow the first refresh for backward compatibility,
       // i.e. to not break usage patterns like this:
