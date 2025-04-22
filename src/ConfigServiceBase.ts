@@ -1,9 +1,10 @@
-import { ExternalConfigCache } from "./ConfigCatCache";
+import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
 import { FetchError, FetchResult, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import { Config, ProjectConfig } from "./ProjectConfig";
+import { isPromiseLike } from "./Utils";
 
 /** Contains the result of an `IConfigCatClient.forceRefresh` or `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
@@ -75,6 +76,7 @@ function nameOfConfigServiceStatus(value: ConfigServiceStatus): string {
 export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   private status: ConfigServiceStatus;
 
+  private pendingCacheSyncUp: Promise<ProjectConfig> | null = null;
   private pendingFetch: Promise<FetchResult> | null = null;
 
   protected readonly cacheKey: string;
@@ -103,7 +105,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   abstract getConfig(): Promise<ProjectConfig>;
 
   async refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
-    const latestConfig = await this.options.cache.get(this.cacheKey);
+    const latestConfig = await this.syncUpWithCache();
     if (!this.isOffline) {
       const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig);
       return [RefreshResult.from(fetchResult), config];
@@ -147,13 +149,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   }
 
   private fetchAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
-    return this.pendingFetch ??= (async () => {
-      try {
-        return await this.fetchLogicAsync(lastConfig);
-      } finally {
-        this.pendingFetch = null;
-      }
-    })();
+    return this.pendingFetch ??= this.fetchLogicAsync(lastConfig)
+      .finally(() => this.pendingFetch = null);
   }
 
   private async fetchLogicAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
@@ -305,7 +302,30 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   abstract getCacheState(cachedConfig: ProjectConfig): ClientCacheState;
 
   protected syncUpWithCache(): ProjectConfig | Promise<ProjectConfig> {
-    return this.options.cache.get(this.cacheKey);
+    const { cache } = this.options;
+    if (cache instanceof InMemoryConfigCache) {
+      return cache.get(this.cacheKey);
+    }
+
+    if (this.pendingCacheSyncUp) {
+      return this.pendingCacheSyncUp;
+    }
+
+    const syncResult = cache.get(this.cacheKey);
+    if (!isPromiseLike(syncResult)) {
+      return syncResult;
+    }
+
+    const cacheSyncUpPromise = syncResult;
+
+    this.pendingCacheSyncUp = cacheSyncUpPromise;
+    try {
+      cacheSyncUpPromise.finally(() => this.pendingCacheSyncUp = null);
+    } catch (err) {
+      this.pendingCacheSyncUp = null;
+      throw err;
+    }
+    return cacheSyncUpPromise;
   }
 
   protected async waitForReadyAsync(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig>): Promise<ClientCacheState> {
