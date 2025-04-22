@@ -71,7 +71,7 @@ export class FakeCache implements IConfigCache {
 }
 
 export class FakeExternalCache implements IConfigCatCache {
-  private cachedValue: string | undefined;
+  cachedValue: string | undefined;
 
   set(key: string, value: string): void {
     this.cachedValue = value;
@@ -82,8 +82,17 @@ export class FakeExternalCache implements IConfigCatCache {
   }
 }
 
+export class FaultyFakeExternalCache implements IConfigCatCache {
+  set(key: string, value: string): never {
+    throw new Error("Operation failed :(");
+  }
+  get(key: string): never {
+    throw new Error("Operation failed :(");
+  }
+}
+
 export class FakeExternalAsyncCache implements IConfigCatCache {
-  private cachedValue: string | undefined;
+  cachedValue: string | undefined;
 
   constructor(private readonly delayMs = 0) {
   }
