@@ -1,3 +1,4 @@
+import { ExternalConfigCache } from "./ConfigCatCache";
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
 import { FetchError, FetchResult, FetchStatus } from "./ConfigFetcher";
@@ -106,6 +107,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     if (!this.isOffline) {
       const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig);
       return [RefreshResult.from(fetchResult), config];
+    } else if (this.options.cache instanceof ExternalConfigCache) {
+      return [RefreshResult.success(), latestConfig];
     } else {
       const errorMessage = this.options.logger.configServiceCannotInitiateHttpCalls().toString();
       return [RefreshResult.failure(errorMessage), latestConfig];
@@ -155,7 +158,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
   private async fetchLogicAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchLogicAsync() - called.");
+    options.logger.debug("ConfigServiceBase.fetchLogicAsync() called.");
 
     let errorMessage: string;
     try {
@@ -207,7 +210,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   private async fetchRequestAsync(lastETag: string | null, maxRetryCount = 2): Promise<[IFetchResponse, (Config | any)?]> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchRequestAsync() - called.");
+    options.logger.debug("ConfigServiceBase.fetchRequestAsync() called.");
 
     for (let retryNumber = 0; ; retryNumber++) {
       options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}`);
@@ -278,11 +281,11 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return this.status !== ConfigServiceStatus.Online;
   }
 
-  protected setOnlineCore(): void { /* Intentionally empty. */ }
+  protected goOnline(): void { /* Intentionally empty. */ }
 
   setOnline(): void {
     if (this.status === ConfigServiceStatus.Offline) {
-      this.setOnlineCore();
+      this.goOnline();
       this.status = ConfigServiceStatus.Online;
       this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
     } else if (this.disposed) {
@@ -290,11 +293,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
   }
 
-  protected setOfflineCore(): void { /* Intentionally empty. */ }
-
   setOffline(): void {
     if (this.status === ConfigServiceStatus.Online) {
-      this.setOfflineCore();
       this.status = ConfigServiceStatus.Offline;
       this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
     } else if (this.disposed) {

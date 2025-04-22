@@ -1216,7 +1216,7 @@ describe("ConfigCatClient", () => {
   ];
 
   for (const [pollingMode, optionsFactory] of optionsFactoriesForOfflineModeTests) {
-    it(`setOnline() should make a(n) ${PollingMode[pollingMode]} client created in offline mode transition to online mode.`, async () => {
+    it(`setOnline() should make a(n) ${PollingMode[pollingMode]} client created in offline mode transition to online mode`, async () => {
 
       const configFetcher = new FakeConfigFetcherBase("{}", 100, (lastConfig, lastETag) => ({
         statusCode: 200,
@@ -1283,7 +1283,7 @@ describe("ConfigCatClient", () => {
   }
 
   for (const [pollingMode, optionsFactory] of optionsFactoriesForOfflineModeTests) {
-    it(`setOffline() should make a(n) ${PollingMode[pollingMode]} client created in online mode transition to offline mode.`, async () => {
+    it(`setOffline() should make a(n) ${PollingMode[pollingMode]} client created in online mode transition to offline mode`, async () => {
 
       const configFetcher = new FakeConfigFetcherBase("{}", 100, (lastConfig, lastETag) => ({
         statusCode: 200,
@@ -1352,7 +1352,7 @@ describe("ConfigCatClient", () => {
   }
 
   for (const addListenersViaOptions of [false, true]) {
-    it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of.`, async () => {
+    it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of`, async () => {
       let clientReadyEventCount = 0;
       const configChangedEvents: IConfig[] = [];
       const flagEvaluatedEvents: IEvaluationDetails[] = [];
