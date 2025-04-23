@@ -1,6 +1,6 @@
 import type { AutoPollOptions } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
-import type { IConfigFetcher } from "./ConfigFetcher";
+import type { FetchResult, IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -115,9 +115,9 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     }
   }
 
-  protected onConfigFetched(newConfig: ProjectConfig): void {
+  protected onConfigFetched(fetchResult: FetchResult, isInitiatedByUser: boolean): void {
     this.signalInitialization();
-    super.onConfigFetched(newConfig);
+    super.onConfigFetched(fetchResult, isInitiatedByUser);
   }
 
   protected goOnline(): void {
@@ -169,7 +169,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
       // client.dispose();
       // ```
       if (initialCacheSyncUp ? !this.isOfflineExactly : !this.isOffline) {
-        await this.refreshConfigCoreAsync(latestConfig);
+        await this.refreshConfigCoreAsync(latestConfig, false);
         return; // postpone signalling initialization until `onConfigFetched`
       }
     }

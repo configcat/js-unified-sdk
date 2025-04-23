@@ -1,4 +1,4 @@
-import type { ClientCacheState } from "./ConfigServiceBase";
+import type { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter, IEventProvider } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { IConfig } from "./ProjectConfig";
@@ -19,6 +19,10 @@ export type HookEvents = {
   clientReady: [cacheState: ClientCacheState];
   /** Occurs after the value of a feature flag of setting has been evaluated. */
   flagEvaluated: [evaluationDetails: IEvaluationDetails];
+  /**
+   * Occurs after attempting to refresh the locally cached config by fetching the latest version from the remote server.
+   */
+  configFetched: [result: RefreshResult, isInitiatedByUser: boolean];
   /**
    * Occurs after the locally cached config has been updated to a newer version, either as a result of synchronization
    * with the external cache, or as a result of fetching a newer version from the remote server.
