@@ -85,8 +85,16 @@ export interface IConfigCatClient extends IProvidesHooks {
   forceRefreshAsync(): Promise<RefreshResult>;
 
   /**
-   * Waits for the client initialization.
-   * @returns A promise that fulfills with the client's initialization state.
+   * Waits for the client to reach the ready state, i.e. to complete initialization.
+   *
+   * @remarks Ready state is reached as soon as the initial sync with the external cache (if any) completes.
+   * If this does not provide up-to-date config data, and the client is online (i.e. HTTP requests are allowed),
+   * the first config fetch operation is also awaited in Auto Poll mode before ready state is reported.
+   *
+   * That is, reaching the ready state usually means that the client is ready to evaluate feature flags.
+   * However, please note that it is not guaranteed. You can determine this by checking the return value.
+   *
+   * @returns A promise that fulfills with the state of the local cache at the time initialization was completed.
    */
   waitForReady(): Promise<ClientCacheState>;
 
