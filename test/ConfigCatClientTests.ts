@@ -1455,7 +1455,7 @@ describe("ConfigCatClient", () => {
     });
   }
 
-  it("forceRefresh() should return failure including error in case of failed fetch", async () => {
+  it("forceRefreshAsync() should return failure including error in case of failed fetch", async () => {
     const errorMessage = "Something went wrong";
     const errorException = new Error(errorMessage);
 
@@ -1475,7 +1475,7 @@ describe("ConfigCatClient", () => {
     client.dispose();
   });
 
-  it("forceRefresh() should return failure including error in case of unexpected exception", async () => {
+  it("forceRefreshAsync() should return failure including error in case of unexpected exception", async () => {
     const errorMessage = "Something went wrong";
     const errorException = new Error(errorMessage);
 

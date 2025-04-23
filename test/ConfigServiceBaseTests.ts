@@ -75,7 +75,7 @@ describe("ConfigServiceBaseTests", () => {
     service.dispose();
   });
 
-  it("AutoPollConfigService - with forceRefresh - invokes 'cache.set' operation two times", async () => {
+  it("AutoPollConfigService - with forceRefreshAsync - invokes 'cache.set' operation two times", async () => {
 
     // Arrange
 
@@ -370,7 +370,7 @@ describe("ConfigServiceBaseTests", () => {
   }
 
   for (const useSyncCache of [false, true]) {
-    it(`AutoPollConfigService - Should refresh local cache in offline mode and report configChanged when new config is synced from external cache - useSyncCache: ${useSyncCache}`, async () => {
+    it(`AutoPollConfigService - Should refresh internal cache in offline mode and report configChanged when new config is synced from external cache - useSyncCache: ${useSyncCache}`, async () => {
 
       // Arrange
 

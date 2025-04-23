@@ -7,7 +7,7 @@ import { RedirectMode } from "./ConfigJson";
 import { Config, ProjectConfig } from "./ProjectConfig";
 import { isPromiseLike } from "./Utils";
 
-/** Contains the result of an `IConfigCatClient.forceRefresh` or `IConfigCatClient.forceRefreshAsync` operation. */
+/** Contains the result of an `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
   constructor(
     /** Error message in case the operation failed, otherwise `null`. */
@@ -37,11 +37,15 @@ export class RefreshResult {
   }
 }
 
-/** Specifies the possible states of the local cache. */
+/** Specifies the possible states of the internal cache. */
 export const enum ClientCacheState {
+  /** No config data is available in the internal cache. */
   NoFlagData,
+  /** Only config data provided by local flag override is available in the internal cache. */
   HasLocalOverrideFlagDataOnly,
+  /** Only expired config data obtained from the external cache or the ConfigCat CDN is available in the internal cache. */
   HasCachedFlagDataOnly,
+  /** Up-to-date config data obtained from the external cache or the ConfigCat CDN is available in the internal cache. */
   HasUpToDateFlagData,
 }
 
