@@ -1,3 +1,4 @@
+import type { CacheSyncResult } from "./ConfigCatCache";
 import { ExternalConfigCache } from "./ConfigCatCache";
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
@@ -126,7 +127,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
         || fetchResult.config.timestamp > latestConfig.timestamp && (!fetchResult.config.isEmpty || latestConfig.isEmpty)) {
       await this.options.cache.set(this.cacheKey, fetchResult.config);
 
-      configChanged = success && !ProjectConfig.equals(fetchResult.config, latestConfig);
+      configChanged = success && !ProjectConfig.contentEquals(fetchResult.config, latestConfig);
       latestConfig = fetchResult.config;
     }
 
@@ -308,14 +309,29 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
     const syncResult = this.options.cache.get(this.cacheKey);
     if (!isPromiseLike(syncResult)) {
-      return syncResult;
+      return this.onCacheSynced(syncResult);
     }
 
     const syncUpAndFinish = syncResult
-      .finally(() => this.pendingCacheSyncUp = null);
+      .finally(() => this.pendingCacheSyncUp = null)
+      .then(syncResult => this.onCacheSynced(syncResult));
 
-    this.pendingCacheSyncUp = syncResult;
+    this.pendingCacheSyncUp = syncResult
+      .then(syncResult => !Array.isArray(syncResult) ? syncResult : syncResult[0]);
+
     return syncUpAndFinish;
+  }
+
+  private onCacheSynced(syncResult: CacheSyncResult): ProjectConfig {
+    if (!Array.isArray(syncResult)) {
+      return syncResult;
+    }
+
+    const [newConfig] = syncResult;
+    if (!newConfig.isEmpty) {
+      this.onConfigChanged(newConfig);
+    }
+    return newConfig;
   }
 
   protected async waitForReadyAsync(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig>): Promise<ClientCacheState> {
