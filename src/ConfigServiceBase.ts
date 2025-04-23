@@ -108,7 +108,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   async refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
     const latestConfig = await this.syncUpWithCache();
     if (!this.isOffline) {
-      const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig);
+      const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig, true);
       return [RefreshResult.from(fetchResult), config];
     } else if (this.options.cache instanceof ExternalConfigCache) {
       return [RefreshResult.success(), latestConfig];
@@ -118,7 +118,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
   }
 
-  protected async refreshConfigCoreAsync(latestConfig: ProjectConfig): Promise<[FetchResult, ProjectConfig]> {
+  protected async refreshConfigCoreAsync(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult, ProjectConfig]> {
     const fetchResult = await this.fetchAsync(latestConfig);
 
     let configChanged = false;
@@ -131,7 +131,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       latestConfig = fetchResult.config;
     }
 
-    this.onConfigFetched(fetchResult.config);
+    this.onConfigFetched(fetchResult, isInitiatedByUser);
 
     if (configChanged) {
       this.onConfigChanged(fetchResult.config);
@@ -140,8 +140,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return [fetchResult, latestConfig];
   }
 
-  protected onConfigFetched(newConfig: ProjectConfig): void {
+  protected onConfigFetched(fetchResult: FetchResult, isInitiatedByUser: boolean): void {
     this.options.logger.debug("config fetched");
+    this.options.hooks.emit("configFetched", RefreshResult.from(fetchResult), isInitiatedByUser);
   }
 
   protected onConfigChanged(newConfig: ProjectConfig): void {

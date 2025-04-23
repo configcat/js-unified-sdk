@@ -32,7 +32,7 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
     if (cachedConfig.isExpired(this.cacheTimeToLiveMs)) {
       if (!this.isOffline) {
         logExpired(this.options.logger, ", calling refreshConfigCoreAsync()");
-        [, cachedConfig] = await this.refreshConfigCoreAsync(cachedConfig);
+        [, cachedConfig] = await this.refreshConfigCoreAsync(cachedConfig, false);
       } else {
         logExpired(this.options.logger);
       }

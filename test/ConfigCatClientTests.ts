@@ -1355,17 +1355,20 @@ describe("ConfigCatClient", () => {
   for (const addListenersViaOptions of [false, true]) {
     it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of`, async () => {
       let clientReadyEventCount = 0;
+      const configFetchedEvents: [RefreshResult, boolean][] = [];
       const configChangedEvents: IConfig[] = [];
       const flagEvaluatedEvents: IEvaluationDetails[] = [];
       const errorEvents: [string, any][] = [];
 
       const handleClientReady = () => clientReadyEventCount++;
+      const handleConfigFetched = (result: RefreshResult, isInitiatedByUser: boolean) => configFetchedEvents.push([result, isInitiatedByUser]);
       const handleConfigChanged = (pc: IConfig) => configChangedEvents.push(pc);
       const handleFlagEvaluated = (ed: IEvaluationDetails) => flagEvaluatedEvents.push(ed);
       const handleClientError = (msg: string, err: any) => errorEvents.push([msg, err]);
 
       function setupHooks(hooks: IProvidesHooks) {
         hooks.on("clientReady", handleClientReady);
+        hooks.on("configFetched", handleConfigFetched);
         hooks.on("configChanged", handleConfigChanged);
         hooks.on("flagEvaluated", handleFlagEvaluated);
         hooks.on("clientError", handleClientError);
@@ -1391,6 +1394,7 @@ describe("ConfigCatClient", () => {
 
       assert.equal(state, ClientCacheState.NoFlagData);
       assert.equal(clientReadyEventCount, 1);
+      assert.equal(configFetchedEvents.length, 0);
       assert.equal(configChangedEvents.length, 0);
       assert.equal(flagEvaluatedEvents.length, 0);
       assert.equal(errorEvents.length, 0);
@@ -1410,6 +1414,7 @@ describe("ConfigCatClient", () => {
 
       await client.forceRefreshAsync();
 
+      assert.equal(configFetchedEvents.length, 0);
       assert.equal(configChangedEvents.length, 0);
       assert.equal(errorEvents.length, 1);
       const [actualErrorMessage, actualErrorException] = errorEvents[0];
@@ -1422,6 +1427,10 @@ describe("ConfigCatClient", () => {
       await client.forceRefreshAsync();
       const cachedPc = await configCache.get("");
 
+      assert.equal(configFetchedEvents.length, 1);
+      const [refreshResult, isInitiatedByUser] = configFetchedEvents[0];
+      assert.isTrue(isInitiatedByUser);
+      assert.isTrue(refreshResult.isSuccess);
       assert.equal(configChangedEvents.length, 1);
       assert.strictEqual(configChangedEvents[0], cachedPc.config);
 
@@ -1438,6 +1447,7 @@ describe("ConfigCatClient", () => {
       // 5. Client gets disposed
       client.dispose();
 
+      assert.equal(configFetchedEvents.length, 1);
       assert.equal(clientReadyEventCount, 1);
       assert.equal(configChangedEvents.length, 1);
       assert.equal(evaluationDetails.length, flagEvaluatedEvents.length);
