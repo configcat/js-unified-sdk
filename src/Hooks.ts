@@ -19,7 +19,10 @@ export type HookEvents = {
   clientReady: [cacheState: ClientCacheState];
   /** Occurs after the value of a feature flag of setting has been evaluated. */
   flagEvaluated: [evaluationDetails: IEvaluationDetails];
-  /** Occurs after the locally cached config has been updated. */
+  /**
+   * Occurs after the locally cached config has been updated to a newer version, either as a result of synchronization
+   * with the external cache, or as a result of fetching a newer version from the remote server.
+   */
   configChanged: [newConfig: IConfig];
   /** Occurs in the case of a failure in the client. */
   clientError: [message: string, exception?: any];
