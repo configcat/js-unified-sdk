@@ -3,6 +3,7 @@ import * as mockttp from "mockttp";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel } from "#lib";
+import { getMonotonicTimeMs } from "#lib/Utils";
 
 // If the tests are failing with strange https or proxy errors, it is most likely that the local .key and .pem files are expired.
 // You can regenerate them anytime (./test/cert/regenerate.md).
@@ -31,9 +32,9 @@ describe("HTTP tests", () => {
       baseUrl: server.url,
       logger,
     });
-    const startTime = new Date().getTime();
+    const startTime = getMonotonicTimeMs();
     await client.forceRefreshAsync();
-    const duration = new Date().getTime() - startTime;
+    const duration = getMonotonicTimeMs() - startTime;
     assert.isTrue(duration > 1000 && duration < 2000);
 
     const defaultValue = "NOT_CAT";
