@@ -1,8 +1,11 @@
+import type { CacheSyncResult } from "./ConfigCatCache";
+import { ExternalConfigCache } from "./ConfigCatCache";
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
 import { FetchError, FetchResult, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import { Config, ProjectConfig } from "./ProjectConfig";
+import { isPromiseLike } from "./Utils";
 
 /** Contains the result of an `IConfigCatClient.forceRefresh` or `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
@@ -71,10 +74,16 @@ function nameOfConfigServiceStatus(value: ConfigServiceStatus): string {
   return ConfigServiceStatus[value] as string;
 }
 
+type ConfigRefreshOperation = {
+  promise: Promise<[FetchResult, ProjectConfig]>;
+  latestConfig: ProjectConfig;
+};
+
 export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   private status: ConfigServiceStatus;
 
-  private pendingFetch: Promise<FetchResult> | null = null;
+  private pendingCacheSyncUp: Promise<ProjectConfig> | null = null;
+  private pendingConfigRefresh: ConfigRefreshOperation | null = null;
 
   protected readonly cacheKey: string;
 
@@ -102,40 +111,75 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   abstract getConfig(): Promise<ProjectConfig>;
 
   async refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
-    const latestConfig = await this.options.cache.get(this.cacheKey);
+    const latestConfig = await this.syncUpWithCache();
     if (!this.isOffline) {
-      const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig);
+      const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig, true);
       return [RefreshResult.from(fetchResult), config];
+    } else if (this.options.cache instanceof ExternalConfigCache) {
+      return [RefreshResult.success(), latestConfig];
     } else {
       const errorMessage = this.options.logger.configServiceCannotInitiateHttpCalls().toString();
       return [RefreshResult.failure(errorMessage), latestConfig];
     }
   }
 
-  protected async refreshConfigCoreAsync(latestConfig: ProjectConfig): Promise<[FetchResult, ProjectConfig]> {
-    const fetchResult = await this.fetchAsync(latestConfig);
+  protected async refreshConfigCoreAsync(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult, ProjectConfig]> {
+    let refreshOperation = this.pendingConfigRefresh;
 
-    let configChanged = false;
-    const success = fetchResult.status === FetchStatus.Fetched;
-    if (success
-        || fetchResult.config.timestamp > latestConfig.timestamp && (!fetchResult.config.isEmpty || latestConfig.isEmpty)) {
-      await this.options.cache.set(this.cacheKey, fetchResult.config);
-
-      configChanged = success && !ProjectConfig.equals(fetchResult.config, latestConfig);
-      latestConfig = fetchResult.config;
+    if (refreshOperation) {
+      const { promise, latestConfig: knownLatestConfig } = refreshOperation;
+      if (latestConfig.timestamp > knownLatestConfig.timestamp && (!latestConfig.isEmpty || knownLatestConfig.isEmpty)) {
+        refreshOperation.latestConfig = latestConfig;
+      }
+      return promise;
     }
 
-    this.onConfigFetched(fetchResult.config);
+    refreshOperation = { latestConfig } as ConfigRefreshOperation;
+    refreshOperation.promise = (async (refreshOperation: ConfigRefreshOperation) => {
+      const fetchResult = await this.fetchAsync(refreshOperation.latestConfig);
 
-    if (configChanged) {
-      this.onConfigChanged(fetchResult.config);
-    }
+      // NOTE: Further joiners may obtain more up-to-date configs from the external cache, and update
+      // operation.latestConfig before the operation completes, but those updates will be ignored.
+      // In other words, the operation may not return the most recent config obtained during its execution.
+      // However, this is acceptable, especially if we consider that reading and writing the external cache is
+      // not synchronized, which means that a more recent config can be overwritten with a stale one.
+      // (We don't make any effort to synchronize external cache access as that would be extremely hard,
+      // and we expect the "stuttering" resulting from this race condition to be temporary only.)
+      let { latestConfig } = refreshOperation;
 
-    return [fetchResult, latestConfig];
+      const success = fetchResult.status === FetchStatus.Fetched;
+      if (success
+          || fetchResult.config.timestamp > latestConfig.timestamp && (!fetchResult.config.isEmpty || latestConfig.isEmpty)) {
+        await this.options.cache.set(this.cacheKey, fetchResult.config);
+
+        latestConfig = fetchResult.config;
+      }
+
+      return [fetchResult, latestConfig];
+    })(refreshOperation);
+
+    const refreshAndFinish = refreshOperation.promise
+      .finally(() => this.pendingConfigRefresh = null)
+      .then(refreshResult => {
+        const [fetchResult] = refreshResult;
+
+        this.onConfigFetched(fetchResult, isInitiatedByUser);
+
+        if (fetchResult.status === FetchStatus.Fetched) {
+          this.onConfigChanged(fetchResult.config);
+        }
+
+        return refreshResult;
+      });
+
+    this.pendingConfigRefresh = refreshOperation;
+
+    return refreshAndFinish;
   }
 
-  protected onConfigFetched(newConfig: ProjectConfig): void {
+  protected onConfigFetched(fetchResult: FetchResult, isInitiatedByUser: boolean): void {
     this.options.logger.debug("config fetched");
+    this.options.hooks.emit("configFetched", RefreshResult.from(fetchResult), isInitiatedByUser);
   }
 
   protected onConfigChanged(newConfig: ProjectConfig): void {
@@ -143,19 +187,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     this.options.hooks.emit("configChanged", newConfig.config ?? new Config({}));
   }
 
-  private fetchAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
-    return this.pendingFetch ??= (async () => {
-      try {
-        return await this.fetchLogicAsync(lastConfig);
-      } finally {
-        this.pendingFetch = null;
-      }
-    })();
-  }
-
-  private async fetchLogicAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
+  private async fetchAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchLogicAsync() - called.");
+    options.logger.debug("ConfigServiceBase.fetchLogicAsync() called.");
 
     let errorMessage: string;
     try {
@@ -207,7 +241,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   private async fetchRequestAsync(lastETag: string | null, maxRetryCount = 2): Promise<[IFetchResponse, (Config | any)?]> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchRequestAsync() - called.");
+    options.logger.debug("ConfigServiceBase.fetchRequestAsync() called.");
 
     for (let retryNumber = 0; ; retryNumber++) {
       options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}`);
@@ -278,11 +312,11 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return this.status !== ConfigServiceStatus.Online;
   }
 
-  protected setOnlineCore(): void { /* Intentionally empty. */ }
+  protected goOnline(): void { /* Intentionally empty. */ }
 
   setOnline(): void {
     if (this.status === ConfigServiceStatus.Offline) {
-      this.setOnlineCore();
+      this.goOnline();
       this.status = ConfigServiceStatus.Online;
       this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
     } else if (this.disposed) {
@@ -290,11 +324,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
   }
 
-  protected setOfflineCore(): void { /* Intentionally empty. */ }
-
   setOffline(): void {
     if (this.status === ConfigServiceStatus.Online) {
-      this.setOfflineCore();
       this.status = ConfigServiceStatus.Offline;
       this.options.logger.configServiceStatusChanged(nameOfConfigServiceStatus(this.status));
     } else if (this.disposed) {
@@ -305,12 +336,45 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   abstract getCacheState(cachedConfig: ProjectConfig): ClientCacheState;
 
   protected syncUpWithCache(): ProjectConfig | Promise<ProjectConfig> {
-    return this.options.cache.get(this.cacheKey);
+    if (this.pendingCacheSyncUp) {
+      return this.pendingCacheSyncUp;
+    }
+
+    const syncResult = this.options.cache.get(this.cacheKey);
+    if (!isPromiseLike(syncResult)) {
+      return this.onCacheSynced(syncResult);
+    }
+
+    const syncUpAndFinish = syncResult
+      .finally(() => this.pendingCacheSyncUp = null)
+      .then(syncResult => this.onCacheSynced(syncResult));
+
+    this.pendingCacheSyncUp = syncResult
+      .then(syncResult => !Array.isArray(syncResult) ? syncResult : syncResult[0]);
+
+    return syncUpAndFinish;
   }
 
-  protected async getReadyPromise<TState>(state: TState, waitForReadyAsync: (state: TState) => Promise<ClientCacheState>): Promise<ClientCacheState> {
-    const cacheState = await waitForReadyAsync(state);
-    this.options.hooks.emit("clientReady", cacheState);
-    return cacheState;
+  private onCacheSynced(syncResult: CacheSyncResult): ProjectConfig {
+    if (!Array.isArray(syncResult)) {
+      return syncResult;
+    }
+
+    const [newConfig] = syncResult;
+    if (!newConfig.isEmpty) {
+      this.onConfigChanged(newConfig);
+    }
+    return newConfig;
+  }
+
+  protected async waitForReadyAsync(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig>): Promise<ClientCacheState> {
+    return this.getCacheState(await initialCacheSyncUp);
+  }
+
+  protected getReadyPromise(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig>): Promise<ClientCacheState> {
+    return this.waitForReadyAsync(initialCacheSyncUp).then(cacheState => {
+      this.options.hooks.emit("clientReady", cacheState);
+      return cacheState;
+    });
   }
 }

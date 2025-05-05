@@ -17,7 +17,7 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
     this.cacheTimeToLiveMs = options.cacheTimeToLiveSeconds * 1000;
 
     const initialCacheSyncUp = this.syncUpWithCache();
-    this.readyPromise = this.getReadyPromise(initialCacheSyncUp, async initialCacheSyncUp => this.getCacheState(await initialCacheSyncUp));
+    this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
   }
 
   async getConfig(): Promise<ProjectConfig> {
@@ -27,12 +27,12 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
       logger.debug(`LazyLoadConfigService.getConfig(): cache is empty or expired${appendix}.`);
     }
 
-    let cachedConfig = await this.options.cache.get(this.cacheKey);
+    let cachedConfig = await this.syncUpWithCache();
 
     if (cachedConfig.isExpired(this.cacheTimeToLiveMs)) {
       if (!this.isOffline) {
         logExpired(this.options.logger, ", calling refreshConfigCoreAsync()");
-        [, cachedConfig] = await this.refreshConfigCoreAsync(cachedConfig);
+        [, cachedConfig] = await this.refreshConfigCoreAsync(cachedConfig, false);
       } else {
         logExpired(this.options.logger);
       }
