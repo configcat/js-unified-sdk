@@ -73,6 +73,16 @@ export function toMessage(logMessage: LogMessage): Message {
       ?? new LazyString(logMessage, logMessage => logMessage.defaultFormattedMessage);
 }
 
+/**
+ * Represents a method that is called by the SDK to decide whether a log event should be logged.
+ * @param level Event severity level.
+ * @param eventId Event identifier.
+ * @param message Message.
+ * @param exception The exception object related to the message (if any).
+ * @returns `true` when the event should be logged, `false` when it should be skipped.
+ */
+export type LogFilterCallback = (level: LogLevel, eventId: LogEventId, message: LogMessage, exception?: any) => boolean;
+
 /** Defines the interface used by the ConfigCat SDK to perform logging. */
 export interface IConfigCatLogger {
   /** Gets the log level (the minimum level to use for filtering log events). */
@@ -102,6 +112,7 @@ export class LoggerWrapper implements IConfigCatLogger {
 
   constructor(
     private readonly logger: IConfigCatLogger,
+    private readonly filter?: LogFilterCallback,
     private readonly hooks?: SafeHooksWrapper) {
   }
 
@@ -111,7 +122,8 @@ export class LoggerWrapper implements IConfigCatLogger {
 
   /** @inheritdoc */
   log(level: LogLevel, eventId: LogEventId, message: LogMessage, exception?: any): LogMessage {
-    if (this.isEnabled(level)) {
+    if (this.isEnabled(level)
+        && (!this.filter || this.filter(level, eventId, message, exception))) {
       this.logger.log(level, eventId, message, exception);
     }
 
