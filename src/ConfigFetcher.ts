@@ -1,5 +1,6 @@
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { ProjectConfig } from "./ProjectConfig";
+import type { Message } from "./Utils";
 
 export const enum FetchStatus {
   Fetched = 0,
@@ -11,7 +12,7 @@ export class FetchResult {
   private constructor(
     public status: FetchStatus,
     public config: ProjectConfig,
-    public errorMessage?: string,
+    public errorMessage?: Message,
     public errorException?: any) {
   }
 
@@ -23,7 +24,7 @@ export class FetchResult {
     return new FetchResult(FetchStatus.NotModified, config);
   }
 
-  static error(config: ProjectConfig, errorMessage?: string, errorException?: any): FetchResult {
+  static error(config: ProjectConfig, errorMessage?: Message, errorException?: any): FetchResult {
     return new FetchResult(FetchStatus.Errored, config, errorMessage ?? "Unknown error.", errorException);
   }
 }

@@ -2,7 +2,7 @@ import { assert, expect } from "chai";
 import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeExternalCache } from "./helpers/fakes";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { OptionsBase } from "#lib/ConfigCatClientOptions";
-import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
+import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogFilterCallback, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
 import { ProjectConfig } from "#lib/ProjectConfig";
 
 describe("Options", () => {
@@ -298,6 +298,21 @@ describe("Options", () => {
 
     assert.isDefined(options.cache);
     assert.instanceOf(options.cache, InMemoryConfigCache);
+  });
+
+  it("Options initialization With NULL 'options.logFilter' should not set the log filter", () => {
+
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", { logFilter: null }, null);
+    assert.isDefined(options.logger);
+    assert.isUndefined(options.logger["filter"]);
+  });
+
+  it("Options initialization with defined 'options.logFilter' should set the log filter", () => {
+
+    const logFilter: LogFilterCallback = () => true;
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", { logFilter }, null);
+    assert.isDefined(options.logger);
+    assert.strictEqual(logFilter, options.logger["filter"]);
   });
 
   it("AutoPollOptions initialization - sdkVersion works", () => {
