@@ -15,7 +15,7 @@ import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
 import { Config, IConfig, ProjectConfig, SettingValue, SettingValueContainer } from "#lib/ProjectConfig";
 import { EvaluateContext, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
-import { delay } from "#lib/Utils";
+import { delay, Message } from "#lib/Utils";
 import "./helpers/ConfigCatClientCacheExtensions";
 
 describe("ConfigCatClient", () => {
@@ -393,7 +393,7 @@ describe("ConfigCatClient", () => {
     const flagEvaluatedEvents: IEvaluationDetails[] = [];
     const errorEvents: [string, any][] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
-    client.on("clientError", (msg: string, err: any) => errorEvents.push([msg, err]));
+    client.on("clientError", (msg: Message, err: any) => errorEvents.push([msg.toString(), err]));
 
     // Act
 
@@ -500,7 +500,7 @@ describe("ConfigCatClient", () => {
     const flagEvaluatedEvents: IEvaluationDetails[] = [];
     const errorEvents: [string, any][] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
-    client.on("clientError", (msg: string, err: any) => errorEvents.push([msg, err]));
+    client.on("clientError", (msg: Message, err: any) => errorEvents.push([msg.toString(), err]));
 
     // Act
 
@@ -1271,7 +1271,7 @@ describe("ConfigCatClient", () => {
       assert.isTrue(etag2 > etag1);
 
       assert.isTrue(refreshResult.isSuccess);
-      assert.isNull(refreshResult.errorMessage);
+      assert.isUndefined(refreshResult.errorMessage);
       assert.isUndefined(refreshResult.errorException);
 
       // 5. Checks that setOnline() has no effect after client gets disposed
@@ -1361,7 +1361,7 @@ describe("ConfigCatClient", () => {
       const handleClientReady = () => clientReadyEventCount++;
       const handleConfigChanged = (pc: IConfig) => configChangedEvents.push(pc);
       const handleFlagEvaluated = (ed: IEvaluationDetails) => flagEvaluatedEvents.push(ed);
-      const handleClientError = (msg: string, err: any) => errorEvents.push([msg, err]);
+      const handleClientError = (msg: Message, err: any) => errorEvents.push([msg.toString(), err]);
 
       function setupHooks(hooks: IProvidesHooks) {
         hooks.on("clientReady", handleClientReady);

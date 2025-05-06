@@ -43,3 +43,5 @@ export { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 export type { HookEvents, IProvidesHooks } from "./Hooks";
 
 export { ConfigJson } from "./ProjectConfig";
+
+export type { Message } from "./Utils";

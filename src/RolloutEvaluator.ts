@@ -1,5 +1,5 @@
-import type { LoggerWrapper } from "./ConfigCatLogger";
-import { LogLevel } from "./ConfigCatLogger";
+import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
+import { LogLevel, toMessage } from "./ConfigCatLogger";
 import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
@@ -9,7 +9,8 @@ import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue } from "./User";
 import { getUserAttribute, getUserAttributes } from "./User";
-import { errorToString, formatStringList, isArray, isStringArray, parseFloatStrict, utf8Encode } from "./Utils";
+import type { Message } from "./Utils";
+import { errorToString, formatStringList, isArray, isStringArray, LazyString, parseFloatStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private $visitedFlags?: string[];
@@ -315,7 +316,8 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     const userAttributeName = condition.comparisonAttribute;
     const userAttributeValue = getUserAttribute(context.user, userAttributeName);
     if (userAttributeValue == null || userAttributeValue === "") { // besides null and undefined, empty string is considered missing value as well
-      this.logger.userObjectAttributeIsMissingCondition(formatUserCondition(condition), context.key, userAttributeName);
+      const conditionString = new LazyString(condition, condition => formatUserCondition(condition));
+      this.logger.userObjectAttributeIsMissingCondition(conditionString, context.key, userAttributeName);
       return missingUserAttributeError(userAttributeName);
     }
 
@@ -736,7 +738,8 @@ function getUserAttributeValueAsText(attributeName: string, attributeValue: User
   }
 
   attributeValue = userAttributeValueToString(attributeValue);
-  logger.userObjectAttributeIsAutoConverted(formatUserCondition(condition), key, attributeName, attributeValue);
+  const conditionString = new LazyString(condition, condition => formatUserCondition(condition));
+  logger.userObjectAttributeIsAutoConverted(conditionString, key, attributeName, attributeValue);
   return attributeValue;
 }
 
@@ -797,7 +800,8 @@ function getUserAttributeValueAsStringArray(attributeName: string, attributeValu
 }
 
 function handleInvalidUserAttribute(logger: LoggerWrapper, condition: UserConditionUnion, key: string, attributeName: string, reason: string) {
-  logger.userObjectAttributeIsInvalid(formatUserCondition(condition), key, reason, attributeName);
+  const conditionString = new LazyString(condition, condition => formatUserCondition(condition));
+  logger.userObjectAttributeIsInvalid(conditionString, key, reason, attributeName);
   return invalidUserAttributeError(attributeName, reason);
 }
 
@@ -865,33 +869,38 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
 }
 
 export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
-  fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any
+  fetchTime?: Date, user?: IUser, errorMessage?: Message, errorException?: any
 ): IEvaluationDetails<SettingTypeOf<T>> {
-  return {
+  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { $errorMessage?: Message } = {
     key,
     value: defaultValue as SettingTypeOf<T>,
     fetchTime,
     user,
     isDefaultValue: true,
-    errorMessage,
+    get errorMessage() { return this.$errorMessage?.toString(); },
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     errorException,
   };
+  if (errorMessage != null) {
+    evaluationDetails.$errorMessage = errorMessage;
+  }
+  return evaluationDetails;
 }
 
 export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: Readonly<{ [key: string]: Setting }> | null, key: string, defaultValue: T,
   user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper): IEvaluationDetails<SettingTypeOf<T>> {
 
-  let errorMessage: string;
+  let errorMessage: LogMessage;
   if (!settings) {
-    errorMessage = logger.configJsonIsNotPresentSingle(key, "defaultValue", defaultValue).toString();
-    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorMessage);
+    errorMessage = logger.configJsonIsNotPresentSingle(key, "defaultValue", defaultValue);
+    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, toMessage(errorMessage));
   }
 
   const setting = settings[key];
   if (!setting) {
-    errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, formatStringList(Object.keys(settings))).toString();
-    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorMessage);
+    const availableKeys = new LazyString(settings, settings => formatStringList(Object.keys(settings)));
+    errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, availableKeys);
+    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, toMessage(errorMessage));
   }
 
   const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, setting, user, settings));

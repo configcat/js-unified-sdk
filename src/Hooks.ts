@@ -3,6 +3,7 @@ import type { IEventEmitter, IEventProvider } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { IConfig } from "./ProjectConfig";
 import type { IEvaluationDetails } from "./RolloutEvaluator";
+import type { Message } from "./Utils";
 
 /** Hooks (events) that can be emitted by `ConfigCatClient`. */
 export type HookEvents = {
@@ -13,7 +14,7 @@ export type HookEvents = {
   /** Occurs after the locally cached config has been updated. */
   configChanged: [newConfig: IConfig];
   /** Occurs in the case of a failure in the client. */
-  clientError: [message: string, exception?: any];
+  clientError: [message: Message, exception?: any];
 };
 
 /** Defines hooks (events) for providing notifications of `ConfigCatClient`'s actions. */

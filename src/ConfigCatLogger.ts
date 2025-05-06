@@ -1,5 +1,6 @@
 import type { SafeHooksWrapper } from "./Hooks";
-import { errorToString } from "./Utils";
+import type { Message } from "./Utils";
+import { errorToString, LazyString } from "./Utils";
 
 /**
  * Specifies event severity levels for the `IConfigCatLogger` interface.
@@ -64,6 +65,14 @@ export class FormattableLogMessage {
 
 export type LogMessage = string | FormattableLogMessage;
 
+export function toMessage(logMessage: LogMessage): Message {
+  if (typeof logMessage === "string") {
+    return logMessage;
+  }
+  return logMessage["cachedDefaultFormattedMessage"]
+      ?? new LazyString(logMessage, logMessage => logMessage.defaultFormattedMessage);
+}
+
 /** Defines the interface used by the ConfigCat SDK to perform logging. */
 export interface IConfigCatLogger {
   /** Gets the log level (the minimum level to use for filtering log events). */
@@ -107,7 +116,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     }
 
     if (level === LogLevel.Error) {
-      this.hooks?.emit("clientError", message.toString(), exception);
+      this.hooks?.emit("clientError", toMessage(message), exception);
     }
 
     return message;
@@ -140,7 +149,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  settingEvaluationFailedDueToMissingKey(key: string, defaultParamName: string, defaultParamValue: unknown, availableKeys: string): LogMessage {
+  settingEvaluationFailedDueToMissingKey(key: string, defaultParamName: string, defaultParamValue: unknown, availableKeys: LazyString): LogMessage {
     return this.log(
       LogLevel.Error, 1001,
       FormattableLogMessage.from(
@@ -305,7 +314,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  userObjectAttributeIsMissingCondition(condition: string, key: string, attributeName: string): LogMessage {
+  userObjectAttributeIsMissingCondition(condition: LazyString, key: string, attributeName: string): LogMessage {
     return this.log(
       LogLevel.Warn, 3003,
       FormattableLogMessage.from(
@@ -314,7 +323,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  userObjectAttributeIsInvalid(condition: string, key: string, reason: string, attributeName: string): LogMessage {
+  userObjectAttributeIsInvalid(condition: LazyString, key: string, reason: string, attributeName: string): LogMessage {
     return this.log(
       LogLevel.Warn, 3004,
       FormattableLogMessage.from(
@@ -323,7 +332,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  userObjectAttributeIsAutoConverted(condition: string, key: string, attributeName: string, attributeValue: string): LogMessage {
+  userObjectAttributeIsAutoConverted(condition: LazyString, key: string, attributeName: string, attributeValue: string): LogMessage {
     return this.log(
       LogLevel.Warn,
       3005,
