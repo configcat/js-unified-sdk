@@ -1,5 +1,6 @@
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { ProjectConfig } from "./ProjectConfig";
+import { ensurePrototype } from "./Utils";
 
 export const enum FetchStatus {
   Fetched = 0,
@@ -42,7 +43,8 @@ export type FetchErrorCauses = {
 };
 
 export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchErrorCauses> extends Error {
-  args: FetchErrorCauses[TCause];
+  readonly name = FetchError.name;
+  readonly args: FetchErrorCauses[TCause];
 
   constructor(public cause: TCause, ...args: FetchErrorCauses[TCause]) {
     super(((cause: TCause, args: FetchErrorCauses[TCause]): string | undefined => {
@@ -62,14 +64,7 @@ export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchError
       }
     })(cause, args));
 
-    // NOTE: due to a known issue in the TS compiler, instanceof is broken when subclassing Error and targeting ES5 or earlier
-    // (see https://github.com/microsoft/TypeScript/issues/13965).
-    // Thus, we need to manually fix the prototype chain as recommended in the TS docs
-    // (see https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work)
-    if (!(this instanceof FetchError)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (Object.setPrototypeOf || ((o, proto) => o["__proto__"] = proto))(this, FetchError.prototype);
-    }
+    ensurePrototype(this, FetchError);
     this.args = args;
   }
 }

@@ -30,6 +30,8 @@ export type { IConfigCatClient, IConfigCatClientSnapshot, SettingKeyValue } from
 
 export type { IEvaluationDetails, SettingTypeOf } from "./RolloutEvaluator";
 
+export { EvaluationErrorCode } from "./RolloutEvaluator";
+
 export type { IUser, UserAttributeValue } from "./User";
 
 export { User } from "./User";
