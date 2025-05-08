@@ -55,8 +55,7 @@ export class CdnConfigLocation extends ConfigLocation {
   }
 
   async fetchConfigAsync(): Promise<Config> {
-    const configFetcher = platform().createConfigFetcher();
-    const configService = new ManualPollConfigService(configFetcher, this.options);
+    const configService = new ManualPollConfigService(this.options);
 
     const [fetchResult, projectConfig] = await configService.refreshConfigAsync();
     if (!fetchResult.isSuccess) {

@@ -4,7 +4,7 @@ import { getClient } from "#lib/browser";
 import { LocalStorageConfigCache } from "#lib/browser/LocalStorageConfigCache";
 import { XmlHttpRequestConfigFetcher } from "#lib/browser/XmlHttpRequestConfigFetcher";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
-import type { IConfigCatKernel } from "#lib/index.pubternals";
+import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
 import sdkVersion from "#lib/Version";
 
 const sdkType = "ConfigCat-UnifiedJS-Browser";
@@ -35,10 +35,15 @@ class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManual
     });
   }
 
-  createConfigFetcher(options?: IJSOptions) { return new XmlHttpRequestConfigFetcher(); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return XmlHttpRequestConfigFetcher.getFactory()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+    const kernel: IConfigCatKernel = {
+      sdkType,
+      sdkVersion,
+      eventEmitterFactory: () => new DefaultEventEmitter(),
+      configFetcherFactory: o => this.createConfigFetcher(o, options),
+    };
     setupKernel ??= kernel => {
       kernel.defaultCacheFactory = LocalStorageConfigCache.tryGetFactory();
       return kernel;

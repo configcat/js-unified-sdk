@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
 import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeExternalCache } from "./helpers/fakes";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
-import { OptionsBase } from "#lib/ConfigCatClientOptions";
+import { IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogFilterCallback, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
 import { ProjectConfig } from "#lib/ProjectConfig";
 
@@ -13,7 +13,7 @@ describe("Options", () => {
     }).to.throw("Invalid 'requestTimeoutMs' value");
   });
 
-  it("ManualPollOptions initialization With NULL 'defaultCache' Should init with InMemoryCache", () => {
+  it("ManualPollOptions initialization With undefined 'defaultCacheFactory' Should init with InMemoryCache", () => {
     const options = createManualPollOptions("APIKEY");
 
     assert.isNotNull(options.cache);
@@ -143,7 +143,7 @@ describe("Options", () => {
     }).to.throw("Invalid 'pollIntervalSeconds' value");
   });
 
-  it("AutoPollOptions initialization With NULL 'defaultCache' Should set to InMemoryCache", () => {
+  it("AutoPollOptions initialization With undefined 'defaultCacheFactory' Should set to InMemoryCache", () => {
 
     const options = createAutoPollOptions("APIKEY");
 
@@ -252,7 +252,7 @@ describe("Options", () => {
     }).to.throw("Invalid 'requestTimeoutMs' value");
   });
 
-  it("LazyLoadOptions initialization With NULL 'defaultCache' Should set to InMemoryCache", () => {
+  it("LazyLoadOptions initialization With undefined 'defaultCacheFactory' Should set to InMemoryCache", () => {
     const options = createLazyLoadOptions("APIKEY");
 
     assert.isNotNull(options.cache);
@@ -268,25 +268,28 @@ describe("Options", () => {
     assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getRealUrl());
   });
 
-  it("Options initialization With 'defaultCache' Should set option cache to passed instance", () => {
+  it("Options initialization With 'defaultCacheFactory' Should set option cache to passed instance", () => {
 
-    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", {}, () => new FakeCache());
+    const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: () => null!, defaultCacheFactory: () => new FakeCache() };
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", kernel as unknown as IConfigCatKernel, "1.0", {});
 
     assert.instanceOf(options.cache, FakeCache);
     assert.notInstanceOf(options.cache, InMemoryConfigCache);
   });
 
-  it("Options initialization With 'options.cache' Should overwrite defaultCache", () => {
+  it("Options initialization With 'options.cache' Should overwrite 'defaultCacheFactory'", () => {
 
-    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", { cache: new FakeExternalCache() }, () => new InMemoryConfigCache());
+    const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: () => null!, defaultCacheFactory: () => new InMemoryConfigCache() };
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", kernel as unknown as IConfigCatKernel, "1.0", { cache: new FakeExternalCache() });
 
     assert.instanceOf(options.cache, ExternalConfigCache);
     assert.notInstanceOf(options.cache, InMemoryConfigCache);
   });
 
-  it("Options initialization With NULL 'cache' Should set InMemoryCache", () => {
+  it("Options initialization With undefined 'defaultCacheFactory' Should set InMemoryCache", () => {
 
-    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", {}, null);
+    const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: () => null! };
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", kernel as unknown as IConfigCatKernel, "1.0", {});
 
     assert.isDefined(options.cache);
     assert.instanceOf(options.cache, InMemoryConfigCache);
@@ -294,7 +297,8 @@ describe("Options", () => {
 
   it("Options initialization With NULL 'options.cache' Should set InMemoryCache", () => {
 
-    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", { cache: null }, null);
+    const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: () => null! };
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", kernel as unknown as IConfigCatKernel, "1.0", { cache: null });
 
     assert.isDefined(options.cache);
     assert.instanceOf(options.cache, InMemoryConfigCache);
@@ -302,15 +306,17 @@ describe("Options", () => {
 
   it("Options initialization With NULL 'options.logFilter' should not set the log filter", () => {
 
-    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", { logFilter: null }, null);
+    const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: () => null! };
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", kernel as unknown as IConfigCatKernel, "1.0", { logFilter: null });
     assert.isDefined(options.logger);
     assert.isUndefined(options.logger["filter"]);
   });
 
   it("Options initialization with defined 'options.logFilter' should set the log filter", () => {
 
+    const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: () => null! };
     const logFilter: LogFilterCallback = () => true;
-    const options: OptionsBase = new FakeOptionsBase("APIKEY", "1.0", { logFilter }, null);
+    const options: OptionsBase = new FakeOptionsBase("APIKEY", kernel as unknown as IConfigCatKernel, "1.0", { logFilter });
     assert.isDefined(options.logger);
     assert.strictEqual(logFilter, options.logger["filter"]);
   });

@@ -3,34 +3,46 @@ import * as https from "https";
 import * as tunnel from "tunnel";
 import { URL } from "url";
 import type { OptionsBase } from "../ConfigCatClientOptions";
+import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
-import type { IConfigFetcher, IFetchResponse } from "../ConfigFetcher";
-import { FetchError } from "../ConfigFetcher";
+import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import { FetchError, FetchResponse } from "../ConfigFetcher";
 
 export interface INodeHttpConfigFetcherOptions {
   /** Proxy settings. */
   proxy?: string | null;
 }
 
-export class NodeHttpConfigFetcher implements IConfigFetcher {
+export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
+  static getFactory(fetcherOptions?: INodeHttpConfigFetcherOptions): (options: OptionsBase) => IConfigCatConfigFetcher {
+    return options => {
+      const configFetcher = new NodeHttpConfigFetcher(fetcherOptions);
+      configFetcher.logger = options.logger;
+      return configFetcher;
+    };
+  }
+
+  private logger?: LoggerWrapper;
+
   private readonly proxy?: string | null;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
     this.proxy = options?.proxy;
   }
 
-  private handleResponse(response: http.IncomingMessage, resolve: (value: IFetchResponse) => void, reject: (reason?: any) => void) {
+  private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {
       const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
+      const headers = this.getResponseHeaders(response);
 
       if (statusCode === 200) {
-        const eTag = response.headers["etag"];
         const chunks: any[] = [];
         response
           .on("data", chunk => chunks.push(chunk))
           .on("end", () => {
             try {
-              resolve({ statusCode, reasonPhrase, eTag, body: Buffer.concat(chunks).toString() });
+              const body = Buffer.concat(chunks).toString();
+              resolve(new FetchResponse(statusCode, reasonPhrase, headers, body));
             } catch (err) {
               reject(err);
             }
@@ -40,19 +52,21 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
         // Consume response data to free up memory
         response.resume();
 
-        resolve({ statusCode, reasonPhrase });
+        resolve(new FetchResponse(statusCode, reasonPhrase, headers));
       }
     } catch (err) {
       reject(err);
     }
   }
 
-  fetchLogic(options: OptionsBase, lastEtag: string | null): Promise<IFetchResponse> {
-    return new Promise<IFetchResponse>((resolve, reject) => {
+  fetchAsync(request: FetchRequest): Promise<FetchResponse> {
+    return new Promise<FetchResponse>((resolve, reject) => {
       try {
-        options.logger.debug("HttpConfigFetcher.fetchLogic() called.");
-        const baseUrl = options.getUrl();
+        this.logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
+
+        const { url: baseUrl } = request;
         const isBaseUrlSecure = baseUrl.startsWith("https");
+
         let agent: http.Agent | undefined;
         if (this.proxy) {
           try {
@@ -72,30 +86,33 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
               },
             });
           } catch (err) {
-            options.logger.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to parse \`options.proxy\`: '${this.proxy}'.`, err);
+            this.logger?.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to parse \`options.proxy\`: '${this.proxy}'.`, err);
           }
         }
 
-        const headers: http.OutgoingHttpHeaders = {
-          "User-Agent": options.clientVersion,
-        };
-        if (lastEtag) {
-          headers["If-None-Match"] = lastEtag;
-        }
+        const { lastETag, timeoutMs } = request;
 
         const requestOptions: http.RequestOptions | https.RequestOptions = {
           agent,
-          headers,
-          timeout: options.requestTimeoutMs,
+          timeout: timeoutMs,
         };
-        options.logger.debug(JSON.stringify(requestOptions));
 
-        const request = (isBaseUrlSecure ? https : http).get(baseUrl, requestOptions, response => this.handleResponse(response, resolve, reject))
+        this.setRequestHeaders(requestOptions, request.headers);
+
+        if (lastETag) {
+          (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
+        }
+
+        if (this.logger?.isEnabled(LogLevel.Debug)) {
+          this.logger.debug("NodeHttpConfigFetcher.fetchAsync() requestOptions: " + JSON.stringify(requestOptions));
+        }
+
+        const clientRequest = (isBaseUrlSecure ? https : http).get(baseUrl, requestOptions, response => this.handleResponse(response, resolve, reject))
           .on("timeout", () => {
             try {
-              request.destroy();
+              clientRequest.destroy();
             } finally {
-              reject(new FetchError("timeout", options.requestTimeoutMs));
+              reject(new FetchError("timeout", timeoutMs));
             }
           })
           .on("error", err => {
@@ -107,5 +124,35 @@ export class NodeHttpConfigFetcher implements IConfigFetcher {
         reject(err);
       }
     });
+  }
+
+  private setRequestHeaders(requestOptions: { headers?: http.OutgoingHttpHeaders }, headers: ReadonlyArray<[string, string]>) {
+    if (headers.length) {
+      const currentHeaders = requestOptions.headers ??= {};
+      for (const [name, value] of headers) {
+        const currentValue = currentHeaders[name];
+        if (currentValue == null) {
+          currentHeaders[name] = value;
+        } else if (!Array.isArray(currentValue)) {
+          currentHeaders[name] = [currentValue + "", value];
+        } else {
+          currentValue.push(value);
+        }
+      }
+    }
+  }
+
+  private getResponseHeaders(httpResponse: http.IncomingMessage): [string, string][] {
+    const headers: [string, string][] = [];
+    extractHeader("etag", httpResponse, headers);
+    extractHeader("cf-ray", httpResponse, headers);
+    return headers;
+
+    function extractHeader(name: string, httpResponse: http.IncomingMessage, headers: [string, string][]) {
+      const value = httpResponse.headers[name];
+      if (value != null) {
+        headers.push([name, !Array.isArray(value) ? value : value[0]]);
+      }
+    }
   }
 }

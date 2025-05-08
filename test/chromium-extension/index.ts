@@ -3,7 +3,7 @@ import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } 
 import { getClient } from "#lib/chromium-extension";
 import { ChromeLocalStorageConfigCache } from "#lib/chromium-extension/ChromeLocalStorageConfigCache";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
-import type { IConfigCatKernel } from "#lib/index.pubternals";
+import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
 import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
 import sdkVersion from "#lib/Version";
 
@@ -23,10 +23,15 @@ class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions,
     }
   }
 
-  createConfigFetcher(options?: IJSOptions) { return new FetchApiConfigFetcher(); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return FetchApiConfigFetcher.getFactory()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+    const kernel: IConfigCatKernel = {
+      sdkType,
+      sdkVersion,
+      eventEmitterFactory: () => new DefaultEventEmitter(),
+      configFetcherFactory: o => this.createConfigFetcher(o, options),
+    };
     setupKernel ??= kernel => {
       kernel.defaultCacheFactory = ChromeLocalStorageConfigCache.tryGetFactory();
       return kernel;

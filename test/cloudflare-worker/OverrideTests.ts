@@ -12,7 +12,7 @@ declare const Request: typeof cloudflare.Request;
 describe("Flag Overrides (Cloudflare Workers)", () => {
   it("Values from query string - using request", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
     });
 
     const currentQueryString = "?cc-stringDefaultCat=OVERRIDE_CAT&stringDefaultDog=OVERRIDE_DOG";
@@ -31,7 +31,7 @@ describe("Flag Overrides (Cloudflare Workers)", () => {
 
   it("Values from query string - using custom query string provider", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
     });
 
     let currentQueryString = "?cc-stringDefaultCat=OVERRIDE_CAT&stringDefaultDog=OVERRIDE_DOG";

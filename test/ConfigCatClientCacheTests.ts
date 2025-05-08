@@ -11,15 +11,15 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
     // Act
 
-    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options, configCatKernel);
-    const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options, configCatKernel);
+    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options);
+    const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options);
 
     // Assert
 
@@ -49,7 +49,7 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options = createAutoPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
@@ -60,7 +60,7 @@ describe("ConfigCatClientCache", () => {
 
     await gc();
 
-    const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options, configCatKernel);
+    const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options);
 
     // Assert
 
@@ -81,12 +81,12 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
-    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options, configCatKernel);
+    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options);
 
     // Act
 
@@ -109,15 +109,15 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
-    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options, configCatKernel);
+    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options);
     cache.remove(sdkKey, client1["cacheToken"]);
 
-    const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options, configCatKernel);
+    const [client2, instanceAlreadyCreated2] = cache.getOrCreate(options);
 
     // Act
 
@@ -152,7 +152,7 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
@@ -180,12 +180,12 @@ describe("ConfigCatClientCache", () => {
 
     const sdkKey = "123";
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options = createManualPollOptions(sdkKey, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
-    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options, configCatKernel);
+    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options);
 
     // Act
 
@@ -217,13 +217,13 @@ describe("ConfigCatClientCache", () => {
     const sdkKey1 = "123";
     const sdkKey2 = "456";
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options1 = createManualPollOptions(sdkKey1, void 0, configCatKernel);
     const options2 = createManualPollOptions(sdkKey2, void 0, configCatKernel);
 
     const cache = new ConfigCatClientCache();
 
-    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options1, configCatKernel);
+    const [client1, instanceAlreadyCreated1] = cache.getOrCreate(options1);
     const [client2, instanceAlreadyCreated2, cacheCountBefore] = getOrCreateClientWeakRef(cache, options2, configCatKernel);
 
     await gc();
@@ -250,6 +250,6 @@ describe("ConfigCatClientCache", () => {
 });
 
 function getOrCreateClientWeakRef(cache: ConfigCatClientCache, options: any, configCatKernel: any): [WeakRef<ConfigCatClient>, boolean, number] {
-  const [client, instanceAlreadyCreated] = cache.getOrCreate(options, configCatKernel);
+  const [client, instanceAlreadyCreated] = cache.getOrCreate(options);
   return [new WeakRef(client), instanceAlreadyCreated, cache.getAliveCount()];
 }
