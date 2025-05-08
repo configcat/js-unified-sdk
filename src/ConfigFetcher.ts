@@ -1,4 +1,5 @@
 import type { OptionsBase } from "./ConfigCatClientOptions";
+import { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import { ensurePrototype } from "./Utils";
 
@@ -10,22 +11,23 @@ export const enum FetchStatus {
 
 export class FetchResult {
   private constructor(
-    public status: FetchStatus,
-    public config: ProjectConfig,
-    public errorMessage?: string,
-    public errorException?: any) {
+    readonly status: FetchStatus,
+    readonly config: ProjectConfig,
+    readonly errorCode: RefreshErrorCode,
+    readonly errorMessage?: string,
+    readonly errorException?: any) {
   }
 
   static success(config: ProjectConfig): FetchResult {
-    return new FetchResult(FetchStatus.Fetched, config);
+    return new FetchResult(FetchStatus.Fetched, config, RefreshErrorCode.None);
   }
 
   static notModified(config: ProjectConfig): FetchResult {
-    return new FetchResult(FetchStatus.NotModified, config);
+    return new FetchResult(FetchStatus.NotModified, config, RefreshErrorCode.None);
   }
 
-  static error(config: ProjectConfig, errorMessage?: string, errorException?: any): FetchResult {
-    return new FetchResult(FetchStatus.Errored, config, errorMessage ?? "Unknown error.", errorException);
+  static error(config: ProjectConfig, errorCode: RefreshErrorCode, errorMessage?: string, errorException?: any): FetchResult {
+    return new FetchResult(FetchStatus.Errored, config, errorCode, errorMessage ?? "Unknown error.", errorException);
   }
 }
 

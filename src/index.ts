@@ -40,7 +40,7 @@ export type { FlagOverrides } from "./FlagOverrides";
 
 export { OverrideBehaviour } from "./FlagOverrides";
 
-export { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
+export { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 
 export type { HookEvents, IProvidesHooks } from "./Hooks";
 

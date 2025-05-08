@@ -1,6 +1,6 @@
 import { assert, expect } from "chai";
 import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig } from "./helpers/fakes";
-import { SettingKeyValue } from "#lib";
+import { RefreshErrorCode, SettingKeyValue } from "#lib";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
@@ -375,6 +375,7 @@ describe("Local Overrides", () => {
     assert.isTrue(await client.getValueAsync("nonexisting", false));
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.LocalOnlyClient);
     expect(refreshResult.errorMessage).to.contain("LocalOnly");
     assert.isUndefined(refreshResult.errorException);
 

@@ -7,7 +7,7 @@ import { ConfigCatClient, IConfigCatClient, IConfigCatKernel } from "#lib/Config
 import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, IOptions, LazyLoadOptions, ManualPollOptions, OptionsBase, PollingMode } from "#lib/ConfigCatClientOptions";
 import { LogLevel } from "#lib/ConfigCatLogger";
 import { IFetchResponse } from "#lib/ConfigFetcher";
-import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshResult } from "#lib/ConfigServiceBase";
+import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshErrorCode, RefreshResult } from "#lib/ConfigServiceBase";
 import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
@@ -1319,7 +1319,7 @@ describe("ConfigCatClient", () => {
       assert.isTrue(etag2 > etag1);
 
       assert.isTrue(refreshResult.isSuccess);
-      assert.isNull(refreshResult.errorMessage);
+      assert.isUndefined(refreshResult.errorMessage);
       assert.isUndefined(refreshResult.errorException);
 
       // 5. Checks that setOnline() has no effect after client gets disposed
@@ -1388,6 +1388,7 @@ describe("ConfigCatClient", () => {
       assert.equal(etag1, ((await configService.getConfig()).httpETag ?? "0") as any | 0);
 
       assert.isFalse(refreshResult.isSuccess);
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.OfflineClient);
       expect(refreshResult.errorMessage).to.contain("offline mode");
       assert.isUndefined(refreshResult.errorException);
 
@@ -1506,6 +1507,7 @@ describe("ConfigCatClient", () => {
     const refreshResult = await client.forceRefreshAsync();
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestFailure);
     assert.isString(refreshResult.errorMessage);
     assert.strictEqual(refreshResult.errorException, errorException);
 
@@ -1537,6 +1539,7 @@ describe("ConfigCatClient", () => {
     const refreshResult = await client.forceRefreshAsync();
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedError);
     expect(refreshResult.errorMessage).to.include(errorMessage);
     assert.strictEqual(refreshResult.errorException, errorException);
 

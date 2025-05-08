@@ -5,7 +5,7 @@ import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode } from
 import type { LoggerWrapper } from "./ConfigCatLogger";
 import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService } from "./ConfigServiceBase";
-import { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
+import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
@@ -542,10 +542,11 @@ export class ConfigCatClient implements IConfigCatClient {
         return result;
       } catch (err) {
         this.options.logger.forceRefreshError("forceRefreshAsync", err);
-        return RefreshResult.failure(errorToString(err), err);
+        return RefreshResult.failure(RefreshErrorCode.UnexpectedError, errorToString(err), err);
       }
     } else {
-      return RefreshResult.failure("Client is configured to use the LocalOnly override behavior, which prevents making HTTP requests.");
+      return RefreshResult.failure(RefreshErrorCode.LocalOnlyClient,
+        "Client is configured to use the LocalOnly override behavior, which prevents making HTTP requests.");
     }
   }
 
