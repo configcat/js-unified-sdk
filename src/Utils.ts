@@ -46,14 +46,55 @@ export function delay(delayMs: number, abortToken?: AbortToken | null): Promise<
   });
 }
 
+/** Formats error in a similar way to Chromium-based browsers. */
 export function errorToString(err: any, includeStackTrace = false): string {
-  return err instanceof Error
-    ? includeStackTrace && err.stack ? err.stack : err.toString()
-    : err + "";
+  return err instanceof Error ? visit(err, "") : "" + err;
+
+  function visit(err: Error, indent: string, visited?: Error[]) {
+    const errString = err.toString();
+    let s = (!indent ? indent : indent.substring(4) + "--> ") + errString;
+    if (includeStackTrace && err.stack) {
+      let stack = err.stack.trim();
+      // NOTE: Some JS runtimes (e.g. V8) includes the error in the stack trace, some don't (e.g. SpiderMonkey).
+      if (stack.lastIndexOf(errString, 0) === 0) {
+        stack = stack.substring(errString.length).trim();
+      }
+      s += "\n" + stack.replace(/^\s*(?:at\s)?/gm, indent + "    at ");
+    }
+
+    if (typeof AggregateError !== "undefined" && err instanceof AggregateError) {
+      (visited ??= []).push(err);
+      for (const innerErr of err.errors) {
+        if (innerErr instanceof Error) {
+          if (visited.indexOf(innerErr) >= 0) {
+            continue;
+          }
+          s += "\n" + visit(innerErr, indent + "    ", visited);
+        } else {
+          s += "\n" + indent + innerErr;
+        }
+      }
+      visited.pop();
+    }
+
+    return s;
+  }
 }
 
 export function throwError(err: any): never {
   throw err;
+}
+
+export function ensurePrototype<T>(obj: T, ctor: new (...args: any[]) => T): void {
+  // NOTE: due to a known issue in the TS compiler, instanceof is broken when subclassing Error and targeting ES5 or earlier
+  // (see https://github.com/microsoft/TypeScript/issues/13965).
+  // Thus, we need to manually fix the prototype chain as recommended in the TS docs
+  // (see https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work)
+
+  if (!(obj instanceof ctor)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (Object.setPrototypeOf || ((obj, proto) => obj["__proto__"] = proto))(obj, ctor.prototype as object);
+  }
 }
 
 export function isArray(value: unknown): value is ReadonlyArray<unknown> {
