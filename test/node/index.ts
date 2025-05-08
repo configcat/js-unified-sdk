@@ -6,7 +6,7 @@ import * as path from "path";
 import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import { normalizePathSeparator } from "../helpers/utils";
 import { isTestSpec } from "../index";
-import type { IConfigCatKernel } from "#lib/index.pubternals";
+import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
 import type { INodeAutoPollOptions, INodeLazyLoadingOptions, INodeManualPollOptions } from "#lib/node";
 import { getClient } from "#lib/node";
 import { NodeHttpConfigFetcher } from "#lib/node/NodeHttpConfigFetcher";
@@ -30,10 +30,15 @@ class NodePlatform extends PlatformAbstractions<INodeAutoPollOptions, INodeManua
 
   readFileUtf8(path: string) { return fs.readFileSync(path, "utf8"); }
 
-  createConfigFetcher(options?: INodeOptions) { return new NodeHttpConfigFetcher(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: INodeOptions) { return NodeHttpConfigFetcher.getFactory(platformOptions)(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: INodeOptions) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new EventEmitter() };
+    const kernel: IConfigCatKernel = {
+      sdkType,
+      sdkVersion,
+      eventEmitterFactory: () => new EventEmitter(),
+      configFetcherFactory: o => this.createConfigFetcher(o, options),
+    };
     return (setupKernel ?? (k => k))(kernel);
   }
 

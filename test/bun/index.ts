@@ -8,7 +8,7 @@ import { normalizePathSeparator } from "../helpers/utils";
 import { isTestSpec } from "../index";
 import type { IBunAutoPollOptions, IBunLazyLoadingOptions, IBunManualPollOptions } from "#lib/bun";
 import { getClient } from "#lib/bun";
-import type { IConfigCatKernel } from "#lib/index.pubternals";
+import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
 import { NodeHttpConfigFetcher } from "#lib/node/NodeHttpConfigFetcher";
 import sdkVersion from "#lib/Version";
 
@@ -29,10 +29,15 @@ class BunPlatform extends PlatformAbstractions<IBunAutoPollOptions, IBunManualPo
 
   readFileUtf8(path: string) { return fs.readFileSync(path, "utf8"); }
 
-  createConfigFetcher(options?: IBunOptions) { return new NodeHttpConfigFetcher(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IBunOptions) { return NodeHttpConfigFetcher.getFactory()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IBunOptions) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new EventEmitter() };
+    const kernel: IConfigCatKernel = {
+      sdkType,
+      sdkVersion,
+      eventEmitterFactory: () => new EventEmitter(),
+      configFetcherFactory: o => this.createConfigFetcher(o, options),
+    };
     return (setupKernel ?? (k => k))(kernel);
   }
 

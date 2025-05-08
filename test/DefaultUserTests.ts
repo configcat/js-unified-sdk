@@ -10,7 +10,7 @@ describe("DefaultUser", () => {
     const redEyeColorUser = { identifier: "redIdentifier", custom: { "eyeColor": "red" } };
     const blueEyeColorUser = { identifier: "blueIdentifier", custom: { "eyeColor": "blue" } };
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcherWithRules() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithRules() });
     const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: createConsoleLogger(LogLevel.Debug) });
 
     // Without passing the userobject, default values/variationids should be returned
@@ -91,7 +91,7 @@ describe("DefaultUser", () => {
     const redEyeColorUser = { identifier: "redIdentifier", custom: { "eyeColor": "red" } };
     const blueEyeColorUser = { identifier: "blueIdentifier", custom: { "eyeColor": "blue" } };
 
-    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcherWithRules() });
+    const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithRules() });
     const client: IConfigCatClient = createClientWithAutoPoll("APIKEY", configCatKernel, { logger: createConsoleLogger(LogLevel.Debug), defaultUser: redEyeColorUser });
 
     // Without passing the userobject, default user from the constructor should be returned
