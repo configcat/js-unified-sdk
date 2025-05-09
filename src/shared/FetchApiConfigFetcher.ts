@@ -4,7 +4,7 @@ import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
 
 export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
-  static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
+  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
     return options => {
       const configFetcher = new FetchApiConfigFetcher();
       configFetcher.logger = options.logger;
@@ -64,13 +64,13 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     }
   }
 
-  private setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>) {
+  protected setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
     if (headers.length) {
       (requestInit.headers ??= []).push(...headers);
     }
   }
 
-  private getResponseHeaders(httpResponse: Response): [string, string][] {
+  protected getResponseHeaders(httpResponse: Response): [string, string][] {
     const headers: [string, string][] = [];
     extractHeader("ETag", httpResponse, headers);
     extractHeader("CF-RAY", httpResponse, headers);

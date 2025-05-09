@@ -11,7 +11,7 @@ declare const caches: typeof cloudflare.caches;
 declare const Response: typeof cloudflare.Response;
 
 export class CloudflareConfigCache implements IConfigCatCache {
-  static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
+  private static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const cache = getCloudflareCache();
     if (cache) {
       return options => new ExternalConfigCache(new CloudflareConfigCache(cache), options.logger);

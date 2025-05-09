@@ -28,8 +28,8 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
-    defaultCacheFactory: ChromeLocalStorageConfigCache.tryGetFactory() ?? IndexedDBConfigCache.tryGetFactory(),
-    configFetcherFactory: FetchApiConfigFetcher.getFactory(),
+    defaultCacheFactory: ChromeLocalStorageConfigCache["tryGetFactory"]() ?? IndexedDBConfigCache["tryGetFactory"](),
+    configFetcherFactory: FetchApiConfigFetcher["getFactory"](),
   });
 }
 
@@ -55,5 +55,11 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
     TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
     TMode extends undefined ? IJSAutoPollOptions :
     never;
+
+export { ChromeLocalStorageConfigCache };
+
+export { IndexedDBConfigCache };
+
+export { FetchApiConfigFetcher };
 
 export * from "..";

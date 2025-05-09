@@ -29,8 +29,8 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     sdkType: "ConfigCat-UnifiedJS-CloudflareWorker",
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
-    defaultCacheFactory: CloudflareConfigCache.tryGetFactory(),
-    configFetcherFactory: FetchApiConfigFetcher.getFactory(),
+    defaultCacheFactory: CloudflareConfigCache["tryGetFactory"](),
+    configFetcherFactory: FetchApiConfigFetcher["getFactory"](),
   });
 }
 
@@ -105,5 +105,9 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
     TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
     TMode extends undefined ? IJSAutoPollOptions :
     never;
+
+export { CloudflareConfigCache };
+
+export { FetchApiConfigFetcher };
 
 export * from "..";

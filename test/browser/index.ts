@@ -35,7 +35,7 @@ class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManual
     });
   }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return XmlHttpRequestConfigFetcher.getFactory()(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return XmlHttpRequestConfigFetcher["getFactory"]()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
     const kernel: IConfigCatKernel = {
@@ -45,7 +45,7 @@ class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManual
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     setupKernel ??= kernel => {
-      kernel.defaultCacheFactory = LocalStorageConfigCache.tryGetFactory();
+      kernel.defaultCacheFactory = LocalStorageConfigCache["tryGetFactory"]();
       return kernel;
     };
     return setupKernel(kernel);

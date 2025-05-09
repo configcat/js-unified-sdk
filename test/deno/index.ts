@@ -58,7 +58,7 @@ class DenoPlatform extends PlatformAbstractions<IDenoAutoPollOptions, IDenoManua
 
   readFileUtf8(path: string) { return Deno.readTextFileSync(path); }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: IDenoOptions) { return FetchApiConfigFetcher.getFactory()(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IDenoOptions) { return FetchApiConfigFetcher["getFactory"]()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IDenoOptions) {
     const kernel: IConfigCatKernel = {

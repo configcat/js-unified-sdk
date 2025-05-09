@@ -30,7 +30,7 @@ class NodePlatform extends PlatformAbstractions<INodeAutoPollOptions, INodeManua
 
   readFileUtf8(path: string) { return fs.readFileSync(path, "utf8"); }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: INodeOptions) { return NodeHttpConfigFetcher.getFactory(platformOptions)(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: INodeOptions) { return NodeHttpConfigFetcher["getFactory"](platformOptions)(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: INodeOptions) {
     const kernel: IConfigCatKernel = {

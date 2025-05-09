@@ -24,7 +24,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       sdkType: "ConfigCat-UnifiedJS-Bun",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new EventEmitter(),
-      configFetcherFactory: NodeHttpConfigFetcher.getFactory(),
+      configFetcherFactory: NodeHttpConfigFetcher["getFactory"](),
     });
 }
 
@@ -48,5 +48,9 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends PollingMode.LazyLoad ? IBunLazyLoadingOptions :
   TMode extends undefined ? IBunAutoPollOptions :
   never;
+
+export { NodeHttpConfigFetcher };
+
+export { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export * from "..";

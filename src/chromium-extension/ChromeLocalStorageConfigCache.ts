@@ -5,7 +5,7 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 /* eslint-disable @typescript-eslint/no-deprecated */
 
 export class ChromeLocalStorageConfigCache implements IConfigCatCache {
-  static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
+  private static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const localStorage = getChromeLocalStorage();
     if (localStorage) {
       return options => new ExternalConfigCache(new ChromeLocalStorageConfigCache(localStorage), options.logger);

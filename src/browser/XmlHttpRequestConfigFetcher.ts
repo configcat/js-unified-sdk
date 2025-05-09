@@ -4,7 +4,7 @@ import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
 
 export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
-  static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
+  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
     return options => {
       const configFetcher = new XmlHttpRequestConfigFetcher();
       configFetcher.logger = options.logger;
@@ -67,13 +67,13 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  private setRequestHeaders(httpRequest: XMLHttpRequest, headers: ReadonlyArray<[string, string]>) {
+  protected setRequestHeaders(httpRequest: XMLHttpRequest, headers: ReadonlyArray<[string, string]>): void {
     for (const [name, value] of headers) {
       httpRequest.setRequestHeader(name, value);
     }
   }
 
-  private getResponseHeaders(httpRequest: XMLHttpRequest): [string, string][] {
+  protected getResponseHeaders(httpRequest: XMLHttpRequest): [string, string][] {
     const headers: [string, string][] = [];
     extractHeader("ETag", httpRequest, headers);
     extractHeader("CF-RAY", httpRequest, headers);
