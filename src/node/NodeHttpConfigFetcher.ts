@@ -14,7 +14,7 @@ export interface INodeHttpConfigFetcherOptions {
 }
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
-  static getFactory(fetcherOptions?: INodeHttpConfigFetcherOptions): (options: OptionsBase) => IConfigCatConfigFetcher {
+  private static getFactory(fetcherOptions?: INodeHttpConfigFetcherOptions): (options: OptionsBase) => IConfigCatConfigFetcher {
     return options => {
       const configFetcher = new NodeHttpConfigFetcher(fetcherOptions);
       configFetcher.logger = options.logger;
@@ -126,7 +126,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  private setRequestHeaders(requestOptions: { headers?: http.OutgoingHttpHeaders }, headers: ReadonlyArray<[string, string]>) {
+  protected setRequestHeaders(requestOptions: { headers?: http.OutgoingHttpHeaders }, headers: ReadonlyArray<[string, string]>): void {
     if (headers.length) {
       const currentHeaders = requestOptions.headers ??= {};
       for (const [name, value] of headers) {
@@ -142,7 +142,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     }
   }
 
-  private getResponseHeaders(httpResponse: http.IncomingMessage): [string, string][] {
+  protected getResponseHeaders(httpResponse: http.IncomingMessage): [string, string][] {
     const headers: [string, string][] = [];
     extractHeader("etag", httpResponse, headers);
     extractHeader("cf-ray", httpResponse, headers);

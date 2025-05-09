@@ -25,7 +25,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       sdkType: "ConfigCat-UnifiedJS-Node",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new EventEmitter(),
-      configFetcherFactory: NodeHttpConfigFetcher.getFactory(options),
+      configFetcherFactory: NodeHttpConfigFetcher["getFactory"](options),
     });
 }
 
@@ -49,5 +49,7 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends PollingMode.LazyLoad ? INodeLazyLoadingOptions :
   TMode extends undefined ? INodeAutoPollOptions :
   never;
+
+export { NodeHttpConfigFetcher };
 
 export * from "..";

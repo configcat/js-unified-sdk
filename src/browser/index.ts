@@ -31,9 +31,9 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     defaultCacheFactory: typeof localStorage !== "undefined"
       // NOTE: The IndexedDB API is asynchronous, so it's not possible to check here if it actually works. For this reason,
       // we'd rather not fall back to IndexedDB if LocalStorage doesn't work. (In that case, IndexedDB is unlikely to work anyway.)
-      ? LocalStorageConfigCache.tryGetFactory()
-      : IndexedDBConfigCache.tryGetFactory(),
-    configFetcherFactory: XmlHttpRequestConfigFetcher.getFactory(),
+      ? LocalStorageConfigCache["tryGetFactory"]()
+      : IndexedDBConfigCache["tryGetFactory"](),
+    configFetcherFactory: XmlHttpRequestConfigFetcher["getFactory"](),
   });
 }
 
@@ -59,5 +59,13 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
     TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
     TMode extends undefined ? IJSAutoPollOptions :
     never;
+
+export { LocalStorageConfigCache };
+
+export { IndexedDBConfigCache };
+
+export { XmlHttpRequestConfigFetcher };
+
+export { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export * from "..";

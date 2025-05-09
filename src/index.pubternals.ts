@@ -23,11 +23,3 @@ export { FetchResult, FetchStatus } from "./ConfigFetcher";
 export type { IEventEmitter, IEventProvider } from "./EventEmitter";
 
 export { DefaultEventEmitter } from "./DefaultEventEmitter";
-
-export { LocalStorageConfigCache } from "./browser/LocalStorageConfigCache";
-
-export { IndexedDBConfigCache } from "./shared/IndexedDBConfigCache";
-
-export { XmlHttpRequestConfigFetcher } from "./browser/XmlHttpRequestConfigFetcher";
-
-export { FetchApiConfigFetcher } from "./shared/FetchApiConfigFetcher";

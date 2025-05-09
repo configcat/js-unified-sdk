@@ -24,7 +24,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       sdkType: "ConfigCat-UnifiedJS-Deno",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new DefaultEventEmitter(),
-      configFetcherFactory: FetchApiConfigFetcher.getFactory(),
+      configFetcherFactory: FetchApiConfigFetcher["getFactory"](),
     });
 }
 
@@ -48,5 +48,7 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends PollingMode.LazyLoad ? IDenoLazyLoadingOptions :
   TMode extends undefined ? IDenoAutoPollOptions :
   never;
+
+export { FetchApiConfigFetcher };
 
 export * from "..";

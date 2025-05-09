@@ -23,7 +23,7 @@ class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions,
     }
   }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return FetchApiConfigFetcher.getFactory()(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return FetchApiConfigFetcher["getFactory"]()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
     const kernel: IConfigCatKernel = {
@@ -33,7 +33,7 @@ class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions,
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     setupKernel ??= kernel => {
-      kernel.defaultCacheFactory = ChromeLocalStorageConfigCache.tryGetFactory();
+      kernel.defaultCacheFactory = ChromeLocalStorageConfigCache["tryGetFactory"]();
       return kernel;
     };
     return setupKernel(kernel);
