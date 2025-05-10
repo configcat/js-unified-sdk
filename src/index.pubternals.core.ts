@@ -1,6 +1,6 @@
 import { ConfigCatClient } from "./ConfigCatClient";
-import type { IConfigCatClient, IConfigCatKernel } from "./ConfigCatClient";
-import type { OptionsForPollingMode, PollingMode } from "./ConfigCatClientOptions";
+import type { IConfigCatClient } from "./ConfigCatClient";
+import type { IConfigCatKernel, OptionsForPollingMode, PollingMode } from "./ConfigCatClientOptions";
 import type { IConfigCatLogger, LogLevel } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger } from "./ConfigCatLogger";
 import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";

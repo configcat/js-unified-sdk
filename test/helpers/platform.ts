@@ -1,7 +1,7 @@
-import type { IAutoPollOptions, IConfigCatClient, ILazyLoadingOptions, IManualPollOptions, IOptions, PollingMode } from "#lib";
+import type { IAutoPollOptions, IConfigCatClient, IConfigCatConfigFetcher as IConfigFetcher, ILazyLoadingOptions, IManualPollOptions, IOptions, PollingMode } from "#lib";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
-import type { IConfigCatKernel, IConfigFetcher, OptionsBase } from "#lib/index.pubternals";
+import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
 
 type OptionsForPollingMode<
   TMode extends PollingMode | unknown,
@@ -30,28 +30,28 @@ export abstract class PlatformAbstractions<
 
   abstract readFileUtf8(path: string): string | Promise<string>;
 
-  abstract createConfigFetcher(options?: TAutoPollOptions | TManualPollOptions | TLazyLoadingOptions): IConfigFetcher;
+  abstract createConfigFetcher(options: OptionsBase, platformOptions?: TAutoPollOptions | TManualPollOptions | TLazyLoadingOptions): IConfigFetcher;
 
   abstract createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: TAutoPollOptions | TManualPollOptions | TLazyLoadingOptions): IConfigCatKernel;
 
   createAutoPollOptions(sdkKey: string, options?: TAutoPollOptions, kernel?: IConfigCatKernel): AugmentedOptions<AutoPollOptions> {
     kernel ??= this.createKernel(void 0, options);
     return this.augmentOptions(
-      new AutoPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, this.adjustOptions(options), kernel.defaultCacheFactory, kernel.eventEmitterFactory)
+      new AutoPollOptions(sdkKey, kernel, this.adjustOptions(options))
     );
   }
 
   createManualPollOptions(sdkKey: string, options?: TManualPollOptions, kernel?: IConfigCatKernel): AugmentedOptions<ManualPollOptions> {
     kernel ??= this.createKernel(void 0, options);
     return this.augmentOptions(
-      new ManualPollOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, this.adjustOptions(options), kernel.defaultCacheFactory, kernel.eventEmitterFactory)
+      new ManualPollOptions(sdkKey, kernel, this.adjustOptions(options))
     );
   }
 
   createLazyLoadOptions(sdkKey: string, options?: TLazyLoadingOptions, kernel?: IConfigCatKernel): AugmentedOptions<LazyLoadOptions> {
     kernel ??= this.createKernel(void 0, options);
     return this.augmentOptions(
-      new LazyLoadOptions(sdkKey, kernel.sdkType, kernel.sdkVersion, this.adjustOptions(options), kernel.defaultCacheFactory, kernel.eventEmitterFactory)
+      new LazyLoadOptions(sdkKey, kernel, this.adjustOptions(options))
     );
   }
 

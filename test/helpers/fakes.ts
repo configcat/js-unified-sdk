@@ -1,9 +1,9 @@
 import { AugmentedOptions, platform } from "./platform";
 import { IConfigCache, IConfigCatCache } from "#lib/ConfigCatCache";
 import { IConfigCatClient } from "#lib/ConfigCatClient";
-import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, IOptions, LazyLoadOptions, ManualPollOptions, OptionsBase } from "#lib/ConfigCatClientOptions";
+import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, IOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { IConfigCatLogger, LogEventId, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
-import { IConfigFetcher, IFetchResponse } from "#lib/ConfigFetcher";
+import { FetchRequest, FetchResponse, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import { IConfigCatKernel } from "#lib/index.pubternals";
 import { ProjectConfig } from "#lib/ProjectConfig";
 import { delay } from "#lib/Utils";
@@ -123,28 +123,28 @@ export class FakeConfigFetcherBase implements IConfigFetcher {
   constructor(
     private config: string | null,
     private readonly callbackDelay = 0,
-    private readonly getFetchResponse?: (lastConfig: string | null, lastEtag: string | null) => IFetchResponse) {
+    private readonly getFetchResponse?: (lastConfig: string | null, lastEtag?: string) => FetchResponse) {
 
     this.config ??= this.defaultConfigJson;
   }
 
   protected get defaultConfigJson(): string | null { return null; }
 
-  async fetchLogic(options: OptionsBase, lastEtag: string | null): Promise<IFetchResponse> {
+  async fetchAsync(request: FetchRequest): Promise<FetchResponse> {
     const nextFetchResponse = this.getFetchResponse
-      ? (lastConfig: string | null, lastEtag: string | null) => {
+      ? (lastConfig: string | null, lastEtag?: string) => {
         const fr = this.getFetchResponse!(lastConfig, lastEtag);
         this.config = fr.body ?? null;
         return fr;
       }
       : () => this.config !== null
-        ? { statusCode: 200, reasonPhrase: "OK", eTag: this.getEtag(), body: this.config } as IFetchResponse
-        : { statusCode: 404, reasonPhrase: "Not Found" } as IFetchResponse;
+        ? { statusCode: 200, reasonPhrase: "OK", eTag: this.getEtag(), body: this.config } as FetchResponse
+        : { statusCode: 404, reasonPhrase: "Not Found" } as FetchResponse;
 
     await delay(this.callbackDelay);
 
     this.calledTimes++;
-    return nextFetchResponse(this.config, lastEtag);
+    return nextFetchResponse(this.config, request.lastETag);
   }
 
   protected getEtag(): string {
