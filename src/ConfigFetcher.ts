@@ -56,7 +56,7 @@ export class FetchResponse {
   /** The value of the `ETag` HTTP response header. */
   readonly eTag?: string;
 
-  protected readonly rayId?: string;
+  private readonly rayId?: string;
 
   constructor(
     /** The HTTP status code. */

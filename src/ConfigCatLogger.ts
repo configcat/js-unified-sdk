@@ -200,19 +200,27 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  fetchFailedDueToInvalidSdkKey(): LogMessage {
+  fetchFailedDueToInvalidSdkKey(rayId: string | undefined): LogMessage {
     return this.log(
       LogLevel.Error, 1100,
-      "Your SDK Key seems to be wrong. You can find the valid SDK Key at https://app.configcat.com/sdkkey"
+      rayId == null
+        ? "Your SDK Key seems to be wrong. You can find the valid SDK Key at https://app.configcat.com/sdkkey"
+        : FormattableLogMessage.from(
+          "RAY_ID"
+        )`Your SDK Key seems to be wrong. You can find the valid SDK Key at https://app.configcat.com/sdkkey (Ray ID: ${rayId})`
     );
   }
 
-  fetchFailedDueToUnexpectedHttpResponse(statusCode: number, reasonPhrase: string): LogMessage {
+  fetchFailedDueToUnexpectedHttpResponse(statusCode: number, reasonPhrase: string, rayId: string | undefined): LogMessage {
     return this.log(
       LogLevel.Error, 1101,
-      FormattableLogMessage.from(
-        "STATUS_CODE", "REASON_PHRASE"
-      )`Unexpected HTTP response was received while trying to fetch config JSON: ${statusCode} ${reasonPhrase}`
+      rayId == null
+        ? FormattableLogMessage.from(
+          "STATUS_CODE", "REASON_PHRASE"
+        )`Unexpected HTTP response was received while trying to fetch config JSON: ${statusCode} ${reasonPhrase}`
+        : FormattableLogMessage.from(
+          "STATUS_CODE", "REASON_PHRASE", "RAY_ID"
+        )`Unexpected HTTP response was received while trying to fetch config JSON: ${statusCode} ${reasonPhrase} (Ray ID: ${rayId})`
     );
   }
 
@@ -233,27 +241,39 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  fetchFailedDueToRedirectLoop(): LogMessage {
+  fetchFailedDueToRedirectLoop(rayId: string | undefined): LogMessage {
     return this.log(
       LogLevel.Error, 1104,
-      "Redirection loop encountered while trying to fetch config JSON. Please contact us at https://configcat.com/support/"
+      rayId == null
+        ? "Redirection loop encountered while trying to fetch config JSON. Please contact us at https://configcat.com/support/"
+        : FormattableLogMessage.from(
+          "RAY_ID"
+        )`Redirection loop encountered while trying to fetch config JSON. Please contact us at https://configcat.com/support/ (Ray ID: ${rayId})`
     );
   }
 
-  fetchReceived200WithInvalidBody(ex: any): LogMessage {
+  fetchReceived200WithInvalidBody(rayId: string | undefined, ex: any): LogMessage {
     return this.log(
       LogLevel.Error, 1105,
-      "Fetching config JSON was successful but the HTTP response content was invalid.",
+      rayId == null
+        ? "Fetching config JSON was successful but the HTTP response content was invalid."
+        : FormattableLogMessage.from(
+          "RAY_ID"
+        )`Fetching config JSON was successful but the HTTP response content was invalid. (Ray ID: ${rayId})`,
       ex
     );
   }
 
-  fetchReceived304WhenLocalCacheIsEmpty(statusCode: number, reasonPhrase: string): LogMessage {
+  fetchReceived304WhenLocalCacheIsEmpty(statusCode: number, reasonPhrase: string, rayId: string | undefined): LogMessage {
     return this.log(
       LogLevel.Error, 1106,
-      FormattableLogMessage.from(
-        "STATUS_CODE", "REASON_PHRASE"
-      )`Unexpected HTTP response was received when no config JSON is cached locally: ${statusCode} ${reasonPhrase}`
+      rayId == null
+        ? FormattableLogMessage.from(
+          "STATUS_CODE", "REASON_PHRASE"
+        )`Unexpected HTTP response was received when no config JSON is cached locally: ${statusCode} ${reasonPhrase}`
+        : FormattableLogMessage.from(
+          "STATUS_CODE", "REASON_PHRASE", "RAY_ID"
+        )`Unexpected HTTP response was received when no config JSON is cached locally: ${statusCode} ${reasonPhrase} (Ray ID: ${rayId})`
     );
   }
 

@@ -237,7 +237,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       switch (response.statusCode) {
         case 200: // OK
           if (!(configOrError instanceof Config)) {
-            errorMessage = options.logger.fetchReceived200WithInvalidBody(configOrError);
+            errorMessage = options.logger.fetchReceived200WithInvalidBody(response["rayId"], configOrError);
             options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
             return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseContent, toMessage(errorMessage), configOrError);
           }
@@ -247,7 +247,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
-            errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase);
+            errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase, response["rayId"]);
             options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
             return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseWhenLocalCacheIsEmpty, toMessage(errorMessage));
           }
@@ -257,12 +257,12 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         case 403: // Forbidden
         case 404: // Not Found
-          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey();
+          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(response["rayId"]);
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
           return FetchResult.error(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.InvalidSdkKey, toMessage(errorMessage));
 
         default:
-          errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase);
+          errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase, response["rayId"]);
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning null.");
           return FetchResult.error(lastConfig, RefreshErrorCode.UnexpectedHttpResponse, toMessage(errorMessage));
       }
@@ -340,7 +340,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
 
       if (retryNumber >= maxRetryCount) {
-        options.logger.fetchFailedDueToRedirectLoop();
+        options.logger.fetchFailedDueToRedirectLoop(response["rayId"]);
         return [response, config];
       }
     }
