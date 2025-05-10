@@ -4,7 +4,6 @@ declare module "http" {
 }
 
 declare module "@cloudflare/workers-types/2023-03-01" {
-    
 }
 
 declare namespace chrome {
