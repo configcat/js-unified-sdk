@@ -1,6 +1,6 @@
 declare module "http" {
     export class IncomingMessage { }
-    export class OutgoingHttpHeaders { }
+    export type OutgoingHttpHeader = unknown;
 }
 
 declare module "@cloudflare/workers-types/2023-03-01" {

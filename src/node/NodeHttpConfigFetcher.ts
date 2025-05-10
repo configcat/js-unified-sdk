@@ -92,7 +92,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         const { lastETag, timeoutMs } = request;
 
-        const requestOptions: http.RequestOptions | https.RequestOptions = {
+        const requestOptions: (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> } = {
           agent,
           timeout: timeoutMs,
         };
@@ -126,7 +126,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  protected setRequestHeaders(requestOptions: { headers?: http.OutgoingHttpHeaders }, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
     if (headers.length) {
       const currentHeaders = requestOptions.headers ??= {};
       for (const [name, value] of headers) {
