@@ -1,6 +1,6 @@
 import type { OptionsBase } from "./ConfigCatClientOptions";
-import type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
-import { FetchError, FetchResult, FetchStatus } from "./ConfigFetcher";
+import type { FetchErrorCauses, FetchResponse, IConfigCatConfigFetcher } from "./ConfigFetcher";
+import { FetchError, FetchRequest, FetchResult, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import { Config, ProjectConfig } from "./ProjectConfig";
 
@@ -78,16 +78,24 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
   protected readonly cacheKey: string;
 
+  protected readonly configFetcher: IConfigCatConfigFetcher;
+  private requestUrl: string;
+  private readonly requestHeaders: ReadonlyArray<[string, string]>;
+
   abstract readonly readyPromise: Promise<ClientCacheState>;
 
   constructor(
-    protected readonly configFetcher: IConfigFetcher,
     protected readonly options: TOptions) {
 
     this.cacheKey = options.getCacheKey();
 
-    this.configFetcher = configFetcher;
-    this.options = options;
+    this.configFetcher = options.configFetcher;
+    this.requestUrl = options.getUrl();
+    this.requestHeaders = [
+      ["User-Agent", options.clientVersion],
+      ["X-ConfigCat-UserAgent", options.clientVersion],
+    ];
+
     this.status = options.offline ? ConfigServiceStatus.Offline : ConfigServiceStatus.Online;
   }
 
@@ -160,12 +168,12 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     let errorMessage: string;
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const [response, configOrError] = await this.fetchRequestAsync(lastConfig.httpETag ?? null);
+      const [response, configOrError] = await this.fetchRequestAsync(lastConfig.httpETag);
 
       switch (response.statusCode) {
         case 200: // OK
           if (!(configOrError instanceof Config)) {
-            errorMessage = options.logger.fetchReceived200WithInvalidBody(configOrError).toString();
+            errorMessage = options.logger.fetchReceived200WithInvalidBody(response["rayId"], configOrError).toString();
             options.logger.debug(`ConfigServiceBase.fetchLogicAsync(): ${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
             return FetchResult.error(lastConfig, errorMessage, configOrError);
           }
@@ -175,7 +183,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
-            errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase).toString();
+            errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase, response["rayId"]).toString();
             options.logger.debug(`ConfigServiceBase.fetchLogicAsync(): ${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
             return FetchResult.error(lastConfig, errorMessage);
           }
@@ -185,12 +193,12 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         case 403: // Forbidden
         case 404: // Not Found
-          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey().toString();
+          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(response["rayId"]).toString();
           options.logger.debug("ConfigServiceBase.fetchLogicAsync(): fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
           return FetchResult.error(lastConfig.with(ProjectConfig.generateTimestamp()), errorMessage);
 
         default:
-          errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase).toString();
+          errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase, response["rayId"]).toString();
           options.logger.debug("ConfigServiceBase.fetchLogicAsync(): fetch was unsuccessful. Returning null.");
           return FetchResult.error(lastConfig, errorMessage);
       }
@@ -205,13 +213,15 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  private async fetchRequestAsync(lastETag: string | null, maxRetryCount = 2): Promise<[IFetchResponse, (Config | any)?]> {
+  private async fetchRequestAsync(lastETag: string | undefined, maxRetryCount = 2): Promise<[FetchResponse, (Config | any)?]> {
     const options = this.options;
     options.logger.debug("ConfigServiceBase.fetchRequestAsync() - called.");
 
     for (let retryNumber = 0; ; retryNumber++) {
       options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}`);
-      const response = await this.configFetcher.fetchLogic(options, lastETag);
+
+      const request = new FetchRequest(this.requestUrl, lastETag, this.requestHeaders, options.requestTimeoutMs);
+      const response = await this.configFetcher.fetchAsync(request);
 
       if (response.statusCode !== 200) {
         return [response];
@@ -254,6 +264,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
 
       options.baseUrl = baseUrl;
+      this.requestUrl = options.getUrl();
 
       if (redirect === RedirectMode.No) {
         return [response, config];
@@ -264,7 +275,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
 
       if (retryNumber >= maxRetryCount) {
-        options.logger.fetchFailedDueToRedirectLoop();
+        options.logger.fetchFailedDueToRedirectLoop(response["rayId"]);
         return [response, config];
       }
     }
