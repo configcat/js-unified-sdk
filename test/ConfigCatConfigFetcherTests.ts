@@ -87,7 +87,7 @@ describe("ConfigCatConfigFetcherTests", () => {
     assert.strictEqual(configFetcherRequests.length, 1);
     assert.isUndefined(configFetcherRequests[0].lastETag);
 
-    // TODO: Change CORS settings so we can access the CF-RAY header? (https://stackoverflow.com/a/15043027)
+    // TODO: Remove this as soon as we update the CDN CORS settings (see also https://trello.com/c/RSGwVoqC)
     const clientVersion: string = (((client as ConfigCatClient)["options"]) as OptionsBase)["clientVersion"];
     if (clientVersion.includes("ConfigCat-UnifiedJS-Browser") || clientVersion.includes("ConfigCat-UnifiedJS-ChromiumExtension")) {
       return;

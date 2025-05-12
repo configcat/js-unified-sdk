@@ -5,7 +5,7 @@ import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import { isTestSpec } from "../index";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IDenoAutoPollOptions, IDenoLazyLoadingOptions, IDenoManualPollOptions } from "#lib/deno";
-import { getClient } from "#lib/deno";
+import { DenoHttpConfigFetcher, getClient } from "#lib/deno";
 import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
 import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
 import sdkVersion from "#lib/Version";
@@ -58,7 +58,7 @@ class DenoPlatform extends PlatformAbstractions<IDenoAutoPollOptions, IDenoManua
 
   readFileUtf8(path: string) { return Deno.readTextFileSync(path); }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: IDenoOptions) { return FetchApiConfigFetcher["getFactory"]()(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IDenoOptions) { return DenoHttpConfigFetcher["getFactory"]()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IDenoOptions) {
     const kernel: IConfigCatKernel = {

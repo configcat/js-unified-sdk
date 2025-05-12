@@ -13,6 +13,7 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   private logger?: LoggerWrapper;
+  protected readonly runsOnServerSide?: boolean;
 
   async fetchAsync(request: FetchRequest): Promise<FetchResponse> {
     this.logger?.debug("FetchApiConfigFetcher.fetchAsync() called.");
@@ -20,9 +21,10 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     let { url } = request;
     const { lastETag, timeoutMs } = request;
 
-    if (lastETag) {
+    if (!this.runsOnServerSide && lastETag) {
       // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
       // we can transform this query param to the header in our CDN provider.
+      // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
       url += "&ccetag=" + encodeURIComponent(lastETag);
     }
 
@@ -65,8 +67,15 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   protected setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
-    if (headers.length) {
-      (requestInit.headers ??= []).push(...headers);
+    for (const header of headers) {
+      let normalizedName: string;
+      if (!this.runsOnServerSide
+        && ((normalizedName = header[0].toLowerCase()) === "user-agent" || normalizedName === "x-configcat-useragent")) {
+        // Specifying custom headers would cause an unnecessary CORS OPTIONS request in browsers,
+        // so we send this information in the query string instead (see `OptionsBase.getUrl`).
+        continue;
+      }
+      (requestInit.headers ??= []).push(header);
     }
   }
 
