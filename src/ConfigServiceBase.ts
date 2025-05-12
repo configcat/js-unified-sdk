@@ -140,8 +140,10 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
     this.configFetcher = options.configFetcher;
     this.requestUrl = options.getUrl();
-    // TODO: send user agent header?
-    this.requestHeaders = [];
+    this.requestHeaders = [
+      ["User-Agent", options.clientVersion],
+      ["X-ConfigCat-UserAgent", options.clientVersion],
+    ];
 
     this.status = options.offline ? ConfigServiceStatus.Offline : ConfigServiceStatus.Online;
   }

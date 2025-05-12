@@ -43,6 +43,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
         if (lastETag) {
           // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
           // we can transform this query param to the header in our CDN provider.
+          // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
           url += "&ccetag=" + encodeURIComponent(lastETag);
         }
 
@@ -55,9 +56,6 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
         httpRequest.open("GET", url, true);
         httpRequest.timeout = timeoutMs;
-        // NOTE: It's intentional that we don't specify the If-None-Match header.
-        // The browser automatically handles it, adding it manually would cause an unnecessary CORS OPTIONS request.
-        // In case the browser doesn't handle it, we are transforming the ccetag query parameter to the If-None-Match header in our CDN provider.
         this.setRequestHeaders(httpRequest, request.headers);
         httpRequest.send(null);
       } catch (err) {
@@ -69,6 +67,12 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
   protected setRequestHeaders(httpRequest: XMLHttpRequest, headers: ReadonlyArray<[string, string]>): void {
     for (const [name, value] of headers) {
+      const normalizedName = name.toLowerCase();
+      if (normalizedName === "user-agent" || normalizedName === "x-configcat-useragent") {
+        // Specifying custom headers would cause an unnecessary CORS OPTIONS request in browsers,
+        // so we send this information in the query string instead (see `OptionsBase.getUrl`).
+        continue;
+      }
       httpRequest.setRequestHeader(name, value);
     }
   }
