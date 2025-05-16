@@ -46,6 +46,10 @@ export function delay(delayMs: number, abortToken?: AbortToken | null): Promise<
   });
 }
 
+export const getMonotonicTimeMs = typeof performance !== "undefined" && typeof performance.now === "function"
+  ? () => performance.now()
+  : () => new Date().getTime();
+
 export function errorToString(err: any, includeStackTrace = false): string {
   return err instanceof Error
     ? includeStackTrace && err.stack ? err.stack : err.toString()

@@ -1,6 +1,6 @@
 import { assert } from "chai";
-import { createManualPollOptions, FakeLogger } from "./helpers/fakes";
-import { ExternalConfigCache, IConfigCache, IConfigCatCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
+import { createManualPollOptions, FakeExternalCache, FakeLogger, FaultyFakeExternalCache } from "./helpers/fakes";
+import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { Config, ProjectConfig } from "#lib/ProjectConfig";
 
@@ -111,23 +111,3 @@ describe("ConfigCatCache", () => {
     });
   }
 });
-
-class FakeExternalCache implements IConfigCatCache {
-  cachedValue?: string;
-
-  set(key: string, value: string): void {
-    this.cachedValue = value;
-  }
-  get(key: string): string | undefined {
-    return this.cachedValue;
-  }
-}
-
-class FaultyFakeExternalCache implements IConfigCatCache {
-  set(key: string, value: string): never {
-    throw new Error("Operation failed :(");
-  }
-  get(key: string): never {
-    throw new Error("Operation failed :(");
-  }
-}
