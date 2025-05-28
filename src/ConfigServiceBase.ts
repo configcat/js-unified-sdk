@@ -128,7 +128,6 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   protected readonly cacheKey: string;
 
   protected readonly configFetcher: IConfigCatConfigFetcher;
-  private requestUrl: string;
   private readonly requestHeaders: ReadonlyArray<[string, string]>;
 
   abstract readonly readyPromise: Promise<ClientCacheState>;
@@ -139,7 +138,6 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     this.cacheKey = options.getCacheKey();
 
     this.configFetcher = options.configFetcher;
-    this.requestUrl = options.getUrl();
     this.requestHeaders = [
       ["User-Agent", options.clientVersion],
       ["X-ConfigCat-UserAgent", options.clientVersion],
@@ -287,7 +285,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     for (let retryNumber = 0; ; retryNumber++) {
       options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}`);
 
-      const request = new FetchRequest(this.requestUrl, lastETag, this.requestHeaders, options.requestTimeoutMs);
+      const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
       const response = await this.configFetcher.fetchAsync(request);
 
       if (response.statusCode !== 200) {
@@ -331,7 +329,6 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
 
       options.baseUrl = baseUrl;
-      this.requestUrl = options.getUrl();
 
       if (redirect === RedirectMode.No) {
         return [response, config];
