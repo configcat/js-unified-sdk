@@ -164,7 +164,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
 
     const configRefreshPromise = (async (latestConfig: ProjectConfig): Promise<[FetchResult, ProjectConfig]> => {
-    const fetchResult = await this.fetchAsync(latestConfig);
+      const fetchResult = await this.fetchAsync(latestConfig);
 
       const shouldUpdateCache =
         fetchResult.status === FetchStatus.Fetched
@@ -175,25 +175,24 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       if (shouldUpdateCache) {
         // NOTE: `ExternalConfigCache.set` makes sure that the external cache is not overwritten with empty
         // config data under any circumstances.
-      await this.options.cache.set(this.cacheKey, fetchResult.config);
+        await this.options.cache.set(this.cacheKey, fetchResult.config);
 
-      latestConfig = fetchResult.config;
-    }
+        latestConfig = fetchResult.config;
+      }
 
       this.onConfigFetched(fetchResult, isInitiatedByUser);
 
       if (fetchResult.status === FetchStatus.Fetched) {
-      this.onConfigChanged(fetchResult.config);
-    }
+        this.onConfigChanged(fetchResult.config);
+      }
 
-    return [fetchResult, latestConfig];
+      return [fetchResult, latestConfig];
     })(latestConfig);
 
     this.pendingConfigRefresh = configRefreshPromise;
     try {
       configRefreshPromise.finally(() => this.pendingConfigRefresh = null);
-  }
-    catch (err) {
+    } catch (err) {
       this.pendingConfigRefresh = null;
       throw err;
     }
@@ -363,7 +362,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     const { cache } = this.options;
     if (cache instanceof InMemoryConfigCache) {
       return cache.get(this.cacheKey);
-  }
+    }
 
     if (this.pendingCacheSyncUp) {
       return this.pendingCacheSyncUp;
@@ -404,8 +403,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
   protected getReadyPromise(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig>): Promise<ClientCacheState> {
     return this.waitForReadyAsync(initialCacheSyncUp).then(cacheState => {
-    this.options.hooks.emit("clientReady", cacheState);
-    return cacheState;
+      this.options.hooks.emit("clientReady", cacheState);
+      return cacheState;
     });
   }
 }
