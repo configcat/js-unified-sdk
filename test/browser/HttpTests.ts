@@ -3,6 +3,7 @@ import * as mockxmlhttprequest from "mock-xmlhttprequest";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel, RefreshErrorCode } from "#lib";
+import { getMonotonicTimeMs } from "#lib/Utils";
 
 describe("HTTP tests", () => {
   const sdkKey = "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/AG6C1ngVb0CvM07un6JisQ";
@@ -25,9 +26,9 @@ describe("HTTP tests", () => {
         baseUrl,
         logger,
       });
-      const startTime = new Date().getTime();
+      const startTime = getMonotonicTimeMs();
       const refreshResult = await client.forceRefreshAsync();
-      const duration = new Date().getTime() - startTime;
+      const duration = getMonotonicTimeMs() - startTime;
       assert.isTrue(duration > 1000 && duration < 2000);
 
       const defaultValue = "NOT_CAT";
