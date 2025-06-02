@@ -354,7 +354,7 @@ describe("Local Overrides", () => {
     client.dispose();
   });
 
-  it("LocalOnly - forceRefresh() should return failure", async () => {
+  it("LocalOnly - forceRefreshAsync() should return failure", async () => {
     const configCatKernel = createKernel({
       configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });

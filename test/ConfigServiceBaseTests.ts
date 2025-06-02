@@ -3,15 +3,17 @@ import { assert } from "chai";
 import { EqualMatchingInjectorConfig, It, Mock, RejectedPromiseFactory, ResolvedPromiseFactory, Times } from "moq.ts";
 import { MimicsRejectedAsyncPresetFactory, MimicsResolvedAsyncPresetFactory, Presets, ReturnsAsyncPresetFactory, RootMockProvider, ThrowsAsyncPresetFactory } from "moq.ts/internal";
 /* eslint-enable import/no-duplicates */
-import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeCache } from "./helpers/fakes";
+import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeCache, FakeConfigFetcherBase, FakeExternalAsyncCache, FakeExternalCache, FakeLogger } from "./helpers/fakes";
+import { ClientCacheState, RefreshResult } from "#lib";
 import { AutoPollConfigService, POLL_EXPIRATION_TOLERANCE_MS } from "#lib/AutoPollConfigService";
-import { IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
+import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { OptionsBase } from "#lib/ConfigCatClientOptions";
+import { LoggerWrapper } from "#lib/ConfigCatLogger";
 import { FetchResult, IConfigFetcher, IFetchResponse } from "#lib/ConfigFetcher";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { ManualPollConfigService } from "#lib/ManualPollConfigService";
-import { Config, ProjectConfig } from "#lib/ProjectConfig";
-import { delay } from "#lib/Utils";
+import { Config, IConfig, ProjectConfig } from "#lib/ProjectConfig";
+import { AbortToken, delay, throwError } from "#lib/Utils";
 
 describe("ConfigServiceBaseTests", () => {
 
@@ -73,7 +75,7 @@ describe("ConfigServiceBaseTests", () => {
     service.dispose();
   });
 
-  it("AutoPollConfigService - with forceRefresh - invokes 'cache.set' operation two times", async () => {
+  it("AutoPollConfigService - with forceRefreshAsync - invokes 'cache.set' operation two times", async () => {
 
     // Arrange
 
@@ -176,7 +178,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const projectConfigNew: ProjectConfig = createConfigFromFetchResult(frNew);
 
-    const time: number = new Date().getTime();
+    const time: number = ProjectConfig.generateTimestamp();
     const projectConfigOld: ProjectConfig = createConfigFromFetchResult(frOld).with(time - (1.5 * pollInterval * 1000) + 0.5 * POLL_EXPIRATION_TOLERANCE_MS);
 
     const cache = new InMemoryConfigCache();
@@ -224,7 +226,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const pollInterval = 10;
 
-    const time: number = new Date().getTime();
+    const time: number = ProjectConfig.generateTimestamp();
     const projectConfigOld = createConfigFromFetchResult(frOld).with(time - (pollInterval * 1000) + 0.5 * POLL_EXPIRATION_TOLERANCE_MS);
 
     const cache = new InMemoryConfigCache();
@@ -310,12 +312,156 @@ describe("ConfigServiceBaseTests", () => {
     service.dispose();
   });
 
+  for (const expectedCacheState of [ClientCacheState.NoFlagData, ClientCacheState.HasCachedFlagDataOnly, ClientCacheState.HasUpToDateFlagData]) {
+    it(`AutoPollConfigService - Should emit clientReady in offline mode when sync with external cache is completed - expectedCacheState: ${expectedCacheState}`, async () => {
+
+      // Arrange
+
+      const pollIntervalSeconds = 1;
+
+      let projectConfig: ProjectConfig | undefined;
+      if (expectedCacheState !== ClientCacheState.NoFlagData) {
+        const fr: FetchResult = createFetchResult("oldEtag");
+        projectConfig = createConfigFromFetchResult(fr);
+
+        if (expectedCacheState === ClientCacheState.HasCachedFlagDataOnly) {
+          projectConfig = projectConfig
+            .with(ProjectConfig.generateTimestamp() - (1.5 * pollIntervalSeconds * 1000) + 0.5 * POLL_EXPIRATION_TOLERANCE_MS);
+        }
+      }
+
+      const logger = new LoggerWrapper(new FakeLogger());
+      const cache = new ExternalConfigCache(new FakeExternalCache(), logger);
+
+      const options = createAutoPollOptions(
+        "APIKEY",
+        {
+          pollIntervalSeconds,
+          offline: true,
+        },
+        createKernel({ defaultCacheFactory: () => cache })
+      );
+
+      if (projectConfig) {
+        cache.set(options.getCacheKey(), projectConfig);
+      }
+
+      const fetcherMock = new Mock<IConfigFetcher>();
+
+      // Act
+
+      const service: AutoPollConfigService = new AutoPollConfigService(
+        fetcherMock.object(),
+        options);
+
+      const { readyPromise } = service;
+      const delayAbortToken = new AbortToken();
+      const delayPromise = delay(pollIntervalSeconds * 1000 - 250, delayAbortToken);
+      const raceResult = await Promise.race([readyPromise, delayPromise]);
+
+      // Assert
+
+      assert.strictEqual(raceResult, expectedCacheState);
+
+      // Cleanup
+
+      service.dispose();
+    });
+  }
+
+  for (const useSyncCache of [false, true]) {
+    it(`AutoPollConfigService - Should refresh internal cache in offline mode and report configChanged when new config is synced from external cache - useSyncCache: ${useSyncCache}`, async () => {
+
+      // Arrange
+
+      const pollIntervalSeconds = 1;
+
+      const logger = new LoggerWrapper(new FakeLogger());
+      const fakeExternalCache = useSyncCache ? new FakeExternalCache() : new FakeExternalAsyncCache(50);
+      const cache = new ExternalConfigCache(fakeExternalCache, logger);
+
+      const clientReadyEvents: ClientCacheState[] = [];
+      const configChangedEvents: IConfig[] = [];
+
+      const options = createAutoPollOptions(
+        "APIKEY",
+        {
+          pollIntervalSeconds,
+          setupHooks: hooks => {
+            hooks.on("clientReady", cacheState => clientReadyEvents.push(cacheState));
+            hooks.on("configChanged", config => configChangedEvents.push(config));
+          },
+        },
+        createKernel({ defaultCacheFactory: () => cache })
+      );
+
+      const fr: FetchResult = createFetchResult();
+      const fetcherMock = new Mock<IConfigFetcher>()
+        .setup(m => m.fetchLogic(It.IsAny<OptionsBase>(), It.IsAny<string>()))
+        .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+
+      // Act
+
+      const service: AutoPollConfigService = new AutoPollConfigService(
+        fetcherMock.object(),
+        options);
+
+      assert.isUndefined(fakeExternalCache.cachedValue);
+
+      assert.isEmpty(clientReadyEvents);
+      assert.isEmpty(configChangedEvents);
+
+      await service.readyPromise;
+
+      const getConfigPromise = service.getConfig();
+      await service.getConfig(); // simulate concurrent cache sync up
+      await getConfigPromise;
+
+      await delay(100); // allow a little time for the client to raise ConfigChanged
+
+      assert.isDefined(fakeExternalCache.cachedValue);
+
+      assert.strictEqual(1, clientReadyEvents.length);
+      assert.strictEqual(ClientCacheState.HasUpToDateFlagData, clientReadyEvents[0]);
+      assert.strictEqual(1, configChangedEvents.length);
+      assert.strictEqual(JSON.stringify(fr.config.config), JSON.stringify(configChangedEvents[0]));
+
+      fetcherMock.verify(m => m.fetchLogic(It.IsAny<OptionsBase>(), It.IsAny<string>()), Times.Once());
+
+      service.setOffline(); // no HTTP fetching from this point on
+
+      await delay(pollIntervalSeconds * 1000 + 50);
+
+      assert.strictEqual(1, clientReadyEvents.length);
+      assert.strictEqual(1, configChangedEvents.length);
+
+      const fr2: FetchResult = createFetchResult("etag2", "{}");
+      const projectConfig2 = createConfigFromFetchResult(fr2);
+      fakeExternalCache.cachedValue = ProjectConfig.serialize(projectConfig2);
+
+      const [refreshResult, projectConfigFromRefresh] = await service.refreshConfigAsync();
+
+      // Assert
+
+      assert.isTrue(refreshResult.isSuccess);
+
+      assert.strictEqual(1, clientReadyEvents.length);
+      assert.strictEqual(2, configChangedEvents.length);
+      assert.strictEqual(JSON.stringify(fr2.config.config), JSON.stringify(configChangedEvents[1]));
+      assert.strictEqual(configChangedEvents[1], projectConfigFromRefresh.config);
+
+      // Cleanup
+
+      service.dispose();
+    });
+  }
+
   it("LazyLoadConfigService - ProjectConfig is different in the cache - should fetch a new config and put into cache", async () => {
 
     // Arrange
 
     const cacheTimeToLiveSeconds = 10;
-    const oldConfig: ProjectConfig = createProjectConfig("oldConfig").with(new Date().getTime() - (cacheTimeToLiveSeconds * 1000) - 1000);
+    const oldConfig: ProjectConfig = createProjectConfig("oldConfig").with(ProjectConfig.generateTimestamp() - (cacheTimeToLiveSeconds * 1000) - 1000);
 
     const fr: FetchResult = createFetchResult("newConfig");
 
@@ -358,7 +504,7 @@ describe("ConfigServiceBaseTests", () => {
 
     // Arrange
 
-    const config: ProjectConfig = createProjectConfig().with(new Date().getTime());
+    const config: ProjectConfig = createProjectConfig().with(ProjectConfig.generateTimestamp());
 
     const fetcherMock = new Mock<IConfigFetcher>();
 
@@ -392,7 +538,7 @@ describe("ConfigServiceBaseTests", () => {
 
     // Arrange
 
-    const config: ProjectConfig = createProjectConfig().with(new Date().getTime() - 1000);
+    const config: ProjectConfig = createProjectConfig().with(ProjectConfig.generateTimestamp() - 1000);
 
     const fr: FetchResult = createFetchResult();
 
@@ -433,7 +579,7 @@ describe("ConfigServiceBaseTests", () => {
 
     // Arrange
 
-    const config: ProjectConfig = createProjectConfig().with(new Date().getTime() - 1000);
+    const config: ProjectConfig = createProjectConfig().with(ProjectConfig.generateTimestamp() - 1000);
 
     const fr: FetchResult = createFetchResult();
 
@@ -775,10 +921,129 @@ describe("ConfigServiceBaseTests", () => {
     assert.strictEqual(projectConfig, cachedPc);
     assert.strictEqual(cache.get(options.getCacheKey()), cachedPc);
   });
+
+  it("refreshConfigAsync() - only one config refresh should be in progress at a time - success", async () => {
+
+    // Arrange
+
+    const fakeFetcher = new FakeConfigFetcherBase(null, 1000,
+      () => ({ statusCode: 200, reasonPhrase: "OK", eTag: '"ETAG2"', body: '{ "p": { "s": "0" } }' }));
+
+    const lastConfig = createProjectConfig('"ETAG"', "{}");
+
+    const cacheMock = new Mock<IConfigCache>()
+      .setup(m => m.get(It.IsAny<string>()))
+      .returns(lastConfig)
+      .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
+      .returns();
+
+    const configFetchedEvents: [RefreshResult, boolean][] = [];
+    const configChangedEvents: IConfig[] = [];
+
+    const options = createManualPollOptions(
+      "APIKEY",
+      {
+        setupHooks: hooks => {
+          hooks.on("configFetched", (result, isInitiatedByUser) => configFetchedEvents.push([result, isInitiatedByUser]));
+          hooks.on("configChanged", config => configChangedEvents.push(config));
+        },
+      },
+      createKernel({ defaultCacheFactory: () => cacheMock.object() })
+    );
+
+    const service = new ManualPollConfigService(fakeFetcher, options);
+
+    // Act
+
+    const promise1 = (async () => { await delay(0); return await service.refreshConfigAsync(); })();
+    const promise2 = service.refreshConfigAsync();
+
+    const [[refreshResult1, config1], [refreshResult2, config2]] = await Promise.all([promise1, promise2]);
+
+    // Assert
+
+    assert.strictEqual(fakeFetcher.calledTimes, 1);
+    assert.isTrue(refreshResult1.isSuccess);
+    assert.isTrue(refreshResult2.isSuccess);
+    assert.strictEqual(config1, config2);
+
+    assert.strictEqual(configFetchedEvents.length, 1);
+    const [[result, isInitiatedByUser]] = configFetchedEvents;
+    assert.isTrue(isInitiatedByUser);
+    assert.isTrue(result.isSuccess);
+
+    assert.strictEqual(configChangedEvents.length, 1);
+    const [configChangedEvent] = configChangedEvents;
+    assert.strictEqual(configChangedEvent.salt, "0");
+
+    service.dispose();
+  });
+
+  it("refreshConfigAsync() - only one config refresh should be in progress at a time - failure", async () => {
+
+    // Arrange
+
+    const fetchError = Error("Something went wrong.");
+
+    const fakeFetcher = new FakeConfigFetcherBase(null, 1000,
+      () => throwError(fetchError));
+
+    const lastConfig = createProjectConfig('"ETAG"', "{}");
+
+    const cacheMock = new Mock<IConfigCache>()
+      .setup(m => m.get(It.IsAny<string>()))
+      .returns(lastConfig)
+      .setup(m => m.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()))
+      .returns();
+
+    const configFetchedEvents: [RefreshResult, boolean][] = [];
+    const configChangedEvents: IConfig[] = [];
+
+    const options = createManualPollOptions(
+      "APIKEY",
+      {
+        setupHooks: hooks => {
+          hooks.on("configFetched", (result, isInitiatedByUser) => configFetchedEvents.push([result, isInitiatedByUser]));
+          hooks.on("configChanged", config => configChangedEvents.push(config));
+        },
+      },
+      createKernel({ defaultCacheFactory: () => cacheMock.object() })
+    );
+
+    const service = new ManualPollConfigService(fakeFetcher, options);
+
+    // Act
+
+    const promise1 = (async () => { await delay(0); return await service.refreshConfigAsync(); })();
+    const promise2 = service.refreshConfigAsync();
+
+    const [[refreshResult1, config1], [refreshResult2, config2]] = await Promise.all([promise1, promise2]);
+
+    // Assert
+
+    assert.strictEqual(fakeFetcher.calledTimes, 1);
+    assert.isFalse(refreshResult1.isSuccess);
+    assert.strictEqual(refreshResult1.errorException, fetchError);
+    assert.isFalse(refreshResult2.isSuccess);
+    assert.strictEqual(refreshResult2.errorException, fetchError);
+    assert.strictEqual(config1, config2);
+
+    assert.strictEqual(configFetchedEvents.length, 1);
+    const [[result, isInitiatedByUser]] = configFetchedEvents;
+    assert.isTrue(isInitiatedByUser);
+    assert.isFalse(result.isSuccess);
+    assert.strictEqual(result.errorException, fetchError);
+
+    assert.strictEqual(configChangedEvents.length, 0);
+
+    service.dispose();
+  });
 });
 
-function createProjectConfig(eTag = "etag"): ProjectConfig {
-  const configJson = "{\"f\": { \"debug\": { \"v\": { \"b\": true }, \"i\": \"abcdefgh\", \"t\": 0, \"p\": [], \"r\": [] } } }";
+const DEFAULT_ETAG = "etag";
+const DEFAULT_CONFIG_JSON = '{"f": { "debug": { "v": { "b": true }, "i": "abcdefgh", "t": 0, "p": [], "r": [] } } }';
+
+function createProjectConfig(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JSON): ProjectConfig {
   return new ProjectConfig(
     configJson,
     Config.deserialize(configJson),
@@ -786,8 +1051,8 @@ function createProjectConfig(eTag = "etag"): ProjectConfig {
     eTag);
 }
 
-function createFetchResult(eTag = "etag"): FetchResult {
-  return FetchResult.success(createProjectConfig(eTag));
+function createFetchResult(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JSON): FetchResult {
+  return FetchResult.success(createProjectConfig(eTag, configJson));
 }
 
 function createConfigFromFetchResult(result: FetchResult): ProjectConfig {
