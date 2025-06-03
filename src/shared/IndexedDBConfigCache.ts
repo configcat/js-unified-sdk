@@ -7,7 +7,7 @@ const OBJECT_STORE_NAME = "configCache";
 type DBConnectionFactory = () => Promise<IDBDatabase>;
 
 export class IndexedDBConfigCache implements IConfigCatCache {
-  static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
+  private static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const dbConnectionFactory = getDBConnectionFactory();
     if (dbConnectionFactory) {
       return options => new ExternalConfigCache(new IndexedDBConfigCache(dbConnectionFactory), options.logger);

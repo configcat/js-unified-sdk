@@ -1,4 +1,3 @@
-import type { OptionsBase } from "./ConfigCatClientOptions";
 import { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
@@ -32,11 +31,56 @@ export class FetchResult {
   }
 }
 
-export interface IFetchResponse {
-  statusCode: number;
-  reasonPhrase: string;
-  eTag?: string;
-  body?: string;
+/** The request parameters for a ConfigCat config fetch operation. */
+export class FetchRequest {
+  constructor(
+    /** The URL of the config. */
+    readonly url: string,
+    /**
+     * The value of the `ETag` HTTP response header received during the last successful request (if any).
+     * If available, should be included in the HTTP request, either in the `If-None-Match` header or in the `ccetag` query string parameter.
+     *
+     * @remarks In browser runtime environments the `If-None-Match` header should be avoided because that may cause unnecessary CORS preflight requests.
+     */
+    readonly lastETag: string | undefined,
+    /** Additional HTTP request headers. Should be included in every HTTP request. */
+    readonly headers: ReadonlyArray<[name: string, value: string]>,
+    /** The request timeout to apply, configured via `IOptions.requestTimeoutMs`. */
+    readonly timeoutMs: number
+  ) {
+  }
+}
+
+/** The response data of a ConfigCat config fetch operation. */
+export class FetchResponse {
+  /** The value of the `ETag` HTTP response header. */
+  readonly eTag?: string;
+
+  private readonly rayId?: string;
+
+  constructor(
+    /** The HTTP status code. */
+    readonly statusCode: number,
+    /** The HTTP reason phrase. */
+    readonly reasonPhrase: string,
+    /** The HTTP response headers. */
+    headers: ReadonlyArray<[name: string, value: string]>,
+    /** The response body. */
+    readonly body?: string
+  ) {
+    let eTag: string | undefined, rayId: string | undefined;
+
+    for (const [name, value] of headers) {
+      const normalizedName = name.toLowerCase();
+      if (eTag == null && normalizedName === "etag") {
+        this.eTag = eTag = value;
+        if (rayId != null) break;
+      } else if (rayId == null && normalizedName === "cf-ray") {
+        this.rayId = rayId = value;
+        if (eTag != null) break;
+      }
+    }
+  }
 }
 
 export type FetchErrorCauses = {
@@ -72,6 +116,13 @@ export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchError
   }
 }
 
-export interface IConfigFetcher {
-  fetchLogic(options: OptionsBase, lastEtag: string | null): Promise<IFetchResponse>;
+/** Defines the interface used by the ConfigCat SDK to perform ConfigCat config fetch operations. */
+export interface IConfigCatConfigFetcher {
+  /**
+   * Fetches the JSON content of the requested config asynchronously.
+   * @param request The fetch request.
+   * @returns A promise that fulfills with the fetch response.
+   * @throws {FetchErrorException} The fetch operation failed.
+   */
+  fetchAsync(request: FetchRequest): Promise<FetchResponse>;
 }

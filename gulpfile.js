@@ -88,7 +88,7 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
       // Fix extensions of referenced files in export/import statements.
       let fileContent = await fsp.readFile(file, "utf8");
       const isEsm = addModulePackageJson || isDts;
-      fileContent = (isEsm ? fixEsmImports : fixCjsImports)(targetDir, fileContent, importExtension);
+      fileContent = (isEsm ? fixEsmImports : fixCjsImports)(path.dirname(file), fileContent, importExtension);
       if (fileContent != null) await fsp.writeFile(file, fileContent, "utf8", { flush: true });
     }
   }

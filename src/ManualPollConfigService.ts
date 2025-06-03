@@ -1,5 +1,4 @@
 import type { ManualPollOptions } from "./ConfigCatClientOptions";
-import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -8,9 +7,9 @@ export class ManualPollConfigService extends ConfigServiceBase<ManualPollOptions
 
   readonly readyPromise: Promise<ClientCacheState>;
 
-  constructor(configFetcher: IConfigFetcher, options: ManualPollOptions) {
+  constructor(options: ManualPollOptions) {
 
-    super(configFetcher, options);
+    super(options);
 
     const initialCacheSyncUp = this.syncUpWithCache();
     this.readyPromise = this.getReadyPromise(initialCacheSyncUp);

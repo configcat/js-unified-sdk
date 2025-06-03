@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import type { AugmentedOptions } from "./helpers/platform";
-import { DataGovernance, OptionsBase } from "#lib/ConfigCatClientOptions";
-import { FetchResult, IConfigFetcher, IFetchResponse } from "#lib/ConfigFetcher";
+import { DataGovernance, IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
+import { FetchRequest, FetchResponse, FetchResult, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import type * as ConfigJson from "#lib/ConfigJson";
 import { ClientCacheState, ConfigServiceBase } from "#lib/ConfigServiceBase";
 import { Config, ProjectConfig } from "#lib/ProjectConfig";
@@ -262,30 +262,34 @@ export class FakeConfigFetcher implements IConfigFetcher {
   responses: { [url: string]: FetchResult } = {};
   calls: any[] = [];
 
+  constructor(private readonly options: OptionsBase) { }
+
   prepareResponse(url: string, fetchResult: FetchResult): void {
     this.responses[url] = fetchResult;
   }
 
-  fetchLogic(options: OptionsBase, lastEtag: string | null): Promise<IFetchResponse> {
+  fetchAsync(request: FetchRequest): Promise<FetchResponse> {
+    const { options } = this;
     const getUrl = ((options as Partial<AugmentedOptions<OptionsBase>>).getRealUrl ?? options.getUrl).bind(options);
     const projectConfig = this.responses[getUrl()];
     if (!projectConfig) {
       assert.fail("ConfigFetcher not prepared for " + getUrl());
     }
     this.calls.push(getUrl());
-    return Promise.resolve<IFetchResponse>({ statusCode: 200, reasonPhrase: "OK", eTag: projectConfig.config.httpETag, body: projectConfig.config.configJson });
+    return Promise.resolve<FetchResponse>({ statusCode: 200, reasonPhrase: "OK", eTag: projectConfig.config.httpETag, body: projectConfig.config.configJson });
   }
 }
 
 export class FakeOptions extends OptionsBase {
   constructor(baseUrl?: string, dataGovernance?: DataGovernance) {
-    super("API_KEY", "TEST", { baseUrl, dataGovernance }, null);
+    const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: options => new FakeConfigFetcher(options) };
+    super("API_KEY", kernel as unknown as IConfigCatKernel, "TEST", { baseUrl, dataGovernance });
   }
 }
 
 export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
   constructor(dataGovernance?: DataGovernance, baseUrl?: string) {
-    super(new FakeConfigFetcher(), new FakeOptions(baseUrl, dataGovernance));
+    super(new FakeOptions(baseUrl, dataGovernance));
   }
 
   get readyPromise(): Promise<ClientCacheState> { throw new Error("Getter not implemented."); }
