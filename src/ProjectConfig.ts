@@ -1,6 +1,7 @@
 import * as ConfigJson from "./ConfigJson";
 import type { PrerequisiteFlagComparator, RedirectMode, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import type { WellKnownUserObjectAttribute } from "./User";
+import { ensurePrototype } from "./Utils";
 
 // NOTE: This is a hack which prevents the TS compiler from eliding the namespace import above.
 // TS wants to do this because it figures that the ConfigJson module contains types only.
@@ -14,7 +15,7 @@ export class ProjectConfig {
 
   static readonly empty = new ProjectConfig(void 0, void 0, 0, void 0);
 
-  static equals(projectConfig1: ProjectConfig, projectConfig2: ProjectConfig): boolean {
+  static contentEquals(projectConfig1: ProjectConfig, projectConfig2: ProjectConfig): boolean {
     // When both ETags are available, we don't need to check the JSON content.
     return projectConfig1.httpETag && projectConfig2.httpETag
       ? projectConfig1.httpETag === projectConfig2.httpETag
@@ -201,6 +202,7 @@ export interface ISetting<TSetting extends SettingType = SettingType> extends IS
 export type SettingUnion = { [K in SettingType]: Setting<K> }[SettingType];
 
 export class Setting<TSetting extends SettingType = SettingType> extends SettingValueContainer<TSetting> implements ISetting<TSetting> {
+  /** @remarks Can also be -1 when the setting comes from a flag override. */
   readonly type: TSetting;
   readonly percentageOptionsAttribute: string;
   readonly targetingRules: ReadonlyArray<TargetingRule<TSetting>>;
@@ -394,4 +396,15 @@ function unwrapSettingValue(json: ConfigJson.SettingValue): NonNullable<SettingV
 export function nameOfSettingType(value: SettingType): string {
   /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
   return ConfigJson.SettingType[value] as string;
+}
+
+export class InvalidConfigModelError extends Error {
+  readonly name = InvalidConfigModelError.name;
+
+  constructor(
+    readonly message: string
+  ) {
+    super(message);
+    ensurePrototype(this, InvalidConfigModelError);
+  }
 }

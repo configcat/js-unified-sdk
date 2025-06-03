@@ -28,6 +28,8 @@ export type { IConfigCatClient, IConfigCatClientSnapshot, SettingKeyValue } from
 
 export type { IEvaluationDetails, SettingTypeOf } from "./RolloutEvaluator";
 
+export { EvaluationErrorCode } from "./RolloutEvaluator";
+
 export type { IUser, UserAttributeValue } from "./User";
 
 export { User } from "./User";
@@ -36,7 +38,7 @@ export type { FlagOverrides } from "./FlagOverrides";
 
 export { OverrideBehaviour } from "./FlagOverrides";
 
-export { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
+export { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 
 export type { HookEvents, IProvidesHooks } from "./Hooks";
 

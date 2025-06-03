@@ -5,7 +5,7 @@ import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode } from
 import type { LoggerWrapper } from "./ConfigCatLogger";
 import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService } from "./ConfigServiceBase";
-import { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
+import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
@@ -14,7 +14,7 @@ import { ManualPollConfigService } from "./ManualPollConfigService";
 import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import type { IConfig, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingTypeOf } from "./RolloutEvaluator";
-import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
+import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getEvaluationErrorCode, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { errorToString, isArray, throwError } from "./Utils";
 
@@ -79,20 +79,38 @@ export interface IConfigCatClient extends IProvidesHooks {
   getKeyAndValueAsync(variationId: string): Promise<SettingKeyValue | null>;
 
   /**
-   * Refreshes the locally cached config by fetching the latest version from the remote server.
+   * Updates the internally cached config by synchronizing with the external cache (if any),
+   * then by fetching the latest version from the ConfigCat CDN (provided that the client is online).
    * @returns A promise that fulfills with the refresh result.
    */
   forceRefreshAsync(): Promise<RefreshResult>;
 
   /**
-   * Waits for the client initialization.
-   * @returns A promise that fulfills with the client's initialization state.
+   * Waits for the client to reach the ready state, i.e. to complete initialization.
+   *
+   * @remarks Ready state is reached as soon as the initial sync with the external cache (if any) completes.
+   * If this does not produce up-to-date config data, and the client is online (i.e. HTTP requests are allowed),
+   * the first config fetch operation is also awaited in Auto Polling mode before ready state is reported.
+   *
+   * That is, reaching the ready state usually means the client is ready to evaluate feature flags and settings.
+   * However, please note that this is not guaranteed. In case of initialization failure or timeout, the internal cache
+   * may be empty or expired even after the ready state is reported. You can verify this by checking the return value.
+   *
+   * @returns A promise that fulfills with the state of the internal cache at the time initialization was completed.
    */
   waitForReady(): Promise<ClientCacheState>;
 
   /**
    * Captures the current state of the client.
    * The resulting snapshot can be used to synchronously evaluate feature flags and settings based on the captured state.
+   *
+   * @remarks The operation captures the internally cached config data. It does not attempt to update it by synchronizing with
+   * the external cache or by fetching the latest version from the ConfigCat CDN.
+   *
+   * Therefore, it is recommended to use snapshots in conjunction with the Auto Polling mode, where the SDK automatically
+   * updates the internal cache in the background.
+   *
+   * For other polling modes, you will need to manually initiate a cache update by invoking `forceRefreshAsync`.
    */
   snapshot(): IConfigCatClientSnapshot;
 
@@ -118,7 +136,7 @@ export interface IConfigCatClient extends IProvidesHooks {
   setOnline(): void;
 
   /**
-   * Configures the client to not initiate HTTP requests and work using the locally cached config only.
+   * Configures the client to not initiate HTTP requests but work using the cache only.
    */
   setOffline(): void;
 
@@ -130,9 +148,10 @@ export interface IConfigCatClient extends IProvidesHooks {
 
 /** Represents the state of `IConfigCatClient` captured at a specific point in time. */
 export interface IConfigCatClientSnapshot {
+  /** The state of the internal cache at the time the snapshot was created. */
   readonly cacheState: ClientCacheState;
 
-  /** The latest config which has been fetched from the remote server. */
+  /** The internally cached config at the time the snapshot was created. */
   readonly fetchedConfig: IConfig | null;
 
   /**
@@ -381,7 +400,8 @@ export class ConfigCatClient implements IConfigCatClient {
       value = evaluationDetails.value;
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("getValueAsync", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
       value = defaultValue as SettingTypeOf<T>;
     }
 
@@ -404,7 +424,8 @@ export class ConfigCatClient implements IConfigCatClient {
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("getValueDetailsAsync", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
     }
 
     this.hooks.emit("flagEvaluated", evaluationDetails);
@@ -540,10 +561,11 @@ export class ConfigCatClient implements IConfigCatClient {
         return result;
       } catch (err) {
         this.options.logger.forceRefreshError("forceRefreshAsync", err);
-        return RefreshResult.failure(errorToString(err), err);
+        return RefreshResult.failure(RefreshErrorCode.UnexpectedError, errorToString(err), err);
       }
     } else {
-      return RefreshResult.failure("Client is configured to use the LocalOnly override behavior, which prevents making HTTP requests.");
+      return RefreshResult.failure(RefreshErrorCode.LocalOnlyClient,
+        "Client is configured to use the LocalOnly override behavior, which prevents synchronization with external cache and making HTTP requests.");
     }
   }
 
@@ -723,7 +745,8 @@ class Snapshot implements IConfigCatClientSnapshot {
       value = evaluationDetails.value;
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("Snapshot.getValue", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
       value = defaultValue as SettingTypeOf<T>;
     }
 
@@ -743,7 +766,8 @@ class Snapshot implements IConfigCatClientSnapshot {
       evaluationDetails = evaluate(this.evaluator, this.mergedSettings, key, defaultValue, user, this.remoteConfig, this.options.logger);
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("Snapshot.getValueDetails", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
     }
 
     this.options.hooks.emit("flagEvaluated", evaluationDetails);

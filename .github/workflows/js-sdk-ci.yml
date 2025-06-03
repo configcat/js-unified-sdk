@@ -106,6 +106,28 @@ jobs:
       - name: Test
         run: npm run test:browser:firefox
 
+  test-browser-safari:
+    runs-on: macos-latest
+    name: Browser - Safari latest test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Enable Safari automation
+        run: |
+          sudo safaridriver --enable
+          /Applications/Safari.app/Contents/MacOS/Safari & sleep 5
+          killall Safari
+
+      - name: Install dependencies & build
+        run: npm install
+
+      - name: Test
+        run: npm run test:browser:safari
+
   test-bun:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -248,7 +270,7 @@ jobs:
   coverage:
     needs: [
       check-ts-compat,
-      test-browser-chrome, test-browser-chromium, test-browser-firefox,
+      test-browser-chrome, test-browser-chromium, test-browser-firefox, test-browser-safari,
       test-bun,
       test-chromium-extension-chrome, test-chromium-extension-chromium,
       test-cloudflare-worker,

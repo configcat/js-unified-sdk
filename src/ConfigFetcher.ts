@@ -1,6 +1,8 @@
 import type { OptionsBase } from "./ConfigCatClientOptions";
+import { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
+import { ensurePrototype } from "./Utils";
 
 export const enum FetchStatus {
   Fetched = 0,
@@ -10,22 +12,23 @@ export const enum FetchStatus {
 
 export class FetchResult {
   private constructor(
-    public status: FetchStatus,
-    public config: ProjectConfig,
-    public errorMessage?: Message,
-    public errorException?: any) {
+    readonly status: FetchStatus,
+    readonly config: ProjectConfig,
+    readonly errorCode: RefreshErrorCode,
+    readonly errorMessage?: Message,
+    readonly errorException?: any) {
   }
 
   static success(config: ProjectConfig): FetchResult {
-    return new FetchResult(FetchStatus.Fetched, config);
+    return new FetchResult(FetchStatus.Fetched, config, RefreshErrorCode.None);
   }
 
   static notModified(config: ProjectConfig): FetchResult {
-    return new FetchResult(FetchStatus.NotModified, config);
+    return new FetchResult(FetchStatus.NotModified, config, RefreshErrorCode.None);
   }
 
-  static error(config: ProjectConfig, errorMessage?: Message, errorException?: any): FetchResult {
-    return new FetchResult(FetchStatus.Errored, config, errorMessage ?? "Unknown error.", errorException);
+  static error(config: ProjectConfig, errorCode: RefreshErrorCode, errorMessage?: Message, errorException?: any): FetchResult {
+    return new FetchResult(FetchStatus.Errored, config, errorCode, errorMessage ?? "Unknown error.", errorException);
   }
 }
 
@@ -43,7 +46,8 @@ export type FetchErrorCauses = {
 };
 
 export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchErrorCauses> extends Error {
-  args: FetchErrorCauses[TCause];
+  readonly name = FetchError.name;
+  readonly args: FetchErrorCauses[TCause];
 
   constructor(public cause: TCause, ...args: FetchErrorCauses[TCause]) {
     super(((cause: TCause, args: FetchErrorCauses[TCause]): string | undefined => {
@@ -63,14 +67,7 @@ export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchError
       }
     })(cause, args));
 
-    // NOTE: due to a known issue in the TS compiler, instanceof is broken when subclassing Error and targeting ES5 or earlier
-    // (see https://github.com/microsoft/TypeScript/issues/13965).
-    // Thus, we need to manually fix the prototype chain as recommended in the TS docs
-    // (see https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work)
-    if (!(this instanceof FetchError)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (Object.setPrototypeOf || ((o, proto) => o["__proto__"] = proto))(this, FetchError.prototype);
-    }
+    ensurePrototype(this, FetchError);
     this.args = args;
   }
 }

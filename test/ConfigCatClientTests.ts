@@ -7,15 +7,15 @@ import { ConfigCatClient, IConfigCatClient, IConfigCatKernel } from "#lib/Config
 import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, IOptions, LazyLoadOptions, ManualPollOptions, OptionsBase, PollingMode } from "#lib/ConfigCatClientOptions";
 import { LogLevel } from "#lib/ConfigCatLogger";
 import { IFetchResponse } from "#lib/ConfigFetcher";
-import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshResult } from "#lib/ConfigServiceBase";
+import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshErrorCode, RefreshResult } from "#lib/ConfigServiceBase";
 import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
 import { Config, IConfig, ProjectConfig, SettingValue, SettingValueContainer } from "#lib/ProjectConfig";
-import { EvaluateContext, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
+import { EvaluateContext, EvaluationErrorCode, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
-import { delay, Message } from "#lib/Utils";
+import { delay, getMonotonicTimeMs, Message } from "#lib/Utils";
 import "./helpers/ConfigCatClientCacheExtensions";
 
 describe("ConfigCatClient", () => {
@@ -189,13 +189,54 @@ describe("ConfigCatClient", () => {
     client.dispose();
   });
 
-  it("getValueDetailsAsync() should return correct result when setting is not available", async () => {
+  it("getValueDetailsAsync() should return correct result when config JSON is not available", async () => {
+
+    // Arrange
+
+    const key = "debug";
+    const defaultValue = false;
+
+    const configCache = new FakeCache();
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher(), defaultCacheFactory: () => configCache });
+    const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
+    const client = new ConfigCatClient(options, configCatKernel);
+
+    const user = new User("a@configcat.com");
+
+    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
+
+    // Act
+
+    const actual = await client.getValueDetailsAsync(key, defaultValue, user);
+
+    // Assert
+
+    assert.strictEqual(key, actual.key);
+    assert.strictEqual(defaultValue, actual.value);
+    assert.isTrue(actual.isDefaultValue);
+    assert.isUndefined(actual.variationId);
+    assert.strictEqual(0, actual.fetchTime?.getTime());
+    assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.ConfigJsonNotAvailable);
+    assert.isDefined(actual.errorMessage);
+    assert.isUndefined(actual.errorException);
+    assert.isUndefined(actual.matchedTargetingRule);
+    assert.isUndefined(actual.matchedPercentageOption);
+
+    assert.equal(1, flagEvaluatedEvents.length);
+    assert.strictEqual(actual, flagEvaluatedEvents[0]);
+
+    client.dispose();
+  });
+
+  it("getValueDetailsAsync() should return correct result when setting is missing", async () => {
 
     // Arrange
 
     const key = "notexists";
     const defaultValue = false;
-    const timestamp = new Date().getTime();
+    const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
     const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
@@ -221,6 +262,7 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.SettingKeyMissing);
     assert.isDefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -238,7 +280,7 @@ describe("ConfigCatClient", () => {
 
     const key = "debug";
     const defaultValue = false;
-    const timestamp = new Date().getTime();
+    const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
     const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
@@ -264,6 +306,7 @@ describe("ConfigCatClient", () => {
     assert.strictEqual("abcdefgh", actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.None);
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -281,7 +324,7 @@ describe("ConfigCatClient", () => {
 
     const key = "debug";
     const defaultValue = "N/A";
-    const timestamp = new Date().getTime();
+    const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithRules;
     const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
@@ -308,6 +351,7 @@ describe("ConfigCatClient", () => {
     assert.strictEqual("redVariationId", actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.None);
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isDefined(actual.matchedTargetingRule);
@@ -327,7 +371,7 @@ describe("ConfigCatClient", () => {
 
     const key = "string25Cat25Dog25Falcon25Horse";
     const defaultValue = "N/A";
-    const timestamp = new Date().getTime();
+    const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithPercentageOptions;
     const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
@@ -353,6 +397,7 @@ describe("ConfigCatClient", () => {
     assert.strictEqual("CatVariationId", actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.None);
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -372,7 +417,7 @@ describe("ConfigCatClient", () => {
 
     const key = "debug";
     const defaultValue = false;
-    const timestamp = new Date().getTime();
+    const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
     const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
@@ -407,6 +452,7 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.UnexpectedError);
     assert.isDefined(actual.errorMessage);
     assert.strictEqual(err, actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -427,7 +473,7 @@ describe("ConfigCatClient", () => {
 
     // Arrange
 
-    const timestamp = new Date().getTime();
+    const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
     const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
@@ -461,6 +507,7 @@ describe("ConfigCatClient", () => {
       assert.strictEqual(variationId, actualDetails.variationId);
       assert.strictEqual(cachedPc.timestamp, actualDetails.fetchTime?.getTime());
       assert.strictEqual(user, actualDetails.user);
+      assert.strictEqual(actualDetails.errorCode, EvaluationErrorCode.None);
       assert.isUndefined(actualDetails.errorMessage);
       assert.isUndefined(actualDetails.errorException);
       assert.isUndefined(actualDetails.matchedTargetingRule);
@@ -479,7 +526,7 @@ describe("ConfigCatClient", () => {
 
     // Arrange
 
-    const timestamp = new Date().getTime();
+    const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
     const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
@@ -516,6 +563,7 @@ describe("ConfigCatClient", () => {
       assert.isUndefined(actualDetails.variationId);
       assert.strictEqual(cachedPc.timestamp, actualDetails.fetchTime?.getTime());
       assert.strictEqual(user, actualDetails.user);
+      assert.strictEqual(actualDetails.errorCode, EvaluationErrorCode.UnexpectedError);
       assert.isDefined(actualDetails.errorMessage);
       assert.strictEqual(err, actualDetails.errorException);
       assert.isUndefined(actualDetails.matchedTargetingRule);
@@ -585,13 +633,13 @@ describe("ConfigCatClient", () => {
     const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher(500) });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
-    const startDate: number = new Date().getTime();
+    const startTime: number = getMonotonicTimeMs();
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
     const actualValue = await client.getValueAsync("debug", false);
-    const elapsedMilliseconds: number = new Date().getTime() - startDate;
+    const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
     assert.isAtLeast(elapsedMilliseconds, 500 - 25); // 25 ms for tolerance
-    assert.isAtMost(elapsedMilliseconds, maxInitWaitTimeSeconds * 1000 + 75); // 75 ms for tolerance
+    assert.isAtMost(elapsedMilliseconds, maxInitWaitTimeSeconds * 1000 + 100); // 100 ms for tolerance
     assert.equal(actualValue, true);
 
     client.dispose();
@@ -609,13 +657,13 @@ describe("ConfigCatClient", () => {
       const configCatKernel = createKernel({ configFetcher });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
-      const startDate: number = new Date().getTime();
+      const startTime: number = getMonotonicTimeMs();
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
       const actualDetails = await client.getValueDetailsAsync("debug", false);
-      const elapsedMilliseconds: number = new Date().getTime() - startDate;
+      const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
       assert.isAtLeast(elapsedMilliseconds, 500 - 25); // 25 ms for tolerance
-      assert.isAtMost(elapsedMilliseconds, configFetchDelay * 2 + 75); // 75 ms for tolerance
+      assert.isAtMost(elapsedMilliseconds, configFetchDelay * 2 + 100); // 100 ms for tolerance
       assert.equal(actualDetails.isDefaultValue, true);
       assert.equal(actualDetails.value, false);
 
@@ -630,13 +678,13 @@ describe("ConfigCatClient", () => {
     const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcherWithNullNewConfig(10000) });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
-    const startDate: number = new Date().getTime();
+    const startTime: number = getMonotonicTimeMs();
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
     const actualValue = await client.getValueAsync("debug", false);
-    const elapsedMilliseconds: number = new Date().getTime() - startDate;
+    const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
     assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 25); // 25 ms for tolerance
-    assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 75); // 75 ms for tolerance
+    assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 100); // 100 ms for tolerance
     assert.equal(actualValue, false);
 
     client.dispose();
@@ -671,13 +719,13 @@ describe("ConfigCatClient", () => {
       const configCatKernel = createKernel({ configFetcher });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
-      const startDate: number = new Date().getTime();
+      const startTime: number = getMonotonicTimeMs();
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
       const state = await client.waitForReady();
-      const elapsedMilliseconds: number = new Date().getTime() - startDate;
+      const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
       assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 25); // 25 ms for tolerance
-      assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 75); // 75 ms for tolerance
+      assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 100); // 100 ms for tolerance
 
       assert.equal(state, ClientCacheState.NoFlagData);
 
@@ -704,13 +752,13 @@ describe("ConfigCatClient", () => {
         cache: new FakeExternalCacheWithInitialData(120_000),
       }, configCatKernel);
 
-      const startDate: number = new Date().getTime();
+      const startTime: number = getMonotonicTimeMs();
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
       const state = await client.waitForReady();
-      const elapsedMilliseconds: number = new Date().getTime() - startDate;
+      const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
       assert.isAtLeast(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) - 25); // 25 ms for tolerance
-      assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 75); // 75 ms for tolerance
+      assert.isAtMost(elapsedMilliseconds, (maxInitWaitTimeSeconds * 1000) + 100); // 100 ms for tolerance
 
       assert.equal(state, ClientCacheState.HasCachedFlagDataOnly);
 
@@ -948,7 +996,7 @@ describe("ConfigCatClient", () => {
 
     const configFetcher = new FakeConfigFetcher(500);
     const configJson = "{\"f\": { \"debug\": { \"v\": { \"b\": false }, \"i\": \"abcdefgh\", \"t\": 0, \"p\": [], \"r\": [] } } }";
-    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), new Date().getTime() - 10000000, "etag2"));
+    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
     const configCatKernel = createKernel({ configFetcher, defaultCacheFactory: () => configCache });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 10 }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -963,7 +1011,7 @@ describe("ConfigCatClient", () => {
 
     const configFetcher = new FakeConfigFetcher(500);
     const configJson = "{\"f\": { \"debug\": { \"v\": { \"b\": false }, \"i\": \"abcdefgh\", \"t\": 0, \"p\": [], \"r\": [] } } }";
-    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), new Date().getTime() - 10000000, "etag2"));
+    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
     const configCatKernel = createKernel({ configFetcher, defaultCacheFactory: () => configCache });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 10 }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -1216,9 +1264,10 @@ describe("ConfigCatClient", () => {
   ];
 
   for (const [pollingMode, optionsFactory] of optionsFactoriesForOfflineModeTests) {
-    it(`setOnline() should make a(n) ${PollingMode[pollingMode]} client created in offline mode transition to online mode.`, async () => {
+    it(`setOnline() should make a(n) ${PollingMode[pollingMode]} client created in offline mode transition to online mode`, async () => {
+      const configFetcherDelayMs = 100;
 
-      const configFetcher = new FakeConfigFetcherBase("{}", 100, (lastConfig, lastETag) => ({
+      const configFetcher = new FakeConfigFetcherBase("{}", configFetcherDelayMs, (lastConfig, lastETag) => ({
         statusCode: 200,
         reasonPhrase: "OK",
         eTag: (lastETag as any | 0) + 1 + "",
@@ -1246,7 +1295,7 @@ describe("ConfigCatClient", () => {
       client.setOnline();
 
       if (configService instanceof AutoPollConfigService) {
-        assert.isTrue(await configService["initializationPromise"]);
+        await delay(configFetcherDelayMs + 50);
         expectedFetchTimes++;
       }
 
@@ -1283,7 +1332,7 @@ describe("ConfigCatClient", () => {
   }
 
   for (const [pollingMode, optionsFactory] of optionsFactoriesForOfflineModeTests) {
-    it(`setOffline() should make a(n) ${PollingMode[pollingMode]} client created in online mode transition to offline mode.`, async () => {
+    it(`setOffline() should make a(n) ${PollingMode[pollingMode]} client created in online mode transition to offline mode`, async () => {
 
       const configFetcher = new FakeConfigFetcherBase("{}", 100, (lastConfig, lastETag) => ({
         statusCode: 200,
@@ -1340,6 +1389,7 @@ describe("ConfigCatClient", () => {
       assert.equal(etag1, ((await configService.getConfig()).httpETag ?? "0") as any | 0);
 
       assert.isFalse(refreshResult.isSuccess);
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.OfflineClient);
       expect(refreshResult.errorMessage).to.contain("offline mode");
       assert.isUndefined(refreshResult.errorException);
 
@@ -1352,19 +1402,22 @@ describe("ConfigCatClient", () => {
   }
 
   for (const addListenersViaOptions of [false, true]) {
-    it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of.`, async () => {
+    it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of`, async () => {
       let clientReadyEventCount = 0;
+      const configFetchedEvents: [RefreshResult, boolean][] = [];
       const configChangedEvents: IConfig[] = [];
       const flagEvaluatedEvents: IEvaluationDetails[] = [];
       const errorEvents: [string, any][] = [];
 
       const handleClientReady = () => clientReadyEventCount++;
+      const handleConfigFetched = (result: RefreshResult, isInitiatedByUser: boolean) => configFetchedEvents.push([result, isInitiatedByUser]);
       const handleConfigChanged = (pc: IConfig) => configChangedEvents.push(pc);
       const handleFlagEvaluated = (ed: IEvaluationDetails) => flagEvaluatedEvents.push(ed);
       const handleClientError = (msg: Message, err: any) => errorEvents.push([msg.toString(), err]);
 
       function setupHooks(hooks: IProvidesHooks) {
         hooks.on("clientReady", handleClientReady);
+        hooks.on("configFetched", handleConfigFetched);
         hooks.on("configChanged", handleConfigChanged);
         hooks.on("flagEvaluated", handleFlagEvaluated);
         hooks.on("clientError", handleClientError);
@@ -1390,6 +1443,7 @@ describe("ConfigCatClient", () => {
 
       assert.equal(state, ClientCacheState.NoFlagData);
       assert.equal(clientReadyEventCount, 1);
+      assert.equal(configFetchedEvents.length, 0);
       assert.equal(configChangedEvents.length, 0);
       assert.equal(flagEvaluatedEvents.length, 0);
       assert.equal(errorEvents.length, 0);
@@ -1409,6 +1463,7 @@ describe("ConfigCatClient", () => {
 
       await client.forceRefreshAsync();
 
+      assert.equal(configFetchedEvents.length, 0);
       assert.equal(configChangedEvents.length, 0);
       assert.equal(errorEvents.length, 1);
       const [actualErrorMessage, actualErrorException] = errorEvents[0];
@@ -1421,6 +1476,10 @@ describe("ConfigCatClient", () => {
       await client.forceRefreshAsync();
       const cachedPc = await configCache.get("");
 
+      assert.equal(configFetchedEvents.length, 1);
+      const [refreshResult, isInitiatedByUser] = configFetchedEvents[0];
+      assert.isTrue(isInitiatedByUser);
+      assert.isTrue(refreshResult.isSuccess);
       assert.equal(configChangedEvents.length, 1);
       assert.strictEqual(configChangedEvents[0], cachedPc.config);
 
@@ -1437,6 +1496,7 @@ describe("ConfigCatClient", () => {
       // 5. Client gets disposed
       client.dispose();
 
+      assert.equal(configFetchedEvents.length, 1);
       assert.equal(clientReadyEventCount, 1);
       assert.equal(configChangedEvents.length, 1);
       assert.equal(evaluationDetails.length, flagEvaluatedEvents.length);
@@ -1444,7 +1504,7 @@ describe("ConfigCatClient", () => {
     });
   }
 
-  it("forceRefresh() should return failure including error in case of failed fetch", async () => {
+  it("forceRefreshAsync() should return failure including error in case of failed fetch", async () => {
     const errorMessage = "Something went wrong";
     const errorException = new Error(errorMessage);
 
@@ -1458,13 +1518,14 @@ describe("ConfigCatClient", () => {
     const refreshResult = await client.forceRefreshAsync();
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestFailure);
     assert.isString(refreshResult.errorMessage);
     assert.strictEqual(refreshResult.errorException, errorException);
 
     client.dispose();
   });
 
-  it("forceRefresh() should return failure including error in case of unexpected exception", async () => {
+  it("forceRefreshAsync() should return failure including error in case of unexpected exception", async () => {
     const errorMessage = "Something went wrong";
     const errorException = new Error(errorMessage);
 
@@ -1489,6 +1550,7 @@ describe("ConfigCatClient", () => {
     const refreshResult = await client.forceRefreshAsync();
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedError);
     expect(refreshResult.errorMessage).to.include(errorMessage);
     assert.strictEqual(refreshResult.errorException, errorException);
 

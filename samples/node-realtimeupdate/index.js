@@ -9,7 +9,7 @@ const configcatSdkKey = "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1
 const pubnubSubscriberKey = "demo";
 const pubnubPublishKey = "demo";
 
-// ConfigCat instance with manual poll. Polls ConfigCat and updates the cache only when forceRefresh() is called.
+// ConfigCat instance with manual poll. Polls ConfigCat and updates the cache only when forceRefreshAsync() is called.
 var configCatClient = configcat.getClient(configcatSdkKey, configcat.PollingMode.ManualPoll);
 
 // PubNub instance
