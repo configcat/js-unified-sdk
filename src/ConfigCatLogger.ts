@@ -74,11 +74,11 @@ export function toMessage(logMessage: LogMessage): Message {
 }
 
 /**
- * Represents a method that is called by the SDK to decide whether a log event should be logged.
+ * Defines the type of the callback function that is called by the SDK to decide whether a log event should be logged.
  * @param level Event severity level.
  * @param eventId Event identifier.
  * @param message Message.
- * @param exception The exception object related to the message (if any).
+ * @param exception The exception object related to the event (if any).
  * @returns `true` when the event should be logged, `false` when it should be skipped.
  */
 export type LogFilterCallback = (level: LogLevel, eventId: LogEventId, message: LogMessage, exception?: any) => boolean;
@@ -96,7 +96,7 @@ export interface IConfigCatLogger {
    * @param level Event severity level.
    * @param eventId Event identifier.
    * @param message Message.
-   * @param exception The exception object related to the message (if any).
+   * @param exception The exception object related to the event (if any).
    */
   log(level: LogLevel, eventId: LogEventId, message: LogMessage, exception?: any): void;
 }
