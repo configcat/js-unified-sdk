@@ -4,12 +4,12 @@ import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserCompara
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
 import type { ConditionUnion, IPercentageOption, ITargetingRule, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingValue, SettingValueContainer, TargetingRule, UserConditionUnion, VariationIdValue } from "./ProjectConfig";
-import { nameOfSettingType } from "./ProjectConfig";
+import { InvalidConfigModelError, nameOfSettingType } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue } from "./User";
 import { getUserAttribute, getUserAttributes } from "./User";
-import { errorToString, formatStringList, isArray, isStringArray, parseFloatStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, isArray, isStringArray, parseFloatStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private $visitedFlags?: string[];
@@ -81,11 +81,16 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       if (defaultValue != null) {
         // NOTE: We've already checked earlier in the call chain that the defaultValue is of an allowed type (see also ensureAllowedDefaultValue).
 
-        const settingType = context.setting.type;
-        // A negative setting type indicates a setting which comes from a flag override (see also Setting.fromValue).
-        if (settingType >= 0 && !isCompatibleValue(defaultValue, settingType)) {
-          const settingTypeName: string = nameOfSettingType(settingType);
-          throw new TypeError(
+        let settingType = context.setting.type as SettingType | -1;
+        // Setting type -1 indicates a setting which comes from a flag override (see also Setting.fromValue).
+        if (settingType === -1) {
+          settingType = inferSettingType(context.setting.value);
+        }
+        // At this point, setting type -1 indicates a setting which comes from a flag override AND has an unsupported value.
+        // This case will be handled by handleInvalidReturnValue below.
+        if (settingType !== -1 && !isCompatibleValue(defaultValue, settingType)) {
+          const settingTypeName = nameOfSettingType(settingType);
+          throw new EvaluationError(EvaluationErrorCode.SettingValueTypeMismatch,
             "The type of a setting must match the type of the specified default value. "
             + `Setting's type was ${settingTypeName} but the default value's type was ${typeof defaultValue}. `
             + `Please use a default value which corresponds to the setting type ${settingTypeName}. `
@@ -232,7 +237,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return { selectedValue: percentageOption, matchedTargetingRule, matchedPercentageOption: percentageOption };
     }
 
-    throw new Error("Sum of percentage option percentages is less than 100.");
+    throw new InvalidConfigModelError("Sum of percentage option percentages is less than 100.");
   }
 
   private evaluateConditions(conditions: ReadonlyArray<ConditionUnion>, targetingRule: TargetingRule | undefined, contextSalt: string, context: EvaluateContext): boolean | string {
@@ -608,7 +613,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     if (context.visitedFlags.indexOf(prerequisiteFlagKey) >= 0) {
       context.visitedFlags.push(prerequisiteFlagKey);
       const dependencyCycle = formatStringList(context.visitedFlags, void 0, void 0, " -> ");
-      throw new Error(`Circular dependency detected between the following depending flags: ${dependencyCycle}.`);
+      throw new InvalidConfigModelError(`Circular dependency detected between the following depending flags: ${dependencyCycle}.`);
     }
 
     const prerequisiteFlagContext = EvaluateContext.forPrerequisiteFlag(prerequisiteFlagKey, prerequisiteFlag, context);
@@ -624,7 +629,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     const prerequisiteFlagValue = prerequisiteFlagEvaluateResult.selectedValue.value;
     if (typeof prerequisiteFlagValue !== typeof condition.comparisonValue) {
       if (isAllowedValue(prerequisiteFlagValue)) {
-        throw new Error(`Type mismatch between comparison value '${condition.comparisonValue}' and prerequisite flag '${prerequisiteFlagKey}'.`);
+        throw new InvalidConfigModelError(`Type mismatch between comparison value '${condition.comparisonValue}' and prerequisite flag '${prerequisiteFlagKey}'.`);
       } else {
         handleInvalidReturnValue(prerequisiteFlagValue);
       }
@@ -811,6 +816,22 @@ export type SettingTypeOf<T> =
   T extends undefined ? boolean | number | string | undefined :
   any;
 
+/** Specifies the possible evaluation error codes. */
+export const enum EvaluationErrorCode {
+  /** An unexpected error occurred during the evaluation. */
+  UnexpectedError = -1,
+  /** No error occurred (the evaluation was successful). */
+  None = 0,
+  /** The evaluation failed because of an error in the config model. (Most likely, invalid data was passed to the SDK via flag overrides.) */
+  InvalidConfigModel = 1,
+  /** The evaluation failed because of a type mismatch between the evaluated setting value and the specified default value. */
+  SettingValueTypeMismatch = 2,
+  /** The evaluation failed because the config JSON was not available locally. */
+  ConfigJsonNotAvailable = 1000,
+  /** The evaluation failed because the key of the evaluated setting was not found in the config JSON. */
+  SettingKeyMissing = 1001,
+}
+
 /** The evaluated value and additional information about the evaluation of a feature flag or setting. */
 export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> {
   /** Key of the feature flag or setting. */
@@ -833,6 +854,9 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
    * is used as the result of the evaluation.
    */
   isDefaultValue: boolean;
+
+  /** The code identifying the reason for the error in case evaluation failed. */
+  errorCode: EvaluationErrorCode;
 
   /** Error message in case evaluation failed. */
   errorMessage?: string;
@@ -861,11 +885,12 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
     isDefaultValue: false,
     matchedTargetingRule: evaluateResult.matchedTargetingRule,
     matchedPercentageOption: evaluateResult.matchedPercentageOption,
+    errorCode: EvaluationErrorCode.None,
   };
 }
 
 export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
-  fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any
+  fetchTime?: Date, user?: IUser, errorMessage?: string, errorException?: any, errorCode = EvaluationErrorCode.UnexpectedError
 ): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
@@ -876,6 +901,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
     errorMessage,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     errorException,
+    errorCode,
   };
 }
 
@@ -885,13 +911,15 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
   let errorMessage: string;
   if (!settings) {
     errorMessage = logger.configJsonIsNotPresentSingle(key, "defaultValue", defaultValue).toString();
-    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorMessage);
+    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
+      errorMessage, void 0, EvaluationErrorCode.ConfigJsonNotAvailable);
   }
 
   const setting = settings[key];
   if (!setting) {
     errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, formatStringList(Object.keys(settings))).toString();
-    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorMessage);
+    return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
+      errorMessage, void 0, EvaluationErrorCode.SettingKeyMissing);
   }
 
   const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, setting, user, settings));
@@ -918,7 +946,8 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [
     } catch (err) {
       errors ??= [];
       errors.push(err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, null, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, null, getTimestampAsDate(remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
     }
 
     evaluationDetailsArray.push(evaluationDetails);
@@ -939,7 +968,17 @@ export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setti
 }
 
 export function isAllowedValue(value: unknown): value is NonNullable<SettingValue> {
-  return typeof value === "boolean" || typeof value === "string" || typeof value === "number";
+  return inferSettingType(value) !== -1;
+}
+
+function inferSettingType(value: unknown): SettingType | -1 {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (typeof value) {
+    case "boolean": return SettingType.Boolean;
+    case "string": return SettingType.String;
+    case "number": return SettingType.Double;
+    default: return -1;
+  }
 }
 
 function isCompatibleValue(value: SettingValue, settingType: SettingType): boolean {
@@ -953,7 +992,7 @@ function isCompatibleValue(value: SettingValue, settingType: SettingType): boole
 }
 
 export function handleInvalidReturnValue(value: unknown): never {
-  throw new TypeError(
+  throw new InvalidConfigModelError(
     value === null ? "Setting value is null."
     : value === void 0 ? "Setting value is undefined."
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -962,4 +1001,23 @@ export function handleInvalidReturnValue(value: unknown): never {
 
 export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | undefined {
   return projectConfig ? new Date(projectConfig.timestamp) : void 0;
+}
+
+export class EvaluationError extends Error {
+  readonly name = EvaluationError.name;
+
+  constructor(
+    readonly errorCode: EvaluationErrorCode,
+    readonly message: string
+  ) {
+    super(message);
+    ensurePrototype(this, EvaluationError);
+  }
+}
+
+export function getEvaluationErrorCode(err: any): EvaluationErrorCode {
+  return !(err instanceof Error) ? EvaluationErrorCode.UnexpectedError
+    : err instanceof EvaluationError ? err.errorCode
+    : err instanceof InvalidConfigModelError ? EvaluationErrorCode.InvalidConfigModel
+    : EvaluationErrorCode.UnexpectedError;
 }

@@ -1,12 +1,12 @@
 import { assert, expect } from "chai";
 import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig } from "./helpers/fakes";
-import { SettingKeyValue } from "#lib";
+import { RefreshErrorCode, SettingKeyValue } from "#lib";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { createFlagOverridesFromQueryParams } from "#lib/index.pubternals";
-import { SettingValue } from "#lib/ProjectConfig";
-import { isAllowedValue } from "#lib/RolloutEvaluator";
+import { InvalidConfigModelError, SettingValue } from "#lib/ProjectConfig";
+import { EvaluationError, EvaluationErrorCode, isAllowedValue } from "#lib/RolloutEvaluator";
 
 describe("Local Overrides", () => {
   it("Values from map - LocalOnly", async () => {
@@ -375,6 +375,7 @@ describe("Local Overrides", () => {
     assert.isTrue(await client.getValueAsync("nonexisting", false));
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.LocalOnlyClient);
     expect(refreshResult.errorMessage).to.contain("LocalOnly");
     assert.isUndefined(refreshResult.errorException);
 
@@ -419,10 +420,28 @@ describe("Local Overrides", () => {
 
       const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-      const actualEvaluatedValue = await client.getValueAsync(key, defaultValue as SettingValue);
+      const actualEvaluatedValueDetails = await client.getValueDetailsAsync(key, defaultValue as SettingValue);
+      const actualEvaluatedValue = actualEvaluatedValueDetails.value;
       const actualEvaluatedValues = await client.getAllValuesAsync();
 
       assert.strictEqual(expectedEvaluatedValue, actualEvaluatedValue);
+
+      if (defaultValue !== expectedEvaluatedValue) {
+        assert.isFalse(actualEvaluatedValueDetails.isDefaultValue);
+        assert.strictEqual(actualEvaluatedValueDetails.errorCode, EvaluationErrorCode.None);
+        assert.isUndefined(actualEvaluatedValueDetails.errorMessage);
+        assert.isUndefined(actualEvaluatedValueDetails.errorException);
+      } else {
+        assert.isTrue(actualEvaluatedValueDetails.isDefaultValue);
+        assert.isDefined(actualEvaluatedValueDetails.errorMessage);
+        if (!isAllowedValue(overrideValue)) {
+          assert.strictEqual(actualEvaluatedValueDetails.errorCode, EvaluationErrorCode.InvalidConfigModel);
+          assert.instanceOf(actualEvaluatedValueDetails.errorException, InvalidConfigModelError);
+        } else {
+          assert.strictEqual(actualEvaluatedValueDetails.errorCode, EvaluationErrorCode.SettingValueTypeMismatch);
+          assert.instanceOf(actualEvaluatedValueDetails.errorException, EvaluationError);
+        }
+      }
 
       const expectedEvaluatedValues: SettingKeyValue[] = [{
         settingKey: key,

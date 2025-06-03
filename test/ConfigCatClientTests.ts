@@ -7,13 +7,13 @@ import { ConfigCatClient, IConfigCatClient, IConfigCatKernel } from "#lib/Config
 import { AutoPollOptions, IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, IOptions, LazyLoadOptions, ManualPollOptions, OptionsBase, PollingMode } from "#lib/ConfigCatClientOptions";
 import { LogLevel } from "#lib/ConfigCatLogger";
 import { IFetchResponse } from "#lib/ConfigFetcher";
-import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshResult } from "#lib/ConfigServiceBase";
+import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshErrorCode, RefreshResult } from "#lib/ConfigServiceBase";
 import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
 import { Config, IConfig, ProjectConfig, SettingValue, SettingValueContainer } from "#lib/ProjectConfig";
-import { EvaluateContext, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
+import { EvaluateContext, EvaluationErrorCode, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
 import { delay, getMonotonicTimeMs } from "#lib/Utils";
 import "./helpers/ConfigCatClientCacheExtensions";
@@ -189,7 +189,48 @@ describe("ConfigCatClient", () => {
     client.dispose();
   });
 
-  it("getValueDetailsAsync() should return correct result when setting is not available", async () => {
+  it("getValueDetailsAsync() should return correct result when config JSON is not available", async () => {
+
+    // Arrange
+
+    const key = "debug";
+    const defaultValue = false;
+
+    const configCache = new FakeCache();
+    const configCatKernel = createKernel({ configFetcher: new FakeConfigFetcher(), defaultCacheFactory: () => configCache });
+    const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
+    const client = new ConfigCatClient(options, configCatKernel);
+
+    const user = new User("a@configcat.com");
+
+    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
+
+    // Act
+
+    const actual = await client.getValueDetailsAsync(key, defaultValue, user);
+
+    // Assert
+
+    assert.strictEqual(key, actual.key);
+    assert.strictEqual(defaultValue, actual.value);
+    assert.isTrue(actual.isDefaultValue);
+    assert.isUndefined(actual.variationId);
+    assert.strictEqual(0, actual.fetchTime?.getTime());
+    assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.ConfigJsonNotAvailable);
+    assert.isDefined(actual.errorMessage);
+    assert.isUndefined(actual.errorException);
+    assert.isUndefined(actual.matchedTargetingRule);
+    assert.isUndefined(actual.matchedPercentageOption);
+
+    assert.equal(1, flagEvaluatedEvents.length);
+    assert.strictEqual(actual, flagEvaluatedEvents[0]);
+
+    client.dispose();
+  });
+
+  it("getValueDetailsAsync() should return correct result when setting is missing", async () => {
 
     // Arrange
 
@@ -221,6 +262,7 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.SettingKeyMissing);
     assert.isDefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -264,6 +306,7 @@ describe("ConfigCatClient", () => {
     assert.strictEqual("abcdefgh", actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.None);
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -308,6 +351,7 @@ describe("ConfigCatClient", () => {
     assert.strictEqual("redVariationId", actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.None);
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isDefined(actual.matchedTargetingRule);
@@ -353,6 +397,7 @@ describe("ConfigCatClient", () => {
     assert.strictEqual("CatVariationId", actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.None);
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -407,6 +452,7 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.variationId);
     assert.strictEqual(cachedPc.timestamp, actual.fetchTime?.getTime());
     assert.strictEqual(user, actual.user);
+    assert.strictEqual(actual.errorCode, EvaluationErrorCode.UnexpectedError);
     assert.isDefined(actual.errorMessage);
     assert.strictEqual(err, actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
@@ -461,6 +507,7 @@ describe("ConfigCatClient", () => {
       assert.strictEqual(variationId, actualDetails.variationId);
       assert.strictEqual(cachedPc.timestamp, actualDetails.fetchTime?.getTime());
       assert.strictEqual(user, actualDetails.user);
+      assert.strictEqual(actualDetails.errorCode, EvaluationErrorCode.None);
       assert.isUndefined(actualDetails.errorMessage);
       assert.isUndefined(actualDetails.errorException);
       assert.isUndefined(actualDetails.matchedTargetingRule);
@@ -516,6 +563,7 @@ describe("ConfigCatClient", () => {
       assert.isUndefined(actualDetails.variationId);
       assert.strictEqual(cachedPc.timestamp, actualDetails.fetchTime?.getTime());
       assert.strictEqual(user, actualDetails.user);
+      assert.strictEqual(actualDetails.errorCode, EvaluationErrorCode.UnexpectedError);
       assert.isDefined(actualDetails.errorMessage);
       assert.strictEqual(err, actualDetails.errorException);
       assert.isUndefined(actualDetails.matchedTargetingRule);
@@ -1272,7 +1320,7 @@ describe("ConfigCatClient", () => {
       assert.isTrue(etag2 > etag1);
 
       assert.isTrue(refreshResult.isSuccess);
-      assert.isNull(refreshResult.errorMessage);
+      assert.isUndefined(refreshResult.errorMessage);
       assert.isUndefined(refreshResult.errorException);
 
       // 5. Checks that setOnline() has no effect after client gets disposed
@@ -1341,6 +1389,7 @@ describe("ConfigCatClient", () => {
       assert.equal(etag1, ((await configService.getConfig()).httpETag ?? "0") as any | 0);
 
       assert.isFalse(refreshResult.isSuccess);
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.OfflineClient);
       expect(refreshResult.errorMessage).to.contain("offline mode");
       assert.isUndefined(refreshResult.errorException);
 
@@ -1469,6 +1518,7 @@ describe("ConfigCatClient", () => {
     const refreshResult = await client.forceRefreshAsync();
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestFailure);
     assert.isString(refreshResult.errorMessage);
     assert.strictEqual(refreshResult.errorException, errorException);
 
@@ -1500,6 +1550,7 @@ describe("ConfigCatClient", () => {
     const refreshResult = await client.forceRefreshAsync();
 
     assert.isFalse(refreshResult.isSuccess);
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedError);
     expect(refreshResult.errorMessage).to.include(errorMessage);
     assert.strictEqual(refreshResult.errorException, errorException);
 

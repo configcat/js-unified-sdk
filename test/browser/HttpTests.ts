@@ -2,7 +2,7 @@ import { assert } from "chai";
 import * as mockxmlhttprequest from "mock-xmlhttprequest";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
-import { LogLevel } from "#lib";
+import { LogLevel, RefreshErrorCode } from "#lib";
 import { getMonotonicTimeMs } from "#lib/Utils";
 
 describe("HTTP tests", () => {
@@ -27,13 +27,14 @@ describe("HTTP tests", () => {
         logger,
       });
       const startTime = getMonotonicTimeMs();
-      await client.forceRefreshAsync();
+      const refreshResult = await client.forceRefreshAsync();
       const duration = getMonotonicTimeMs() - startTime;
       assert.isTrue(duration > 1000 && duration < 2000);
 
       const defaultValue = "NOT_CAT";
       assert.strictEqual(defaultValue, await client.getValueAsync("stringDefaultCat", defaultValue));
 
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestTimeout);
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Request timed out while trying to fetch config JSON.")));
 
       client.dispose();
@@ -58,11 +59,12 @@ describe("HTTP tests", () => {
         logger,
       });
 
-      await client.forceRefreshAsync();
+      const refreshResult = await client.forceRefreshAsync();
 
       const defaultValue = "NOT_CAT";
       assert.strictEqual(defaultValue, await client.getValueAsync("stringDefaultCat", defaultValue));
 
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.InvalidSdkKey);
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Your SDK Key seems to be wrong.")));
 
       client.dispose();
@@ -87,11 +89,12 @@ describe("HTTP tests", () => {
         logger,
       });
 
-      await client.forceRefreshAsync();
+      const refreshResult = await client.forceRefreshAsync();
 
       const defaultValue = "NOT_CAT";
       assert.strictEqual(defaultValue, await client.getValueAsync("stringDefaultCat", defaultValue));
 
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedHttpResponse);
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected HTTP response was received while trying to fetch config JSON:")));
 
       client.dispose();
@@ -116,11 +119,12 @@ describe("HTTP tests", () => {
         logger,
       });
 
-      await client.forceRefreshAsync();
+      const refreshResult = await client.forceRefreshAsync();
 
       const defaultValue = "NOT_CAT";
       assert.strictEqual(defaultValue, await client.getValueAsync("stringDefaultCat", defaultValue));
 
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestFailure);
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected error occurred while trying to fetch config JSON.")));
 
       client.dispose();

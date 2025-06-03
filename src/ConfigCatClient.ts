@@ -5,7 +5,7 @@ import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode } from
 import type { LoggerWrapper } from "./ConfigCatLogger";
 import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService } from "./ConfigServiceBase";
-import { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
+import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
@@ -14,7 +14,7 @@ import { ManualPollConfigService } from "./ManualPollConfigService";
 import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import type { IConfig, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingTypeOf } from "./RolloutEvaluator";
-import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
+import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getEvaluationErrorCode, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { errorToString, isArray, throwError } from "./Utils";
 
@@ -400,7 +400,8 @@ export class ConfigCatClient implements IConfigCatClient {
       value = evaluationDetails.value;
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("getValueAsync", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
       value = defaultValue as SettingTypeOf<T>;
     }
 
@@ -423,7 +424,8 @@ export class ConfigCatClient implements IConfigCatClient {
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("getValueDetailsAsync", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
     }
 
     this.hooks.emit("flagEvaluated", evaluationDetails);
@@ -559,10 +561,11 @@ export class ConfigCatClient implements IConfigCatClient {
         return result;
       } catch (err) {
         this.options.logger.forceRefreshError("forceRefreshAsync", err);
-        return RefreshResult.failure(errorToString(err), err);
+        return RefreshResult.failure(RefreshErrorCode.UnexpectedError, errorToString(err), err);
       }
     } else {
-      return RefreshResult.failure("Client is configured to use the LocalOnly override behavior, which prevents synchronization with external cache and making HTTP requests.");
+      return RefreshResult.failure(RefreshErrorCode.LocalOnlyClient,
+        "Client is configured to use the LocalOnly override behavior, which prevents synchronization with external cache and making HTTP requests.");
     }
   }
 
@@ -742,7 +745,8 @@ class Snapshot implements IConfigCatClientSnapshot {
       value = evaluationDetails.value;
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("Snapshot.getValue", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
       value = defaultValue as SettingTypeOf<T>;
     }
 
@@ -762,7 +766,8 @@ class Snapshot implements IConfigCatClientSnapshot {
       evaluationDetails = evaluate(this.evaluator, this.mergedSettings, key, defaultValue, user, this.remoteConfig, this.options.logger);
     } catch (err) {
       this.options.logger.settingEvaluationErrorSingle("Snapshot.getValueDetails", key, "defaultValue", defaultValue, err);
-      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user, errorToString(err), err);
+      evaluationDetails = evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(this.remoteConfig), user,
+        errorToString(err), err, getEvaluationErrorCode(err));
     }
 
     this.options.hooks.emit("flagEvaluated", evaluationDetails);
