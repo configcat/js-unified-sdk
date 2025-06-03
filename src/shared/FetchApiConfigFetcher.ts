@@ -21,18 +21,19 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     let { url } = request;
     const { lastETag, timeoutMs } = request;
 
-    if (!this.runsOnServerSide && lastETag) {
-      // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
-      // we can transform this query param to the header in our CDN provider.
-      // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
-      url += "&ccetag=" + encodeURIComponent(lastETag);
-    }
+    const requestInit: RequestInit & { headers?: [string, string][] } = { method: "GET" };
+    this.setRequestHeaders(requestInit, request.headers);
 
-    const requestInit: RequestInit = { method: "GET" };
-    // NOTE: It's intentional that we don't specify the If-None-Match header.
-    // The browser automatically handles it, adding it manually would cause an unnecessary CORS OPTIONS request.
-    // In case the browser doesn't handle it, we are transforming the ccetag query parameter to the If-None-Match header
-    this.setRequestHeaders(requestInit as { headers?: [string, string][] }, request.headers);
+    if (lastETag) {
+      if (!this.runsOnServerSide) {
+        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
+        // we can transform this query param to the header in our CDN provider.
+        // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
+        url += "&ccetag=" + encodeURIComponent(lastETag);
+      } else {
+        (requestInit.headers ??= []).push(["If-None-Match", lastETag]);
+      }
+    }
 
     let cleanup: (() => void) | undefined;
 

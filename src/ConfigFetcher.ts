@@ -121,7 +121,7 @@ export interface IConfigCatConfigFetcher {
   /**
    * Fetches the JSON content of the requested config asynchronously.
    * @param request The fetch request.
-   * @returns A promise that fulfills the fetch response.
+   * @returns A promise that fulfills with the fetch response.
    * @throws {FetchErrorException} The fetch operation failed.
    */
   fetchAsync(request: FetchRequest): Promise<FetchResponse>;

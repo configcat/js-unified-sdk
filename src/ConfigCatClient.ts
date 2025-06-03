@@ -258,20 +258,20 @@ export class ConfigCatClient implements IConfigCatClient {
       throw new Error(invalidSdkKeyError);
     }
 
-    const actualOptions =
+    const internalOptions =
       pollingMode === PollingMode.AutoPoll ? new AutoPollOptions(sdkKey, configCatKernel, options)
       : pollingMode === PollingMode.ManualPoll ? new ManualPollOptions(sdkKey, configCatKernel, options)
       : pollingMode === PollingMode.LazyLoad ? new LazyLoadOptions(sdkKey, configCatKernel, options)
       : throwError(new Error("Invalid 'pollingMode' value"));
 
-    if (actualOptions.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly && !isValidSdkKey(sdkKey, actualOptions.baseUrlOverriden)) {
+    if (internalOptions.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly && !isValidSdkKey(sdkKey, internalOptions.baseUrlOverriden)) {
       throw new Error(invalidSdkKeyError);
     }
 
-    const [instance, instanceAlreadyCreated] = clientInstanceCache.getOrCreate(actualOptions);
+    const [instance, instanceAlreadyCreated] = clientInstanceCache.getOrCreate(internalOptions);
 
     if (instanceAlreadyCreated && options) {
-      actualOptions.logger.clientIsAlreadyCreated(sdkKey);
+      internalOptions.logger.clientIsAlreadyCreated(sdkKey);
     }
 
     return instance;
