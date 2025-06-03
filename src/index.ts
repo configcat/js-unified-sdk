@@ -9,11 +9,9 @@ export type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions, IOption
 
 export { DataGovernance } from "./ConfigCatClientOptions";
 
-export type { IConfigCatLogger, LogEventId, LogMessage } from "./ConfigCatLogger";
+export type { IConfigCatLogger, LogEventId, LogFilterCallback, LogMessage } from "./ConfigCatLogger";
 
-export { LogLevel } from "./ConfigCatLogger";
-
-export { FormattableLogMessage } from "./ConfigCatLogger";
+export { FormattableLogMessage, LogLevel } from "./ConfigCatLogger";
 
 export type { IConfigCatCache } from "./ConfigCatCache";
 
@@ -45,3 +43,5 @@ export { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServi
 export type { HookEvents, IProvidesHooks } from "./Hooks";
 
 export { ConfigJson } from "./ProjectConfig";
+
+export type { Message } from "./Utils";

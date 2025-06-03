@@ -191,3 +191,22 @@ export function parseFloatStrict(value: unknown): number {
 
   return +value;
 }
+
+export class LazyString<TState = any> {
+  private factoryOrValue: ((state: TState) => string) | string;
+
+  constructor(private state: TState, factory: (state: TState) => string) {
+    this.factoryOrValue = factory;
+  }
+
+  toString(): string {
+    let { factoryOrValue } = this;
+    if (typeof factoryOrValue !== "string") {
+      this.factoryOrValue = factoryOrValue = factoryOrValue(this.state);
+      this.state = (void 0)!;
+    }
+    return factoryOrValue;
+  }
+}
+
+export type Message = { toString(): string };

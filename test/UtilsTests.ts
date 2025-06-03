@@ -1,6 +1,8 @@
 import { assert } from "chai";
+import { FakeLogger } from "./helpers/fakes";
+import { LoggerWrapper, toMessage } from "#lib/ConfigCatLogger";
 import { FetchError } from "#lib/ConfigFetcher";
-import { errorToString, formatStringList, parseFloatStrict, utf8Encode } from "#lib/Utils";
+import { errorToString, formatStringList, LazyString, parseFloatStrict, utf8Encode } from "#lib/Utils";
 
 describe("Utils", () => {
 
@@ -175,5 +177,29 @@ describe("Utils", () => {
       }
       assert.strictEqual(expectedMessageIndex, expectedMessages.length);
     }
+  });
+
+  it("LazyString", () => {
+    const loggerWrapper = new LoggerWrapper(new FakeLogger());
+    const availableKeys = new LazyString(void 0, () => formatStringList(["flag1", "flag2"]));
+    const message = toMessage(loggerWrapper.settingEvaluationFailedDueToMissingKey("flag", "defaultValue", false, availableKeys));
+
+    assert.isFunction(availableKeys["factoryOrValue"]);
+    assert.instanceOf(message, LazyString);
+    assert.isFunction(message["factoryOrValue"]);
+    assert.isDefined(message["state"]);
+
+    const expectedMessage = "Failed to evaluate setting 'flag' (the key was not found in config JSON). "
+      + "Returning the `defaultValue` parameter that you specified in your application: 'false'. "
+      + "Available keys: ['flag1', 'flag2'].";
+    const actualMessage = message.toString();
+    assert.strictEqual(actualMessage, expectedMessage);
+
+    assert.isString(availableKeys["factoryOrValue"]);
+    assert.instanceOf(message, LazyString);
+    assert.isString(message["factoryOrValue"]);
+    assert.isUndefined(message["state"]);
+
+    assert.strictEqual(message.toString(), expectedMessage);
   });
 });

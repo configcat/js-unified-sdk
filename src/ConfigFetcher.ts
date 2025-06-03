@@ -1,6 +1,7 @@
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
+import type { Message } from "./Utils";
 import { ensurePrototype } from "./Utils";
 
 export const enum FetchStatus {
@@ -14,7 +15,7 @@ export class FetchResult {
     readonly status: FetchStatus,
     readonly config: ProjectConfig,
     readonly errorCode: RefreshErrorCode,
-    readonly errorMessage?: string,
+    readonly errorMessage?: Message,
     readonly errorException?: any) {
   }
 
@@ -26,7 +27,7 @@ export class FetchResult {
     return new FetchResult(FetchStatus.NotModified, config, RefreshErrorCode.None);
   }
 
-  static error(config: ProjectConfig, errorCode: RefreshErrorCode, errorMessage?: string, errorException?: any): FetchResult {
+  static error(config: ProjectConfig, errorCode: RefreshErrorCode, errorMessage?: Message, errorException?: any): FetchResult {
     return new FetchResult(FetchStatus.Errored, config, errorCode, errorMessage ?? "Unknown error.", errorException);
   }
 }

@@ -15,7 +15,7 @@ import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
 import { Config, IConfig, ProjectConfig, SettingValue, SettingValueContainer } from "#lib/ProjectConfig";
 import { EvaluateContext, EvaluationErrorCode, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
-import { delay, getMonotonicTimeMs } from "#lib/Utils";
+import { delay, getMonotonicTimeMs, Message } from "#lib/Utils";
 import "./helpers/ConfigCatClientCacheExtensions";
 
 describe("ConfigCatClient", () => {
@@ -438,7 +438,7 @@ describe("ConfigCatClient", () => {
     const flagEvaluatedEvents: IEvaluationDetails[] = [];
     const errorEvents: [string, any][] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
-    client.on("clientError", (msg: string, err: any) => errorEvents.push([msg, err]));
+    client.on("clientError", (msg: Message, err: any) => errorEvents.push([msg.toString(), err]));
 
     // Act
 
@@ -547,7 +547,7 @@ describe("ConfigCatClient", () => {
     const flagEvaluatedEvents: IEvaluationDetails[] = [];
     const errorEvents: [string, any][] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
-    client.on("clientError", (msg: string, err: any) => errorEvents.push([msg, err]));
+    client.on("clientError", (msg: Message, err: any) => errorEvents.push([msg.toString(), err]));
 
     // Act
 
@@ -1413,7 +1413,7 @@ describe("ConfigCatClient", () => {
       const handleConfigFetched = (result: RefreshResult, isInitiatedByUser: boolean) => configFetchedEvents.push([result, isInitiatedByUser]);
       const handleConfigChanged = (pc: IConfig) => configChangedEvents.push(pc);
       const handleFlagEvaluated = (ed: IEvaluationDetails) => flagEvaluatedEvents.push(ed);
-      const handleClientError = (msg: string, err: any) => errorEvents.push([msg, err]);
+      const handleClientError = (msg: Message, err: any) => errorEvents.push([msg.toString(), err]);
 
       function setupHooks(hooks: IProvidesHooks) {
         hooks.on("clientReady", handleClientReady);

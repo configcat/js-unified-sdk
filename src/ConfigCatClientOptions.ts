@@ -1,6 +1,6 @@
 import type { IConfigCache, IConfigCatCache } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
-import type { IConfigCatLogger } from "./ConfigCatLogger";
+import type { IConfigCatLogger, LogFilterCallback } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger, LoggerWrapper } from "./ConfigCatLogger";
 import type { IEventEmitter } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
@@ -32,6 +32,12 @@ export const enum DataGovernance {
 
 /** Options used to configure the ConfigCat SDK. */
 export interface IOptions {
+  /**
+   * An optional callback that can be used to filter log events beyond the minimum log level setting
+   * (see `IConfigCatLogger.level` and `createConsoleLogger`).
+   */
+  logFilter?: LogFilterCallback | null;
+
   /**
    * The logger implementation to use for performing logging.
    *
@@ -189,10 +195,15 @@ export abstract class OptionsBase {
       },
     };
 
+    let logFilter: LogFilterCallback | undefined;
     let logger: IConfigCatLogger | null | undefined;
     let cache: IConfigCatCache | null | undefined;
 
     if (options) {
+      if (options.logFilter) {
+        logFilter = options.logFilter;
+      }
+
       logger = options.logger;
       cache = options.cache;
 
@@ -224,7 +235,7 @@ export abstract class OptionsBase {
       options.setupHooks?.(hooks);
     }
 
-    this.logger = new LoggerWrapper(logger ?? new ConfigCatConsoleLogger(), this.hooks);
+    this.logger = new LoggerWrapper(logger ?? new ConfigCatConsoleLogger(), logFilter, this.hooks);
 
     this.cache = cache
       ? new ExternalConfigCache(cache, this.logger)

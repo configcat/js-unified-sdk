@@ -1,10 +1,13 @@
 import type { CacheSyncResult } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { OptionsBase } from "./ConfigCatClientOptions";
+import type { LogMessage } from "./ConfigCatLogger";
+import { toMessage } from "./ConfigCatLogger";
 import type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
 import { FetchError, FetchResult, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import { Config, ProjectConfig } from "./ProjectConfig";
+import type { Message } from "./Utils";
 import { isPromiseLike } from "./Utils";
 
 /** Specifies the possible config data refresh error codes. */
@@ -36,20 +39,27 @@ export const enum RefreshErrorCode {
 
 /** Contains the result of an `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
+  private readonly $errorMessage?: Message;
+  get errorMessage(): string | undefined { return this.$errorMessage?.toString(); }
+
   constructor(
     readonly errorCode: RefreshErrorCode,
     /** Error message in case the operation failed, otherwise `undefined`. */
-    readonly errorMessage?: string,
+    errorMessage?: Message,
     /** The exception object related to the error in case the operation failed (if any). */
     readonly errorException?: any
   ) {
     if ((errorMessage == null) !== (errorCode === RefreshErrorCode.None)) {
       throw Error("Invalid 'errorCode' value");
     }
+
+    if (errorMessage != null) {
+      this.$errorMessage = errorMessage;
+    }
   }
 
   /** Indicates whether the operation was successful or not. */
-  get isSuccess(): boolean { return this.errorMessage == null; }
+  get isSuccess(): boolean { return this.$errorMessage == null; }
 
   static from(fetchResult: FetchResult): RefreshResult {
     return fetchResult.status !== FetchStatus.Errored
@@ -63,7 +73,7 @@ export class RefreshResult {
   }
 
   /** Creates an instance of the `RefreshResult` class which indicates that the operation failed. */
-  static failure(errorCode: RefreshErrorCode, errorMessage: string, errorException?: any): RefreshResult {
+  static failure(errorCode: RefreshErrorCode, errorMessage: Message, errorException?: any): RefreshResult {
     return new RefreshResult(errorCode, errorMessage, errorException);
   }
 }
@@ -148,8 +158,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     } else if (this.options.cache instanceof ExternalConfigCache) {
       return [RefreshResult.success(), latestConfig];
     } else {
-      const errorMessage = this.options.logger.configServiceCannotInitiateHttpCalls().toString();
-      return [RefreshResult.failure(RefreshErrorCode.OfflineClient, errorMessage), latestConfig];
+      const errorMessage = this.options.logger.configServiceCannotInitiateHttpCalls();
+      return [RefreshResult.failure(RefreshErrorCode.OfflineClient, toMessage(errorMessage)), latestConfig];
     }
   }
 
@@ -213,7 +223,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     const options = this.options;
     options.logger.debug("ConfigServiceBase.fetchAsync() called.");
 
-    let errorMessage: string;
+    let errorMessage: LogMessage;
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const [response, configOrError] = await this.fetchRequestAsync(lastConfig.httpETag ?? null);
@@ -221,9 +231,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       switch (response.statusCode) {
         case 200: // OK
           if (!(configOrError instanceof Config)) {
-            errorMessage = options.logger.fetchReceived200WithInvalidBody(configOrError).toString();
+            errorMessage = options.logger.fetchReceived200WithInvalidBody(configOrError);
             options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
-            return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseContent, errorMessage, configOrError);
+            return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseContent, toMessage(errorMessage), configOrError);
           }
 
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was successful. Returning new config.");
@@ -231,9 +241,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
-            errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase).toString();
+            errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase);
             options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
-            return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseWhenLocalCacheIsEmpty, errorMessage);
+            return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseWhenLocalCacheIsEmpty, toMessage(errorMessage));
           }
 
           options.logger.debug("ConfigServiceBase.fetchAsync(): content was not modified. Returning last config with updated timestamp.");
@@ -241,23 +251,23 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         case 403: // Forbidden
         case 404: // Not Found
-          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey().toString();
+          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey();
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
-          return FetchResult.error(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.InvalidSdkKey, errorMessage);
+          return FetchResult.error(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.InvalidSdkKey, toMessage(errorMessage));
 
         default:
-          errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase).toString();
+          errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase);
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning null.");
-          return FetchResult.error(lastConfig, RefreshErrorCode.UnexpectedHttpResponse, errorMessage);
+          return FetchResult.error(lastConfig, RefreshErrorCode.UnexpectedHttpResponse, toMessage(errorMessage));
       }
     } catch (err) {
       let errorCode: RefreshErrorCode;
       [errorCode, errorMessage] = err instanceof FetchError && (err as FetchError).cause === "timeout"
-        ? [RefreshErrorCode.HttpRequestTimeout, options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err).toString()]
-        : [RefreshErrorCode.HttpRequestFailure, options.logger.fetchFailedDueToUnexpectedError(err).toString()];
+        ? [RefreshErrorCode.HttpRequestTimeout, options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err)]
+        : [RefreshErrorCode.HttpRequestFailure, options.logger.fetchFailedDueToUnexpectedError(err)];
 
       options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning null.");
-      return FetchResult.error(lastConfig, errorCode, errorMessage, err);
+      return FetchResult.error(lastConfig, errorCode, toMessage(errorMessage), err);
     }
   }
 
@@ -408,3 +418,4 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     });
   }
 }
+
