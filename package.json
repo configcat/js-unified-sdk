@@ -171,6 +171,7 @@
     "workerd": "^1.20241112.0"
   },
   "overrides": {
+    "brace-expansion": "2.0.0",
     "cookie": "0.7.2"
   },
   "repository": {
