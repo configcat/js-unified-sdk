@@ -1,4 +1,4 @@
-/* eslint-disable @stylistic/js/max-len */
+/* eslint-disable @stylistic/max-len */
 
 /**
  * The ConfigCat config_v6.json schema that is used by the ConfigCat SDKs, described using TypeScript types.
