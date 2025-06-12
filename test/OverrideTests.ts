@@ -11,7 +11,7 @@ import { EvaluationError, EvaluationErrorCode, isAllowedValue } from "#lib/Rollo
 describe("Local Overrides", () => {
   it("Values from map - LocalOnly", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
 
     const overrideMap = {
@@ -50,7 +50,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - LocalOnly - watch changes - async", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
 
     const overrideMap = {
@@ -89,7 +89,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - LocalOnly - watch changes - sync", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
 
     const overrideMap = {
@@ -130,7 +130,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - LocalOverRemote", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
@@ -151,7 +151,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - RemoteOverLocal", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
@@ -172,7 +172,7 @@ describe("Local Overrides", () => {
 
   it("Values from map - RemoteOverLocal - failing remote", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase(null),
+      configFetcherFactory: () => new FakeConfigFetcherBase(null),
     });
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
@@ -200,7 +200,7 @@ describe("Local Overrides", () => {
     dataSource["double_setting"] = 3.14;
     dataSource["string-setting"] = "test";
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: {
@@ -222,7 +222,7 @@ describe("Local Overrides", () => {
 
   it("Values from query string - changes not watched", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
     });
 
     let currentQueryString = "?cc-stringDefaultCat=OVERRIDE_CAT&stringDefaultDog=OVERRIDE_DOG";
@@ -246,7 +246,7 @@ describe("Local Overrides", () => {
 
   it("Values from query string - changes watched", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
     });
 
     let currentQueryString = "?cc-stringDefaultCat=OVERRIDE_CAT&stringDefaultDog=OVERRIDE_DOG";
@@ -270,7 +270,7 @@ describe("Local Overrides", () => {
 
   it("Values from query string - parsed query string", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}},"stringDefaultDog":{"t":1,"v":{"s":"DOG"}}}}'),
     });
 
     let currentQueryString: { [key: string]: string } = {
@@ -299,7 +299,7 @@ describe("Local Overrides", () => {
 
   it("Values from query string - respects custom parameter name prefix", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"numberDefaultZero":{"t":2,"v":{"i":42}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"numberDefaultZero":{"t":2,"v":{"i":42}}}}'),
     });
 
     const currentQueryString = "?numberDefaultZero=43&cc-numberDefaultZero=44";
@@ -318,7 +318,7 @@ describe("Local Overrides", () => {
 
   it("Values from query string - respects force string value suffix", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}}}}'),
     });
 
     const currentQueryString = "?cc-stringDefaultCat;str=TRUE&cc-boolDefaultFalse=TRUE";
@@ -337,7 +337,7 @@ describe("Local Overrides", () => {
 
   it("Values from query string - handles query string edge cases", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"stringDefaultCat":{"t":1,"v":{"s":"CAT"}}}}'),
     });
 
     const currentQueryString = "?&some&=garbage&&cc-stringDefaultCat=OVERRIDE_CAT&=cc-stringDefaultCat&cc-stringDefaultCat";
@@ -356,7 +356,7 @@ describe("Local Overrides", () => {
 
   it("LocalOnly - forceRefreshAsync() should return failure", async () => {
     const configCatKernel = createKernel({
-      configFetcher: new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
     const options: ManualPollOptions = createManualPollOptions("localhost", {
       flagOverrides: {
@@ -408,7 +408,7 @@ describe("Local Overrides", () => {
       const map = { [key]: overrideValue as NonNullable<SettingValue> };
 
       const configCatKernel = createKernel({
-        configFetcher: new FakeConfigFetcherWithNullNewConfig(),
+        configFetcherFactory: () => new FakeConfigFetcherWithNullNewConfig(),
       });
 
       const options: ManualPollOptions = createManualPollOptions("localhost", {

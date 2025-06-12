@@ -3,11 +3,10 @@ import * as path from "https://deno.land/std@0.224.0/path/mod.ts";
 import "npm:mocha/browser-entry.js";
 import { initPlatform, PlatformAbstractions } from "../helpers/platform";
 import { isTestSpec } from "../index";
-import { IConfigCatKernel } from "#lib/ConfigCatClient";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IDenoAutoPollOptions, IDenoLazyLoadingOptions, IDenoManualPollOptions } from "#lib/deno";
-import { getClient } from "#lib/deno";
-import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
+import { DenoHttpConfigFetcher, getClient } from "#lib/deno";
+import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
 import sdkVersion from "#lib/Version";
 
 const sdkType = "ConfigCat-UnifiedJS-Deno";
@@ -58,10 +57,15 @@ class DenoPlatform extends PlatformAbstractions<IDenoAutoPollOptions, IDenoManua
 
   readFileUtf8(path: string) { return Deno.readTextFileSync(path); }
 
-  createConfigFetcher(options?: IDenoOptions) { return new FetchApiConfigFetcher(); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IDenoOptions) { return DenoHttpConfigFetcher["getFactory"]()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IDenoOptions) {
-    const kernel: IConfigCatKernel = { configFetcher: this.createConfigFetcher(options), sdkType, sdkVersion, eventEmitterFactory: () => new DefaultEventEmitter() };
+    const kernel: IConfigCatKernel = {
+      sdkType,
+      sdkVersion,
+      eventEmitterFactory: () => new DefaultEventEmitter(),
+      configFetcherFactory: o => this.createConfigFetcher(o, options),
+    };
     return (setupKernel ?? (k => k))(kernel);
   }
 

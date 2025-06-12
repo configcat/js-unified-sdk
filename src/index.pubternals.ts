@@ -8,9 +8,7 @@ import { Setting } from "./ProjectConfig";
 
 export * from "./index.pubternals.core";
 
-export type { IConfigCatKernel } from "./ConfigCatClient";
-
-export type { OptionsBase } from "./ConfigCatClientOptions";
+export type { IConfigCatKernel, OptionsBase } from "./ConfigCatClientOptions";
 
 export type { IOverrideDataSource } from "./FlagOverrides";
 
@@ -20,19 +18,8 @@ export type { IConfigCache } from "./ConfigCatCache";
 
 export { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 
-export type { FetchErrorCauses, IConfigFetcher, IFetchResponse } from "./ConfigFetcher";
-
-export { FetchError, FetchResult, FetchStatus } from "./ConfigFetcher";
+export { FetchResult, FetchStatus } from "./ConfigFetcher";
 
 export type { IEventEmitter, IEventProvider } from "./EventEmitter";
 
 export { DefaultEventEmitter } from "./DefaultEventEmitter";
-
-export { LocalStorageConfigCache } from "./browser/LocalStorageConfigCache";
-
-export { IndexedDBConfigCache } from "./shared/IndexedDBConfigCache";
-
-export { XmlHttpRequestConfigFetcher } from "./browser/XmlHttpRequestConfigFetcher";
-
-export { FetchApiConfigFetcher } from "./shared/FetchApiConfigFetcher";
-

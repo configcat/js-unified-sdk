@@ -15,6 +15,10 @@ export { FormattableLogMessage, LogLevel } from "./ConfigCatLogger";
 
 export type { IConfigCatCache } from "./ConfigCatCache";
 
+export type { FetchErrorCauses, IConfigCatConfigFetcher } from "./ConfigFetcher";
+
+export { FetchError, FetchRequest, FetchResponse } from "./ConfigFetcher";
+
 export type {
   ConditionTypeMap, ICondition, IConditionUnion, IConfig, IPercentageOption, IPrerequisiteFlagCondition,
   ISegment, ISegmentCondition, ISetting, ISettingUnion, ISettingValueContainer, ITargetingRule,
