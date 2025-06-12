@@ -123,8 +123,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.20.2",
     "@cloudflare/workers-types": "^4.20241106.0",
-    "@stylistic/eslint-plugin-js": "^2.12.1",
-    "@stylistic/eslint-plugin-ts": "^2.12.1",
+    "@stylistic/eslint-plugin": "^4.4.1",
     "@types/bun": "^1.1.13",
     "@types/chai": "~4.3.4",
     "@types/chrome": "~0.0.270",
@@ -132,14 +131,13 @@
     "@types/mocha": "~10.0.1",
     "@types/node": "~18.19.7",
     "@types/tunnel": "~0.0.7",
-    "@typescript-eslint/parser": "^8.20.0",
     "babel-loader": "^9.1.0",
     "chai": "^4.3.7",
     "concurrently": "^9.1.0",
     "core-js": "^3.38.1",
     "coverage-istanbul-loader": "^3.0.5",
     "cross-env": "^7.0.3",
-    "eslint": "^8.34.0",
+    "eslint": "^9.28.0",
     "eslint-plugin-import": "^2.31.0",
     "fetch-mock": "^11.1.5",
     "glob": "^10.4.5",
@@ -167,12 +165,13 @@
     "tsconfig-paths-webpack-plugin": "^4.1.0",
     "tslib": "^2.7.0",
     "typescript": "^5.5.4",
-    "typescript-eslint": "^8.19.1",
+    "typescript-eslint": "^8.34.0",
     "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4",
     "workerd": "^1.20241112.0"
   },
   "overrides": {
+    "brace-expansion": "2.0.0",
     "cookie": "0.7.2"
   },
   "repository": {

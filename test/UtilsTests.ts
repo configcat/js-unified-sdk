@@ -13,6 +13,7 @@ describe("Utils", () => {
   ]) {
     it(`utf8encode - input: ${input}`, () => {
       const actualOutput = utf8Encode(input);
+      // eslint-disable-next-line @typescript-eslint/no-misused-spread
       assert.deepEqual([...actualOutput].map(ch => ch.charCodeAt(0)), expectedOutput);
     });
   }

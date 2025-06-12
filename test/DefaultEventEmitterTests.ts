@@ -11,7 +11,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
@@ -44,7 +44,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
@@ -78,7 +78,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
@@ -113,7 +113,7 @@ describe("DefaultEventEmitter", () => {
     // Arrange
 
     const ee = new DefaultEventEmitter();
-    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
     const
       capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
@@ -145,7 +145,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
@@ -183,7 +183,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
@@ -223,7 +223,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
@@ -260,7 +260,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
@@ -298,7 +298,7 @@ describe("DefaultEventEmitter", () => {
       // Arrange
 
       const ee = new DefaultEventEmitter();
-      const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+      const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
       const
         capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
@@ -334,7 +334,7 @@ describe("DefaultEventEmitter", () => {
     // Arrange
 
     const ee = new DefaultEventEmitter();
-    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
     const
       capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
@@ -368,7 +368,7 @@ describe("DefaultEventEmitter", () => {
     // Arrange
 
     const ee = new DefaultEventEmitter();
-    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
     const
       capturedArgs1: any[][] = [], handler1 = createHandler("evt1", capturedArgs1),
@@ -402,7 +402,7 @@ describe("DefaultEventEmitter", () => {
     // Arrange
 
     const ee = new DefaultEventEmitter();
-    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
     const
       capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
@@ -435,7 +435,7 @@ describe("DefaultEventEmitter", () => {
     // Arrange
 
     const ee = new DefaultEventEmitter();
-    const emittedArgs = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
+    const emittedArgs: [string, number[]][] = [...Array(6)].map((_, i) => ["evt1", [...Array(i)].map((_, j) => j)]);
 
     const
       capturedArgs1a: any[][] = [], handler1a = createHandler("evt1", capturedArgs1a),
