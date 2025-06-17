@@ -83,6 +83,15 @@ export interface IOptions {
    *
    * If not set, a default implementation will be used depending on the current platform.
    * If you want to use custom a config fetcher, you can provide an implementation of `IConfigCatConfigFetcher`.
+   *
+   * @remarks Implementing a config fetcher that makes HTTP requests to the ConfigCat CDN is tricky, especially when the
+   * SDK runs in a browser. Therefore, please **avoid writing actual config fetcher implementations from scratch**
+   * unless absolutely necessary and you know exactly what you are doing. (Writing mock implementations for testing
+   * purposes is fine, of course.)
+   *
+   * If you use the SDK with a [proxy](https://configcat.com/docs/advanced/proxy/proxy-overview/) and need to set
+   * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. FetchApiConfigFetcher)
+   * and override the `setRequestHeaders` method.
    */
   configFetcher?: IConfigCatConfigFetcher | null;
 
