@@ -1,4 +1,5 @@
 import type { OptionsBase } from "../ConfigCatClientOptions";
+import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
@@ -14,7 +15,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
   private logger?: LoggerWrapper;
 
-  private handleStateChange(httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
+  private handleStateChange(httpRequest: XMLHttpRequest, isCustomUrl: boolean, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {
       if (httpRequest.readyState === 4) {
         const { status: statusCode, statusText: reasonPhrase } = httpRequest;
@@ -22,7 +23,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
         // The readystatechange event is emitted even in the case of abort or error.
         // We can detect this by checking for zero status code (see https://stackoverflow.com/a/19247992/8656352).
         if (statusCode) {
-          const headers = this.getResponseHeaders(httpRequest);
+          const headers = isCustomUrl ? this.getResponseHeaders(httpRequest) : getResponseHeadersDefault(httpRequest);
           const body = statusCode === 200 ? httpRequest.responseText : void 0;
           resolve(new FetchResponse(statusCode, reasonPhrase, headers, body));
         }
@@ -38,6 +39,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
         this.logger?.debug("XmlHttpRequestConfigFetcher.fetchAsync() called.");
 
         let { url } = request;
+        const isCustomUrl = !isCdnUrl(url);
         const { lastETag, timeoutMs } = request;
 
         if (lastETag) {
@@ -49,14 +51,16 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
         const httpRequest: XMLHttpRequest = new XMLHttpRequest();
 
-        httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject);
+        httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, isCustomUrl, resolve, reject);
         httpRequest.ontimeout = () => reject(new FetchError("timeout", timeoutMs));
         httpRequest.onabort = () => reject(new FetchError("abort"));
         httpRequest.onerror = () => reject(new FetchError("failure"));
 
         httpRequest.open("GET", url, true);
         httpRequest.timeout = timeoutMs;
-        this.setRequestHeaders(httpRequest, request.headers);
+        if (isCustomUrl) {
+          this.setRequestHeaders(httpRequest, request.headers);
+        }
         httpRequest.send(null);
       } catch (err) {
         // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
@@ -66,28 +70,23 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   protected setRequestHeaders(httpRequest: XMLHttpRequest, headers: ReadonlyArray<[string, string]>): void {
-    for (const [name, value] of headers) {
-      const normalizedName = name.toLowerCase();
-      if (normalizedName === "user-agent" || normalizedName === "x-configcat-useragent") {
-        // Specifying custom headers would cause an unnecessary CORS OPTIONS request in browsers,
-        // so we send this information in the query string instead (see `OptionsBase.getUrl`).
-        continue;
-      }
-      httpRequest.setRequestHeader(name, value);
-    }
   }
 
   protected getResponseHeaders(httpRequest: XMLHttpRequest): [string, string][] {
-    const headers: [string, string][] = [];
-    extractHeader("ETag", httpRequest, headers);
-    extractHeader("CF-RAY", httpRequest, headers);
-    return headers;
+    return getResponseHeadersDefault(httpRequest);
+  }
+}
 
-    function extractHeader(name: string, httpRequest: XMLHttpRequest, headers: [string, string][]) {
-      const value = httpRequest.getResponseHeader(name);
-      if (value != null) {
-        headers.push([name, value]);
-      }
+function getResponseHeadersDefault(httpRequest: XMLHttpRequest): [string, string][] {
+  const headers: [string, string][] = [];
+  extractHeader("ETag", httpRequest, headers);
+  extractHeader("CF-RAY", httpRequest, headers);
+  return headers;
+
+  function extractHeader(name: string, httpRequest: XMLHttpRequest, headers: [string, string][]) {
+    const value = httpRequest.getResponseHeader(name);
+    if (value != null) {
+      headers.push([name, value]);
     }
   }
 }

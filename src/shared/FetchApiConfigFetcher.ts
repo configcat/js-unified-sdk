@@ -1,4 +1,5 @@
 import type { OptionsBase } from "../ConfigCatClientOptions";
+import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
@@ -19,10 +20,15 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     this.logger?.debug("FetchApiConfigFetcher.fetchAsync() called.");
 
     let { url } = request;
+    const isCustomUrl = !isCdnUrl(url);
     const { lastETag, timeoutMs } = request;
 
     const requestInit: RequestInit & { headers?: [string, string][] } = { method: "GET" };
-    this.setRequestHeaders(requestInit, request.headers);
+    if (isCustomUrl) {
+      this.setRequestHeaders(requestInit, request.headers);
+    } else if (this.runsOnServerSide) {
+      setRequestHeadersDefault(requestInit, request.headers);
+    }
 
     if (lastETag) {
       if (!this.runsOnServerSide) {
@@ -49,7 +55,7 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
       const response = await fetch(url, requestInit);
 
       const { status: statusCode, statusText: reasonPhrase } = response;
-      const headers = this.getResponseHeaders(response);
+      const headers = isCustomUrl ? this.getResponseHeaders(response) : getResponseHeadersDefault(response);
       const body = statusCode === 200 ? await response.text() : void 0;
       return new FetchResponse(statusCode, reasonPhrase, headers, body);
     } catch (err) {
@@ -68,29 +74,32 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   protected setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
-    for (const header of headers) {
-      let normalizedName: string;
-      if (!this.runsOnServerSide
-        && ((normalizedName = header[0].toLowerCase()) === "user-agent" || normalizedName === "x-configcat-useragent")) {
-        // Specifying custom headers would cause an unnecessary CORS OPTIONS request in browsers,
-        // so we send this information in the query string instead (see `OptionsBase.getUrl`).
-        continue;
-      }
-      (requestInit.headers ??= []).push(header);
+    if (this.runsOnServerSide) {
+      setRequestHeadersDefault(requestInit, headers);
     }
   }
 
   protected getResponseHeaders(httpResponse: Response): [string, string][] {
-    const headers: [string, string][] = [];
-    extractHeader("ETag", httpResponse, headers);
-    extractHeader("CF-RAY", httpResponse, headers);
-    return headers;
+    return getResponseHeadersDefault(httpResponse);
+  }
+}
 
-    function extractHeader(name: string, httpResponse: Response, headers: [string, string][]) {
-      const value = httpResponse.headers.get(name);
-      if (value != null) {
-        headers.push([name, value]);
-      }
+function setRequestHeadersDefault(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
+  for (const header of headers) {
+    (requestInit.headers ??= []).push(header);
+  }
+}
+
+function getResponseHeadersDefault(httpResponse: Response): [string, string][] {
+  const headers: [string, string][] = [];
+  extractHeader("ETag", httpResponse, headers);
+  extractHeader("CF-RAY", httpResponse, headers);
+  return headers;
+
+  function extractHeader(name: string, httpResponse: Response, headers: [string, string][]) {
+    const value = httpResponse.headers.get(name);
+    if (value != null) {
+      headers.push([name, value]);
     }
   }
 }

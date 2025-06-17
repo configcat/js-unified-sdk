@@ -3,6 +3,7 @@ import * as https from "https";
 import * as tunnel from "tunnel";
 import { URL } from "url";
 import type { OptionsBase } from "../ConfigCatClientOptions";
+import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
@@ -30,10 +31,10 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     this.proxy = options?.proxy;
   }
 
-  private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
+  private handleResponse(response: http.IncomingMessage, isCustomUrl: boolean, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {
       const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
-      const headers = this.getResponseHeaders(response);
+      const headers = isCustomUrl ? this.getResponseHeaders(response) : getResponseHeadersDefault(response);
 
       if (statusCode === 200) {
         const chunks: any[] = [];
@@ -64,8 +65,9 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       try {
         this.logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
 
-        const { url: baseUrl } = request;
-        const isBaseUrlSecure = baseUrl.startsWith("https");
+        const { url } = request;
+        const isCustomUrl = !isCdnUrl(url);
+        const isHttpsUrl = url.startsWith("https");
 
         let agent: http.Agent | undefined;
         if (this.proxy) {
@@ -73,9 +75,9 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
             const proxy: URL = new URL(this.proxy);
             let agentFactory: any;
             if (proxy.protocol === "https:") {
-              agentFactory = isBaseUrlSecure ? tunnel.httpsOverHttps : tunnel.httpOverHttps;
+              agentFactory = isHttpsUrl ? tunnel.httpsOverHttps : tunnel.httpOverHttps;
             } else {
-              agentFactory = isBaseUrlSecure ? tunnel.httpsOverHttp : tunnel.httpOverHttp;
+              agentFactory = isHttpsUrl ? tunnel.httpsOverHttp : tunnel.httpOverHttp;
             }
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
             agent = agentFactory({
@@ -97,7 +99,11 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
           timeout: timeoutMs,
         };
 
-        this.setRequestHeaders(requestOptions, request.headers);
+        if (isCustomUrl) {
+          this.setRequestHeaders(requestOptions, request.headers);
+        } else {
+          setRequestHeadersDefault(requestOptions, request.headers);
+        }
 
         if (lastETag) {
           (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
@@ -107,7 +113,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
           this.logger.debug("NodeHttpConfigFetcher.fetchAsync() requestOptions: " + JSON.stringify(requestOptions));
         }
 
-        const clientRequest = (isBaseUrlSecure ? https : http).get(baseUrl, requestOptions, response => this.handleResponse(response, resolve, reject))
+        const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, isCustomUrl, resolve, reject))
           .on("timeout", () => {
             try {
               clientRequest.destroy();
@@ -127,32 +133,40 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   protected setRequestHeaders(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
-    if (headers.length) {
-      const currentHeaders = requestOptions.headers ??= {};
-      for (const [name, value] of headers) {
-        const currentValue = currentHeaders[name];
-        if (currentValue == null) {
-          currentHeaders[name] = value;
-        } else if (!Array.isArray(currentValue)) {
-          currentHeaders[name] = [currentValue + "", value];
-        } else {
-          currentValue.push(value);
-        }
-      }
-    }
+    setRequestHeadersDefault(requestOptions, headers);
   }
 
   protected getResponseHeaders(httpResponse: http.IncomingMessage): [string, string][] {
-    const headers: [string, string][] = [];
-    extractHeader("etag", httpResponse, headers);
-    extractHeader("cf-ray", httpResponse, headers);
-    return headers;
+    return getResponseHeadersDefault(httpResponse);
+  }
+}
 
-    function extractHeader(name: string, httpResponse: http.IncomingMessage, headers: [string, string][]) {
-      const value = httpResponse.headers[name];
-      if (value != null) {
-        headers.push([name, !Array.isArray(value) ? value : value[0]]);
+function setRequestHeadersDefault(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
+  if (headers.length) {
+    const currentHeaders = requestOptions.headers ??= {};
+    for (const [name, value] of headers) {
+      const currentValue = currentHeaders[name];
+      if (currentValue == null) {
+        currentHeaders[name] = value;
+      } else if (!Array.isArray(currentValue)) {
+        currentHeaders[name] = [currentValue + "", value];
+      } else {
+        currentValue.push(value);
       }
+    }
+  }
+}
+
+function getResponseHeadersDefault(httpResponse: http.IncomingMessage): [string, string][] {
+  const headers: [string, string][] = [];
+  extractHeader("etag", httpResponse, headers);
+  extractHeader("cf-ray", httpResponse, headers);
+  return headers;
+
+  function extractHeader(name: string, httpResponse: http.IncomingMessage, headers: [string, string][]) {
+    const value = httpResponse.headers[name];
+    if (value != null) {
+      headers.push([name, !Array.isArray(value) ? value : value[0]]);
     }
   }
 }
