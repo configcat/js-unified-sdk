@@ -13,6 +13,11 @@ import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
 
+const CDN_BASE_URLS: [global: string, eu: string] = [
+  "https://cdn-global.configcat.com",
+  "https://cdn-eu.configcat.com",
+] as const;
+
 /** Specifies the supported polling modes. */
 export const enum PollingMode {
   /** The ConfigCat SDK downloads the latest config data automatically and stores it in the cache. */
@@ -191,13 +196,14 @@ export abstract class OptionsBase {
     this.clientVersion = clientVersion;
     this.dataGovernance = options?.dataGovernance ?? DataGovernance.Global;
 
+    const [globalCdnBaseUrl, euCdnBaseUrl] = CDN_BASE_URLS;
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (this.dataGovernance) {
       case DataGovernance.EuOnly:
-        this.baseUrl = "https://cdn-eu.configcat.com";
+        this.baseUrl = euCdnBaseUrl;
         break;
       default:
-        this.baseUrl = "https://cdn-global.configcat.com";
+        this.baseUrl = globalCdnBaseUrl;
         break;
     }
 
@@ -234,7 +240,7 @@ export abstract class OptionsBase {
         this.requestTimeoutMs = options.requestTimeoutMs;
       }
 
-      if (options.baseUrl) {
+      if (options.baseUrl && !isCdnUrl(options.baseUrl)) {
         this.baseUrl = options.baseUrl;
         this.baseUrlOverriden = true;
       }
@@ -277,6 +283,23 @@ export abstract class OptionsBase {
   getCacheKey(): string {
     return sha1(`${this.sdkKey}_${OptionsBase.configFileName}_${ProjectConfig.serializationFormatVersion}`);
   }
+}
+
+export function isCdnUrl(url: string): boolean {
+  for (const baseUrl of CDN_BASE_URLS) {
+    let ch: number;
+    const maybeMatch = url.length === baseUrl.length
+      || (ch = url.charCodeAt(baseUrl.length)) === 0x2F /* '/' */
+      // NOTE: FQDNs with trailing dot are also valid (see also http://www.dns-sd.org/trailingdotsindomainnames.html).
+      || ch === 0x2E /* '.' */ && url.charCodeAt(baseUrl.length + 1) === 0x2F;
+    if (maybeMatch
+      // NOTE: Domain names are case insensitive.
+      && url.slice(0, baseUrl.length).toLowerCase() === baseUrl
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export class AutoPollOptions extends OptionsBase {
