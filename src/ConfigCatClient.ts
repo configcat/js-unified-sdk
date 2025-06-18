@@ -1,6 +1,6 @@
 import { AutoPollConfigService } from "./AutoPollConfigService";
 import type { ConfigCatClientOptions, IConfigCatKernel, OptionsBase, OptionsForPollingMode } from "./ConfigCatClientOptions";
-import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode } from "./ConfigCatClientOptions";
+import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode, PROXY_SDKKEY_PREFIX } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
 import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
@@ -759,10 +759,8 @@ export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
 };
 
 function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {
-  const proxyPrefix = "configcat-proxy/";
-
   // NOTE: String.prototype.startsWith was introduced after ES5. We'd rather work around it instead of polyfilling it.
-  if (customBaseUrl && sdkKey.length > proxyPrefix.length && sdkKey.lastIndexOf(proxyPrefix, 0) === 0) {
+  if (customBaseUrl && sdkKey.length > PROXY_SDKKEY_PREFIX.length && sdkKey.lastIndexOf(PROXY_SDKKEY_PREFIX, 0) === 0) {
     return true;
   }
 

@@ -13,10 +13,7 @@ import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
 
-const CDN_BASE_URLS: [global: string, eu: string] = [
-  "https://cdn-global.configcat.com",
-  "https://cdn-eu.configcat.com",
-] as const;
+export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
 /** Specifies the supported polling modes. */
 export const enum PollingMode {
@@ -205,14 +202,13 @@ export abstract class OptionsBase {
     this.clientVersion = clientVersion;
     this.dataGovernance = options?.dataGovernance ?? DataGovernance.Global;
 
-    const [globalCdnBaseUrl, euCdnBaseUrl] = CDN_BASE_URLS;
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (this.dataGovernance) {
       case DataGovernance.EuOnly:
-        this.baseUrl = euCdnBaseUrl;
+        this.baseUrl = "https://cdn-eu.configcat.com";
         break;
       default:
-        this.baseUrl = globalCdnBaseUrl;
+        this.baseUrl = "https://cdn-global.configcat.com";
         break;
     }
 
@@ -249,7 +245,7 @@ export abstract class OptionsBase {
         this.requestTimeoutMs = options.requestTimeoutMs;
       }
 
-      if (options.baseUrl && !isCdnUrl(options.baseUrl)) {
+      if (options.baseUrl) {
         this.baseUrl = options.baseUrl;
         this.baseUrlOverriden = true;
       }
@@ -294,21 +290,16 @@ export abstract class OptionsBase {
   }
 }
 
+const PROXY_PATH_SEGMENT = "/" + PROXY_SDKKEY_PREFIX;
+const CDN_BASEURL_REGEXP = /^https?:\/\/(?:[a-z0-9-]+\.)+configcat\.com\.?(?:[:/]|$)/i;
+
 export function isCdnUrl(url: string): boolean {
-  for (const baseUrl of CDN_BASE_URLS) {
-    let ch: number;
-    const maybeMatch = url.length === baseUrl.length
-      || (ch = url.charCodeAt(baseUrl.length)) === 0x2F /* '/' */
-      // NOTE: FQDNs with trailing dot are also valid (see also http://www.dns-sd.org/trailingdotsindomainnames.html).
-      || ch === 0x2E /* '.' */ && url.charCodeAt(baseUrl.length + 1) === 0x2F;
-    if (maybeMatch
-      // NOTE: Domain names are case insensitive.
-      && url.slice(0, baseUrl.length).toLowerCase() === baseUrl
-    ) {
-      return true;
-    }
+  if (!CDN_BASEURL_REGEXP.test(url)) {
+    return false;
   }
-  return false;
+  let index = url.indexOf("?");
+  index = url.lastIndexOf(PROXY_PATH_SEGMENT, (index >= 0 ? index : url.length) - PROXY_PATH_SEGMENT.length);
+  return index < 0;
 }
 
 export class AutoPollOptions extends OptionsBase {
