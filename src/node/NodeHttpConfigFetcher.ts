@@ -31,10 +31,10 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     this.proxy = options?.proxy;
   }
 
-  private handleResponse(response: http.IncomingMessage, isCustomUrl: boolean, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
+  private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {
       const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
-      const headers = isCustomUrl ? this.getResponseHeaders(response) : getResponseHeadersDefault(response);
+      const headers = getResponseHeadersDefault(response);
 
       if (statusCode === 200) {
         const chunks: any[] = [];
@@ -113,7 +113,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
           this.logger.debug("NodeHttpConfigFetcher.fetchAsync() requestOptions: " + JSON.stringify(requestOptions));
         }
 
-        const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, isCustomUrl, resolve, reject))
+        const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))
           .on("timeout", () => {
             try {
               clientRequest.destroy();
@@ -134,10 +134,6 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   protected setRequestHeaders(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
     setRequestHeadersDefault(requestOptions, headers);
-  }
-
-  protected getResponseHeaders(httpResponse: http.IncomingMessage): [string, string][] {
-    return getResponseHeadersDefault(httpResponse);
   }
 }
 

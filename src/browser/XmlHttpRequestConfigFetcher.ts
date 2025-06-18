@@ -15,7 +15,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
   private logger?: LoggerWrapper;
 
-  private handleStateChange(httpRequest: XMLHttpRequest, isCustomUrl: boolean, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
+  private handleStateChange(httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {
       if (httpRequest.readyState === 4) {
         const { status: statusCode, statusText: reasonPhrase } = httpRequest;
@@ -23,7 +23,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
         // The readystatechange event is emitted even in the case of abort or error.
         // We can detect this by checking for zero status code (see https://stackoverflow.com/a/19247992/8656352).
         if (statusCode) {
-          const headers = isCustomUrl ? this.getResponseHeaders(httpRequest) : getResponseHeadersDefault(httpRequest);
+          const headers = getResponseHeadersDefault(httpRequest);
           const body = statusCode === 200 ? httpRequest.responseText : void 0;
           resolve(new FetchResponse(statusCode, reasonPhrase, headers, body));
         }
@@ -51,7 +51,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
         const httpRequest: XMLHttpRequest = new XMLHttpRequest();
 
-        httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, isCustomUrl, resolve, reject);
+        httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject);
         httpRequest.ontimeout = () => reject(new FetchError("timeout", timeoutMs));
         httpRequest.onabort = () => reject(new FetchError("abort"));
         httpRequest.onerror = () => reject(new FetchError("failure"));
@@ -70,10 +70,6 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   protected setRequestHeaders(httpRequest: XMLHttpRequest, headers: ReadonlyArray<[string, string]>): void {
-  }
-
-  protected getResponseHeaders(httpRequest: XMLHttpRequest): [string, string][] {
-    return getResponseHeadersDefault(httpRequest);
   }
 }
 

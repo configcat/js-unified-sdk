@@ -55,7 +55,7 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
       const response = await fetch(url, requestInit);
 
       const { status: statusCode, statusText: reasonPhrase } = response;
-      const headers = isCustomUrl ? this.getResponseHeaders(response) : getResponseHeadersDefault(response);
+      const headers = getResponseHeadersDefault(response);
       const body = statusCode === 200 ? await response.text() : void 0;
       return new FetchResponse(statusCode, reasonPhrase, headers, body);
     } catch (err) {
@@ -77,10 +77,6 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     if (this.runsOnServerSide) {
       setRequestHeadersDefault(requestInit, headers);
     }
-  }
-
-  protected getResponseHeaders(httpResponse: Response): [string, string][] {
-    return getResponseHeadersDefault(httpResponse);
   }
 }
 
