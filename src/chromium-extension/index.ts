@@ -2,7 +2,7 @@ import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
-import { getClient as getClientCommon } from "../index.pubternals.core";
+import { getClient as getClientInternal } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
@@ -24,12 +24,12 @@ setupPolyfills();
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
-    configFetcher: new FetchApiConfigFetcher(),
+  return getClientInternal(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
     sdkType: "ConfigCat-UnifiedJS-ChromiumExtension",
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
-    defaultCacheFactory: ChromeLocalStorageConfigCache.tryGetFactory() ?? IndexedDBConfigCache.tryGetFactory(),
+    defaultCacheFactory: ChromeLocalStorageConfigCache["tryGetFactory"]() ?? IndexedDBConfigCache["tryGetFactory"](),
+    configFetcherFactory: FetchApiConfigFetcher["getFactory"](),
   });
 }
 
@@ -55,5 +55,11 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
     TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
     TMode extends undefined ? IJSAutoPollOptions :
     never;
+
+export { ChromeLocalStorageConfigCache };
+
+export { IndexedDBConfigCache };
+
+export { FetchApiConfigFetcher };
 
 export * from "..";

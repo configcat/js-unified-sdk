@@ -2,6 +2,7 @@ import type { IConfigCache, IConfigCatCache } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { IConfigCatLogger, LogFilterCallback } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger, LoggerWrapper } from "./ConfigCatLogger";
+import type { IConfigCatConfigFetcher } from "./ConfigFetcher";
 import type { IEventEmitter } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { FlagOverrides } from "./FlagOverrides";
@@ -11,6 +12,8 @@ import { Hooks } from "./Hooks";
 import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
+
+export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
 /** Specifies the supported polling modes. */
 export const enum PollingMode {
@@ -72,6 +75,23 @@ export interface IOptions {
    */
   cache?: IConfigCatCache | null;
 
+  /**
+   * The config fetcher implementation to use for performing ConfigCat config fetch operations.
+   *
+   * If not set, a default implementation will be used depending on the current platform.
+   * If you want to use custom a config fetcher, you can provide an implementation of `IConfigCatConfigFetcher`.
+   *
+   * @remarks Implementing a config fetcher that makes HTTP requests to the ConfigCat CDN is tricky, especially when the
+   * SDK runs in a browser. Therefore, please **avoid writing actual config fetcher implementations from scratch**
+   * unless absolutely necessary and you know exactly what you are doing. (Writing mock implementations for testing
+   * purposes is fine, of course.)
+   *
+   * If you use the SDK with a [proxy](https://configcat.com/docs/advanced/proxy/proxy-overview/) and need to set
+   * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. FetchApiConfigFetcher)
+   * and override the `setRequestHeaders` method.
+   */
+  configFetcher?: IConfigCatConfigFetcher | null;
+
   /** The flag override to use. If not set, no flag override will be used. */
   flagOverrides?: FlagOverrides | null;
 
@@ -132,6 +152,14 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends undefined ? IAutoPollOptions :
   never;
 
+export interface IConfigCatKernel {
+  sdkType: string;
+  sdkVersion: string;
+  eventEmitterFactory?: () => IEventEmitter;
+  defaultCacheFactory?: (options: OptionsBase) => IConfigCache;
+  configFetcherFactory: (options: OptionsBase) => IConfigCatConfigFetcher;
+}
+
 /* eslint-disable @typescript-eslint/no-inferrable-types */
 
 export abstract class OptionsBase {
@@ -154,6 +182,8 @@ export abstract class OptionsBase {
 
   cache: IConfigCache;
 
+  configFetcher: IConfigCatConfigFetcher;
+
   flagOverrides?: FlagOverrides;
 
   defaultUser?: IUser;
@@ -162,9 +192,7 @@ export abstract class OptionsBase {
 
   hooks: SafeHooksWrapper;
 
-  constructor(sdkKey: string, clientVersion: string, options?: IOptions | null,
-    defaultCacheFactory?: ((options: OptionsBase) => IConfigCache) | null,
-    eventEmitterFactory?: (() => IEventEmitter) | null) {
+  constructor(sdkKey: string, kernel: IConfigCatKernel, clientVersion: string, options?: IOptions | null) {
 
     if (!sdkKey) {
       throw new Error("Invalid 'sdkKey' value");
@@ -184,7 +212,7 @@ export abstract class OptionsBase {
         break;
     }
 
-    const eventEmitter = eventEmitterFactory?.() ?? new NullEventEmitter();
+    const eventEmitter = kernel.eventEmitterFactory?.() ?? new NullEventEmitter();
     const hooks = new Hooks(eventEmitter);
     const hooksWeakRef = new (isWeakRefAvailable() ? WeakRef : getWeakRefStub())(hooks);
     this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{
@@ -198,6 +226,7 @@ export abstract class OptionsBase {
     let logFilter: LogFilterCallback | undefined;
     let logger: IConfigCatLogger | null | undefined;
     let cache: IConfigCatCache | null | undefined;
+    let configFetcher: IConfigCatConfigFetcher | null | undefined;
 
     if (options) {
       if (options.logFilter) {
@@ -206,6 +235,7 @@ export abstract class OptionsBase {
 
       logger = options.logger;
       cache = options.cache;
+      configFetcher = options.configFetcher;
 
       if (options.requestTimeoutMs) {
         if (options.requestTimeoutMs < 0) {
@@ -239,7 +269,9 @@ export abstract class OptionsBase {
 
     this.cache = cache
       ? new ExternalConfigCache(cache, this.logger)
-      : (defaultCacheFactory ? defaultCacheFactory(this) : new InMemoryConfigCache());
+      : (kernel.defaultCacheFactory ? kernel.defaultCacheFactory(this) : new InMemoryConfigCache());
+
+    this.configFetcher = configFetcher ?? kernel.configFetcherFactory(this);
   }
 
   yieldHooks(): Hooks {
@@ -258,17 +290,27 @@ export abstract class OptionsBase {
   }
 }
 
+const PROXY_PATH_SEGMENT = "/" + PROXY_SDKKEY_PREFIX;
+const CDN_BASEURL_REGEXP = /^https?:\/\/(?:[a-z0-9-]+\.)+configcat\.com\.?(?:[:/]|$)/i;
+
+export function isCdnUrl(url: string): boolean {
+  if (!CDN_BASEURL_REGEXP.test(url)) {
+    return false;
+  }
+  let index = url.indexOf("?");
+  index = url.lastIndexOf(PROXY_PATH_SEGMENT, (index >= 0 ? index : url.length) - PROXY_PATH_SEGMENT.length);
+  return index < 0;
+}
+
 export class AutoPollOptions extends OptionsBase {
 
   pollIntervalSeconds: number = 60;
 
   maxInitWaitTimeSeconds: number = 5;
 
-  constructor(sdkKey: string, sdkType: string, sdkVersion: string, options?: IAutoPollOptions | null,
-    defaultCacheFactory?: ((options: OptionsBase) => IConfigCache) | null,
-    eventEmitterFactory?: (() => IEventEmitter) | null) {
+  constructor(sdkKey: string, kernel: IConfigCatKernel, options?: IAutoPollOptions | null) {
 
-    super(sdkKey, sdkType + "/a-" + sdkVersion, options, defaultCacheFactory, eventEmitterFactory);
+    super(sdkKey, kernel, kernel.sdkType + "/a-" + kernel.sdkVersion, options);
 
     if (options) {
 
@@ -296,11 +338,9 @@ export class AutoPollOptions extends OptionsBase {
 }
 
 export class ManualPollOptions extends OptionsBase {
-  constructor(sdkKey: string, sdkType: string, sdkVersion: string, options?: IManualPollOptions | null,
-    defaultCacheFactory?: ((options: OptionsBase) => IConfigCache) | null,
-    eventEmitterFactory?: (() => IEventEmitter) | null) {
+  constructor(sdkKey: string, kernel: IConfigCatKernel, options?: IManualPollOptions | null) {
 
-    super(sdkKey, sdkType + "/m-" + sdkVersion, options, defaultCacheFactory, eventEmitterFactory);
+    super(sdkKey, kernel, kernel.sdkType + "/m-" + kernel.sdkVersion, options);
   }
 }
 
@@ -308,11 +348,9 @@ export class LazyLoadOptions extends OptionsBase {
 
   cacheTimeToLiveSeconds: number = 60;
 
-  constructor(sdkKey: string, sdkType: string, sdkVersion: string, options?: ILazyLoadingOptions | null,
-    defaultCacheFactory?: ((options: OptionsBase) => IConfigCache) | null,
-    eventEmitterFactory?: (() => IEventEmitter) | null) {
+  constructor(sdkKey: string, kernel: IConfigCatKernel, options?: ILazyLoadingOptions | null) {
 
-    super(sdkKey, sdkType + "/l-" + sdkVersion, options, defaultCacheFactory, eventEmitterFactory);
+    super(sdkKey, kernel, kernel.sdkType + "/l-" + kernel.sdkVersion, options);
 
     if (options) {
       if (options.cacheTimeToLiveSeconds != null) {

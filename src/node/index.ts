@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
-import { getClient as getClientCommon } from "../index.pubternals.core";
+import { getClient as getClientInternal } from "../index.pubternals.core";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import type { INodeHttpConfigFetcherOptions } from "./NodeHttpConfigFetcher";
 import { NodeHttpConfigFetcher } from "./NodeHttpConfigFetcher";
@@ -20,12 +20,12 @@ import { NodeHttpConfigFetcher } from "./NodeHttpConfigFetcher";
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
+  return getClientInternal(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
     {
-      configFetcher: new NodeHttpConfigFetcher(options),
       sdkType: "ConfigCat-UnifiedJS-Node",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new EventEmitter(),
+      configFetcherFactory: NodeHttpConfigFetcher["getFactory"](options),
     });
 }
 
@@ -49,5 +49,7 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends PollingMode.LazyLoad ? INodeLazyLoadingOptions :
   TMode extends undefined ? INodeAutoPollOptions :
   never;
+
+export { NodeHttpConfigFetcher };
 
 export * from "..";

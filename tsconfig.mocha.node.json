@@ -6,7 +6,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "paths": {
-      "#lib/node": ["./lib/cjs/node/index.root"],
+      "#lib/node": ["./lib/cjs/node/index"],
       "#lib": ["./lib/cjs/index"],
       "#lib/*": ["./lib/cjs/*"]
     },

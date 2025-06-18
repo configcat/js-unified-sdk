@@ -2,7 +2,7 @@ import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
-import { getClient as getClientCommon } from "../index.pubternals.core";
+import { getClient as getClientInternal } from "../index.pubternals.core";
 import { setupPolyfills } from "../Polyfills";
 import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
@@ -24,16 +24,16 @@ setupPolyfills();
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
-    configFetcher: new XmlHttpRequestConfigFetcher(),
+  return getClientInternal(sdkKey, pollingMode ?? PollingMode.AutoPoll, options, {
     sdkType: "ConfigCat-UnifiedJS-Browser",
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
     defaultCacheFactory: typeof localStorage !== "undefined"
       // NOTE: The IndexedDB API is asynchronous, so it's not possible to check here if it actually works. For this reason,
       // we'd rather not fall back to IndexedDB if LocalStorage doesn't work. (In that case, IndexedDB is unlikely to work anyway.)
-      ? LocalStorageConfigCache.tryGetFactory()
-      : IndexedDBConfigCache.tryGetFactory(),
+      ? LocalStorageConfigCache["tryGetFactory"]()
+      : IndexedDBConfigCache["tryGetFactory"](),
+    configFetcherFactory: XmlHttpRequestConfigFetcher["getFactory"](),
   });
 }
 
@@ -59,5 +59,13 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
     TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
     TMode extends undefined ? IJSAutoPollOptions :
     never;
+
+export { LocalStorageConfigCache };
+
+export { IndexedDBConfigCache };
+
+export { XmlHttpRequestConfigFetcher };
+
+export { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export * from "..";

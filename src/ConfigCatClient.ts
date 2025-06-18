@@ -1,12 +1,9 @@
 import { AutoPollConfigService } from "./AutoPollConfigService";
-import type { IConfigCache } from "./ConfigCatCache";
-import type { ConfigCatClientOptions, OptionsBase, OptionsForPollingMode } from "./ConfigCatClientOptions";
-import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode } from "./ConfigCatClientOptions";
+import type { ConfigCatClientOptions, IConfigCatKernel, OptionsBase, OptionsForPollingMode } from "./ConfigCatClientOptions";
+import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode, PROXY_SDKKEY_PREFIX } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
-import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
-import type { IEventEmitter } from "./EventEmitter";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
@@ -189,18 +186,10 @@ export interface IConfigCatClientSnapshot {
   getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): IEvaluationDetails<SettingTypeOf<T>>;
 }
 
-export interface IConfigCatKernel {
-  configFetcher: IConfigFetcher;
-  sdkType: string;
-  sdkVersion: string;
-  defaultCacheFactory?: (options: OptionsBase) => IConfigCache;
-  eventEmitterFactory?: () => IEventEmitter;
-}
-
 export class ConfigCatClientCache {
   private readonly instances: Record<string, [WeakRef<ConfigCatClient>, object]> = {};
 
-  getOrCreate(options: ConfigCatClientOptions, configCatKernel: IConfigCatKernel): [ConfigCatClient, boolean] {
+  getOrCreate(options: ConfigCatClientOptions): [ConfigCatClient, boolean] {
     let instance: ConfigCatClient | undefined;
 
     const cachedInstance = this.instances[options.sdkKey];
@@ -213,7 +202,7 @@ export class ConfigCatClientCache {
     }
 
     const token = {};
-    instance = new ConfigCatClient(options, configCatKernel, token);
+    instance = new ConfigCatClient(options, token);
     const weakRefCtor = isWeakRefAvailable() ? WeakRef : getWeakRefStub();
     this.instances[options.sdkKey] = [new weakRefCtor(instance), token];
     return [instance, false];
@@ -269,23 +258,20 @@ export class ConfigCatClient implements IConfigCatClient {
       throw new Error(invalidSdkKeyError);
     }
 
-    const optionsClass =
-      pollingMode === PollingMode.AutoPoll ? AutoPollOptions
-      : pollingMode === PollingMode.ManualPoll ? ManualPollOptions
-      : pollingMode === PollingMode.LazyLoad ? LazyLoadOptions
+    const internalOptions =
+      pollingMode === PollingMode.AutoPoll ? new AutoPollOptions(sdkKey, configCatKernel, options)
+      : pollingMode === PollingMode.ManualPoll ? new ManualPollOptions(sdkKey, configCatKernel, options)
+      : pollingMode === PollingMode.LazyLoad ? new LazyLoadOptions(sdkKey, configCatKernel, options)
       : throwError(new Error("Invalid 'pollingMode' value"));
 
-    const actualOptions = new optionsClass(sdkKey, configCatKernel.sdkType, configCatKernel.sdkVersion, options,
-      configCatKernel.defaultCacheFactory, configCatKernel.eventEmitterFactory);
-
-    if (actualOptions.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly && !isValidSdkKey(sdkKey, actualOptions.baseUrlOverriden)) {
+    if (internalOptions.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly && !isValidSdkKey(sdkKey, internalOptions.baseUrlOverriden)) {
       throw new Error(invalidSdkKeyError);
     }
 
-    const [instance, instanceAlreadyCreated] = clientInstanceCache.getOrCreate(actualOptions, configCatKernel);
+    const [instance, instanceAlreadyCreated] = clientInstanceCache.getOrCreate(internalOptions);
 
     if (instanceAlreadyCreated && options) {
-      actualOptions.logger.clientIsAlreadyCreated(sdkKey);
+      internalOptions.logger.clientIsAlreadyCreated(sdkKey);
     }
 
     return instance;
@@ -293,7 +279,6 @@ export class ConfigCatClient implements IConfigCatClient {
 
   constructor(
     options: ConfigCatClientOptions,
-    configCatKernel: IConfigCatKernel,
     private readonly cacheToken?: object) {
 
     if (!options) {
@@ -303,14 +288,6 @@ export class ConfigCatClient implements IConfigCatClient {
     this.options = options;
 
     this.options.logger.debug("Initializing ConfigCatClient. Options: " + JSON.stringify(this.options));
-
-    if (!configCatKernel) {
-      throw new Error("Invalid 'configCatKernel' value");
-    }
-
-    if (!configCatKernel.configFetcher) {
-      throw new Error("Invalid 'configCatKernel.configFetcher' value");
-    }
 
     // To avoid possible memory leaks, the components of the client should not hold a strong reference to the hooks object (see also SafeHooksWrapper).
     this.hooks = options.yieldHooks();
@@ -323,9 +300,9 @@ export class ConfigCatClient implements IConfigCatClient {
 
     if (options.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly) {
       this.configService =
-        options instanceof AutoPollOptions ? new AutoPollConfigService(configCatKernel.configFetcher, options)
-        : options instanceof ManualPollOptions ? new ManualPollConfigService(configCatKernel.configFetcher, options)
-        : options instanceof LazyLoadOptions ? new LazyLoadConfigService(configCatKernel.configFetcher, options)
+        options instanceof AutoPollOptions ? new AutoPollConfigService(options)
+        : options instanceof ManualPollOptions ? new ManualPollConfigService(options)
+        : options instanceof LazyLoadOptions ? new LazyLoadConfigService(options)
         : throwError(new Error("Invalid 'options' value"));
     } else {
       this.hooks.emit("clientReady", ClientCacheState.HasLocalOverrideFlagDataOnly);
@@ -782,10 +759,8 @@ export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
 };
 
 function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {
-  const proxyPrefix = "configcat-proxy/";
-
   // NOTE: String.prototype.startsWith was introduced after ES5. We'd rather work around it instead of polyfilling it.
-  if (customBaseUrl && sdkKey.length > proxyPrefix.length && sdkKey.lastIndexOf(proxyPrefix, 0) === 0) {
+  if (customBaseUrl && sdkKey.length > PROXY_SDKKEY_PREFIX.length && sdkKey.lastIndexOf(PROXY_SDKKEY_PREFIX, 0) === 0) {
     return true;
   }
 

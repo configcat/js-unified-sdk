@@ -2,9 +2,9 @@ import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
-import { getClient as getClientCommon } from "../index.pubternals.core";
-import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+import { getClient as getClientInternal } from "../index.pubternals.core";
 import CONFIGCAT_SDK_VERSION from "../Version";
+import { DenoHttpConfigFetcher } from "./DenoHttpConfigFetcher";
 
 /* Package public API for Deno */
 
@@ -19,12 +19,12 @@ import CONFIGCAT_SDK_VERSION from "../Version";
  * @param options Options for the specified polling mode.
  */
 export function getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>): IConfigCatClient {
-  return getClientCommon(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
+  return getClientInternal(sdkKey, pollingMode ?? PollingMode.AutoPoll, options,
     {
-      configFetcher: new FetchApiConfigFetcher(),
       sdkType: "ConfigCat-UnifiedJS-Deno",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new DefaultEventEmitter(),
+      configFetcherFactory: DenoHttpConfigFetcher["getFactory"](),
     });
 }
 
@@ -48,5 +48,7 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends PollingMode.LazyLoad ? IDenoLazyLoadingOptions :
   TMode extends undefined ? IDenoAutoPollOptions :
   never;
+
+export { DenoHttpConfigFetcher };
 
 export * from "..";

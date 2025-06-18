@@ -1,5 +1,5 @@
 import type { AutoPollOptions } from "./ConfigCatClientOptions";
-import type { FetchResult, IConfigFetcher } from "./ConfigFetcher";
+import type { FetchResult } from "./ConfigFetcher";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -17,9 +17,9 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
   private readonly pollExpirationMs: number;
   readonly readyPromise: Promise<ClientCacheState>;
 
-  constructor(configFetcher: IConfigFetcher, options: AutoPollOptions) {
+  constructor(options: AutoPollOptions) {
 
-    super(configFetcher, options);
+    super(options);
 
     this.pollIntervalMs = options.pollIntervalSeconds * 1000;
     // Due to the inaccuracy of the timer, some tolerance should be allowed when checking for

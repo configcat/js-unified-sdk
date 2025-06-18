@@ -1,6 +1,5 @@
 import type { LazyLoadOptions } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
-import type { IConfigFetcher } from "./ConfigFetcher";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -10,9 +9,9 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
   private readonly cacheTimeToLiveMs: number;
   readonly readyPromise: Promise<ClientCacheState>;
 
-  constructor(configFetcher: IConfigFetcher, options: LazyLoadOptions) {
+  constructor(options: LazyLoadOptions) {
 
-    super(configFetcher, options);
+    super(options);
 
     this.cacheTimeToLiveMs = options.cacheTimeToLiveSeconds * 1000;
 
