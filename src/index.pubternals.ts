@@ -8,20 +8,20 @@ import { Setting } from "./ProjectConfig";
 
 export * from "./index.pubternals.core";
 
-export type { IConfigCatKernel, OptionsBase } from "./ConfigCatClientOptions";
-
-export type { IOverrideDataSource } from "./FlagOverrides";
-
 export const settingFromValue = Setting.fromValue;
 
 export type { IConfigCache } from "./ConfigCatCache";
 
 export { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 
+export type { IConfigCatKernel, OptionsBase } from "./ConfigCatClientOptions";
+
 export { FetchResult, FetchStatus } from "./ConfigFetcher";
+
+export { DefaultEventEmitter } from "./DefaultEventEmitter";
 
 export type { IEventEmitter, IEventProvider } from "./EventEmitter";
 
-export { DefaultEventEmitter } from "./DefaultEventEmitter";
+export type { IOverrideDataSource } from "./FlagOverrides";
 
 export * as Utils from "./Utils";
