@@ -40,9 +40,11 @@ export const enum RefreshErrorCode {
 /** Contains the result of an `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
   private readonly $errorMessage?: Message;
+  /** Error message in case the operation failed, otherwise `undefined`. */
   get errorMessage(): string | undefined { return this.$errorMessage?.toString(); }
 
   constructor(
+    /** The code identifying the reason for the error in case the operation failed. */
     readonly errorCode: RefreshErrorCode,
     /** Error message in case the operation failed, otherwise `undefined`. */
     errorMessage?: Message,
