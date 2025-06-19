@@ -10,13 +10,12 @@ import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
-import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import type { IConfig, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingTypeOf } from "./RolloutEvaluator";
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getEvaluationErrorCode, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
-import { errorToString, isArray, isObject, shallowClone, throwError } from "./Utils";
+import { createWeakRef, errorToString, isArray, isObject, shallowClone, throwError } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -206,8 +205,7 @@ export class ConfigCatClientCache {
 
     const token = {};
     instance = new ConfigCatClient(options, token);
-    const weakRefCtor = isWeakRefAvailable() ? WeakRef : getWeakRefStub();
-    this.instances[options.sdkKey] = [new weakRefCtor(instance), token];
+    this.instances[options.sdkKey] = [createWeakRef(instance) as WeakRef<ConfigCatClient>, token];
     return [instance, false];
   }
 

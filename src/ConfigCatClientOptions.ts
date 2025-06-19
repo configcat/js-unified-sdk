@@ -9,9 +9,9 @@ import type { FlagOverrides } from "./FlagOverrides";
 import { sha1 } from "./Hash";
 import type { HookEvents, IProvidesHooks, SafeHooksWrapper } from "./Hooks";
 import { Hooks } from "./Hooks";
-import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
+import { createWeakRef } from "./Utils";
 
 export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
@@ -214,7 +214,7 @@ export abstract class OptionsBase {
 
     const eventEmitter = kernel.eventEmitterFactory?.() ?? new NullEventEmitter();
     const hooks = new Hooks(eventEmitter);
-    const hooksWeakRef = new (isWeakRefAvailable() ? WeakRef : getWeakRefStub())(hooks);
+    const hooksWeakRef = createWeakRef(hooks) as WeakRef<Hooks>;
     this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{
       hooks, // stored only temporarily, will be deleted by `yieldHooks()`
       hooksWeakRef,

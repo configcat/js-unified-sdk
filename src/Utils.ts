@@ -50,6 +50,33 @@ export const getMonotonicTimeMs = typeof performance !== "undefined" && typeof p
   ? () => performance.now()
   : () => new Date().getTime();
 
+// NOTE: We don't use the built-in WeakRef-related types in the signatures of the exported functions below because
+// this module is exposed via the "pubternal" API, and we don't want these types to be included in the generated
+// type definitions because that might cause problems with older TypeScript versions.
+
+export function createWeakRef(target: object): unknown {
+  return new weakRefConstructor(target);
+}
+
+const weakRefConstructor = typeof WeakRef === "function" ? WeakRef : getWeakRefStub() as WeakRefConstructor;
+
+export function getWeakRefStub(): Function {
+  type WeakRefImpl = WeakRef<WeakKey> & { target: object };
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const WeakRef = function(this: WeakRefImpl, target: object) {
+    this.target = target;
+  } as Function as WeakRefConstructor & { isFallback: boolean };
+
+  WeakRef.prototype.deref = function(this: WeakRefImpl) {
+    return this.target;
+  };
+
+  WeakRef.isFallback = true;
+
+  return WeakRef;
+}
+
 /** Formats error in a similar way to Chromium-based browsers. */
 export function errorToString(err: any, includeStackTrace = false): string {
   return err instanceof Error ? visit(err, "") : "" + err;

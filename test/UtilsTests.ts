@@ -2,9 +2,17 @@ import { assert } from "chai";
 import { FakeLogger } from "./helpers/fakes";
 import { LoggerWrapper, toMessage } from "#lib/ConfigCatLogger";
 import { FetchError } from "#lib/ConfigFetcher";
-import { errorToString, formatStringList, LazyString, parseFloatStrict, utf8Encode } from "#lib/Utils";
+import { errorToString, formatStringList, getWeakRefStub, LazyString, parseFloatStrict, utf8Encode } from "#lib/Utils";
 
 describe("Utils", () => {
+  it("WeakRef fallback should work", () => {
+    const weakRefStub = getWeakRefStub() as WeakRefConstructor;
+
+    const obj: {} | null = {};
+    const objWeakRef = new weakRefStub(obj);
+
+    assert.strictEqual(objWeakRef.deref(), obj);
+  });
 
   for (const [input, expectedOutput] of <[string, number[]][]>[
     ["", []],
