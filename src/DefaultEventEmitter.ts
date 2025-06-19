@@ -19,7 +19,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
   private addListenerCore(eventName: string | symbol, fn: (...args: any[]) => void, once: boolean) {
     if (typeof fn !== "function") {
-      throw new TypeError("Listener must be a function");
+      throw TypeError("Listener must be a function");
     }
 
     const listeners = this.events[eventName];
@@ -85,7 +85,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
   removeListener(eventName: string | symbol, listener: (...args: any[]) => void): this {
     if (typeof listener !== "function") {
-      throw new TypeError("Listener must be a function");
+      throw TypeError("Listener must be a function");
     }
 
     return this.removeListenerCore(eventName, listener, (listener, fn) => listener.fn === fn);

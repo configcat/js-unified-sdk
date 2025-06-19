@@ -50,6 +50,33 @@ export const getMonotonicTimeMs = typeof performance !== "undefined" && typeof p
   ? () => performance.now()
   : () => new Date().getTime();
 
+// NOTE: We don't use the built-in WeakRef-related types in the signatures of the exported functions below because
+// this module is exposed via the "pubternal" API, and we don't want these types to be included in the generated
+// type definitions because that might cause problems with older TypeScript versions.
+
+export function createWeakRef(target: object): unknown {
+  return new weakRefConstructor(target);
+}
+
+const weakRefConstructor = typeof WeakRef === "function" ? WeakRef : getWeakRefStub() as WeakRefConstructor;
+
+export function getWeakRefStub(): Function {
+  type WeakRefImpl = WeakRef<WeakKey> & { target: object };
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const WeakRef = function(this: WeakRefImpl, target: object) {
+    this.target = target;
+  } as Function as WeakRefConstructor & { isFallback: boolean };
+
+  WeakRef.prototype.deref = function(this: WeakRefImpl) {
+    return this.target;
+  };
+
+  WeakRef.isFallback = true;
+
+  return WeakRef;
+}
+
 /** Formats error in a similar way to Chromium-based browsers. */
 export function errorToString(err: any, includeStackTrace = false): string {
   return err instanceof Error ? visit(err, "") : "" + err;
@@ -99,6 +126,10 @@ export function ensurePrototype<T>(obj: T, ctor: new (...args: any[]) => T): voi
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     (Object.setPrototypeOf || ((obj, proto) => obj["__proto__"] = proto))(obj, ctor.prototype as object);
   }
+}
+
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !isArray(value);
 }
 
 export function isArray(value: unknown): value is ReadonlyArray<unknown> {
@@ -185,11 +216,22 @@ export function parseFloatStrict(value: unknown): number {
     return value;
   }
 
-  if (typeof value !== "string" || !value.length || /^\s*$|^\s*0[^\d.e]/.test(value)) {
+  if (typeof value !== "string" || !value.length || /^\s*$|^\s*0[^\d.eE]/.test(value)) {
     return NaN;
   }
 
   return +value;
+}
+
+export function shallowClone<T extends {}>(obj: T, propertyReplacer?: (key: keyof T, value: unknown) => unknown): Record<keyof T, unknown> {
+  const clone = {} as Record<keyof T, unknown>;
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      clone[key] = propertyReplacer ? propertyReplacer(key, value) : value;
+    }
+  }
+  return clone;
 }
 
 export class LazyString<TState = any> {

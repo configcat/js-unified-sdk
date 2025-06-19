@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { getWeakRefStub, ObjectEntriesPolyfill, ObjectValuesPolyfill } from "#lib/Polyfills";
+import { ObjectEntriesPolyfill, ObjectValuesPolyfill } from "#lib/Polyfills";
 
 describe("Polyfills", () => {
   it("Object.values polyfill should work", () => {
@@ -24,14 +24,5 @@ describe("Polyfills", () => {
     assert.deepEqual([], ObjectEntriesPolyfill<any>({}));
     // eslint-disable-next-line @stylistic/quote-props
     expect(ObjectEntriesPolyfill<any>({ "a": 1, 2: "b" })).to.have.deep.members([["a", 1], ["2", "b"]]);
-  });
-
-  it("WeakRef API polyfill should work", () => {
-    const weakRefCtor = getWeakRefStub();
-
-    const obj: {} | null = {};
-    const objWeakRef = new weakRefCtor(obj);
-
-    assert.strictEqual(objWeakRef.deref(), obj);
   });
 });

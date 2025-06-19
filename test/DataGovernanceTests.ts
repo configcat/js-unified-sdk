@@ -3,7 +3,7 @@ import type { AugmentedOptions } from "./helpers/platform";
 import { DataGovernance, IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { FetchRequest, FetchResponse, FetchResult, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import type * as ConfigJson from "#lib/ConfigJson";
-import { ClientCacheState, ConfigServiceBase } from "#lib/ConfigServiceBase";
+import { ClientCacheState, ConfigServiceBase, RefreshErrorCode } from "#lib/ConfigServiceBase";
 import { Config, ProjectConfig } from "#lib/ProjectConfig";
 
 const globalUrl = "https://cdn-global.configcat.com";
@@ -294,7 +294,7 @@ export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
 
   get readyPromise(): Promise<ClientCacheState> { throw new Error("Getter not implemented."); }
 
-  getConfig(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
+  getConfigAsync(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
 
   refreshLogicAsync(): Promise<[FetchResult, ProjectConfig]> {
     return this.refreshConfigCoreAsync(ProjectConfig.empty, false);
@@ -313,7 +313,7 @@ export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
     };
 
     configFetcher.prepareResponse(this.getUrl(baseUrl),
-      FetchResult.success(new ProjectConfig(JSON.stringify(configJson), new Config(configJson), ProjectConfig.generateTimestamp(), "etag")));
+      FetchResult.success(new ProjectConfig(JSON.stringify(configJson), new Config(configJson), ProjectConfig.generateTimestamp(), "etag"), RefreshErrorCode.None));
   }
 
   validateCallCount(callCount: number): void {

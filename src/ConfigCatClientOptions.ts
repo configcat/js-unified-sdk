@@ -9,9 +9,9 @@ import type { FlagOverrides } from "./FlagOverrides";
 import { sha1 } from "./Hash";
 import type { HookEvents, IProvidesHooks, SafeHooksWrapper } from "./Hooks";
 import { Hooks } from "./Hooks";
-import { getWeakRefStub, isWeakRefAvailable } from "./Polyfills";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
+import { createWeakRef } from "./Utils";
 
 export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
@@ -195,7 +195,7 @@ export abstract class OptionsBase {
   constructor(sdkKey: string, kernel: IConfigCatKernel, clientVersion: string, options?: IOptions | null) {
 
     if (!sdkKey) {
-      throw new Error("Invalid 'sdkKey' value");
+      throw Error("Invalid 'sdkKey' value");
     }
 
     this.sdkKey = sdkKey;
@@ -214,7 +214,7 @@ export abstract class OptionsBase {
 
     const eventEmitter = kernel.eventEmitterFactory?.() ?? new NullEventEmitter();
     const hooks = new Hooks(eventEmitter);
-    const hooksWeakRef = new (isWeakRefAvailable() ? WeakRef : getWeakRefStub())(hooks);
+    const hooksWeakRef = createWeakRef(hooks) as WeakRef<Hooks>;
     this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{
       hooks, // stored only temporarily, will be deleted by `yieldHooks()`
       hooksWeakRef,
@@ -239,7 +239,7 @@ export abstract class OptionsBase {
 
       if (options.requestTimeoutMs) {
         if (options.requestTimeoutMs < 0) {
-          throw new Error("Invalid 'requestTimeoutMs' value");
+          throw Error("Invalid 'requestTimeoutMs' value");
         }
 
         this.requestTimeoutMs = options.requestTimeoutMs;
@@ -282,7 +282,10 @@ export abstract class OptionsBase {
   }
 
   getUrl(): string {
-    return this.baseUrl + "/configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName + "?sdk=" + this.clientVersion;
+    const { baseUrl } = this;
+    return baseUrl
+      + (baseUrl.charCodeAt(baseUrl.length - 1) !== 0x2F /*'/'*/ ? "/" : "")
+      + "configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName + "?sdk=" + this.clientVersion;
   }
 
   getCacheKey(): string {
@@ -328,11 +331,11 @@ export class AutoPollOptions extends OptionsBase {
     const maxSetTimeoutIntervalSecs = 2147483;
 
     if (!(typeof this.pollIntervalSeconds === "number" && 1 <= this.pollIntervalSeconds && this.pollIntervalSeconds <= maxSetTimeoutIntervalSecs)) {
-      throw new Error("Invalid 'pollIntervalSeconds' value");
+      throw Error("Invalid 'pollIntervalSeconds' value");
     }
 
     if (!(typeof this.maxInitWaitTimeSeconds === "number" && this.maxInitWaitTimeSeconds <= maxSetTimeoutIntervalSecs)) {
-      throw new Error("Invalid 'maxInitWaitTimeSeconds' value");
+      throw Error("Invalid 'maxInitWaitTimeSeconds' value");
     }
   }
 }
@@ -359,7 +362,7 @@ export class LazyLoadOptions extends OptionsBase {
     }
 
     if (!(typeof this.cacheTimeToLiveSeconds === "number" && 1 <= this.cacheTimeToLiveSeconds && this.cacheTimeToLiveSeconds <= 2147483647)) {
-      throw new Error("Invalid 'cacheTimeToLiveSeconds' value");
+      throw Error("Invalid 'cacheTimeToLiveSeconds' value");
     }
   }
 }

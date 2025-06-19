@@ -23,8 +23,8 @@ export class ManualPollConfigService extends ConfigServiceBase<ManualPollOptions
     return ClientCacheState.HasCachedFlagDataOnly;
   }
 
-  async getConfig(): Promise<ProjectConfig> {
-    this.options.logger.debug("ManualPollService.getConfig() called.");
+  async getConfigAsync(): Promise<ProjectConfig> {
+    this.options.logger.debug("ManualPollService.getConfigAsync() called.");
     return await this.syncUpWithCache();
   }
 

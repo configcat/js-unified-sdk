@@ -1,4 +1,4 @@
-import { RefreshErrorCode } from "./ConfigServiceBase";
+import type { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
 import { ensurePrototype } from "./Utils";
@@ -18,12 +18,12 @@ export class FetchResult {
     readonly errorException?: any) {
   }
 
-  static success(config: ProjectConfig): FetchResult {
-    return new FetchResult(FetchStatus.Fetched, config, RefreshErrorCode.None);
+  static success(config: ProjectConfig, errorCode: RefreshErrorCode.None): FetchResult {
+    return new FetchResult(FetchStatus.Fetched, config, errorCode);
   }
 
-  static notModified(config: ProjectConfig): FetchResult {
-    return new FetchResult(FetchStatus.NotModified, config, RefreshErrorCode.None);
+  static notModified(config: ProjectConfig, errorCode: RefreshErrorCode.None): FetchResult {
+    return new FetchResult(FetchStatus.NotModified, config, errorCode);
   }
 
   static error(config: ProjectConfig, errorCode: RefreshErrorCode, errorMessage?: Message, errorException?: any): FetchResult {

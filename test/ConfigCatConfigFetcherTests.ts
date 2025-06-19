@@ -98,12 +98,14 @@ describe("ConfigCatConfigFetcherTests", () => {
 
     const [[, , error]] = errors;
     assert.instanceOf(error, FormattableLogMessage);
+    assert.strictEqual(error.argNames.length, 2);
+    assert.strictEqual(error.argNames[0], "SDK_KEY");
+    assert.strictEqual(error.argNames[1], "RAY_ID");
 
-    assert.strictEqual(error.argNames.length, 1);
-    assert.strictEqual(error.argNames[0], "RAY_ID");
-
-    assert.strictEqual(error.argValues.length, 1);
-    assert.strictEqual(error.argValues[0], rayId);
+    assert.strictEqual(error.argValues.length, 2);
+    const [actualSdkKey, actualRayId] = error.argValues;
+    assert.equal(actualSdkKey, "**********************/****************789012");
+    assert.equal(actualRayId, rayId);
 
     expect(error.toString()).to.contain(rayId);
   });

@@ -4,7 +4,7 @@ import { EqualMatchingInjectorConfig, It, Mock, RejectedPromiseFactory, Resolved
 import { MimicsRejectedAsyncPresetFactory, MimicsResolvedAsyncPresetFactory, Presets, ReturnsAsyncPresetFactory, RootMockProvider, ThrowsAsyncPresetFactory } from "moq.ts/internal";
 /* eslint-enable import/no-duplicates */
 import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeCache, FakeConfigFetcherBase, FakeExternalAsyncCache, FakeExternalCache, FakeLogger } from "./helpers/fakes";
-import { ClientCacheState, RefreshResult } from "#lib";
+import { ClientCacheState, RefreshErrorCode, RefreshResult } from "#lib";
 import { AutoPollConfigService, POLL_EXPIRATION_TOLERANCE_MS } from "#lib/AutoPollConfigService";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { LoggerWrapper } from "#lib/ConfigCatLogger";
@@ -199,7 +199,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const service: AutoPollConfigService = new AutoPollConfigService(options);
 
-    const actualProjectConfig = await service.getConfig();
+    const actualProjectConfig = await service.getConfigAsync();
 
     // Assert
 
@@ -245,7 +245,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const service: AutoPollConfigService = new AutoPollConfigService(options);
 
-    const actualProjectConfig = await service.getConfig();
+    const actualProjectConfig = await service.getConfigAsync();
 
     // Assert
 
@@ -290,7 +290,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const service: AutoPollConfigService = new AutoPollConfigService(options);
 
-    const actualProjectConfig = await service.getConfig();
+    const actualProjectConfig = await service.getConfigAsync();
 
     // Assert
 
@@ -399,8 +399,8 @@ describe("ConfigServiceBaseTests", () => {
 
       await service.readyPromise;
 
-      const getConfigPromise = service.getConfig();
-      await service.getConfig(); // simulate concurrent cache sync up
+      const getConfigPromise = service.getConfigAsync();
+      await service.getConfigAsync(); // simulate concurrent cache sync up
       await getConfigPromise;
 
       await delay(100); // allow a little time for the client to raise ConfigChanged
@@ -474,7 +474,7 @@ describe("ConfigServiceBaseTests", () => {
 
     // Act
 
-    const actualConfig = await service.getConfig();
+    const actualConfig = await service.getConfigAsync();
 
     // Assert
 
@@ -508,7 +508,7 @@ describe("ConfigServiceBaseTests", () => {
 
     // Act
 
-    const actualConfig = await service.getConfig();
+    const actualConfig = await service.getConfigAsync();
 
     // Assert
 
@@ -598,7 +598,7 @@ describe("ConfigServiceBaseTests", () => {
     cacheMock.verify(v => v.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()), Times.Once());
   });
 
-  it("AutoPollConfigService - getConfig() should return cached config when cached config is not expired", async () => {
+  it("AutoPollConfigService - getConfigAsync() should return cached config when cached config is not expired", async () => {
     // Arrange
 
     const pollIntervalSeconds = 2;
@@ -631,7 +631,7 @@ describe("ConfigServiceBaseTests", () => {
     // Give a bit of time to the polling loop to do the first iteration.
     await delay(pollIntervalSeconds / 4 * 1000);
 
-    const actualPc = await service.getConfig();
+    const actualPc = await service.getConfigAsync();
 
     // Assert
 
@@ -642,7 +642,7 @@ describe("ConfigServiceBaseTests", () => {
     service.dispose();
   });
 
-  it("AutoPollConfigService - getConfig() should wait for fetch when cached config is expired", async () => {
+  it("AutoPollConfigService - getConfigAsync() should wait for fetch when cached config is expired", async () => {
     // Arrange
 
     const pollIntervalSeconds = 2;
@@ -675,7 +675,7 @@ describe("ConfigServiceBaseTests", () => {
     // Give a bit of time to the polling loop to do the first iteration.
     await delay(pollIntervalSeconds / 4 * 1000);
 
-    const actualPc = await service.getConfig();
+    const actualPc = await service.getConfigAsync();
 
     // Assert
 
@@ -688,7 +688,7 @@ describe("ConfigServiceBaseTests", () => {
     service.dispose();
   });
 
-  it("LazyLoadConfigService - getConfig() should return cached config when cached config is not expired", async () => {
+  it("LazyLoadConfigService - getConfigAsync() should return cached config when cached config is not expired", async () => {
     // Arrange
 
     const cacheTimeToLiveSeconds = 5;
@@ -717,7 +717,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const service = new LazyLoadConfigService(options);
 
-    const actualPc = await service.getConfig();
+    const actualPc = await service.getConfigAsync();
 
     // Assert
 
@@ -726,7 +726,7 @@ describe("ConfigServiceBaseTests", () => {
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Never());
   });
 
-  it("LazyLoadConfigService - getConfig() should fetch when cached config is expired", async () => {
+  it("LazyLoadConfigService - getConfigAsync() should fetch when cached config is expired", async () => {
     // Arrange
 
     const cacheTimeToLiveSeconds = 5;
@@ -758,7 +758,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const service = new LazyLoadConfigService(options);
 
-    const actualPc = await service.getConfig();
+    const actualPc = await service.getConfigAsync();
 
     // Assert
 
@@ -1034,7 +1034,7 @@ function createProjectConfig(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JS
 }
 
 function createFetchResult(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JSON): FetchResult {
-  return FetchResult.success(createProjectConfig(eTag, configJson));
+  return FetchResult.success(createProjectConfig(eTag, configJson), RefreshErrorCode.None);
 }
 
 function createConfigFromFetchResult(result: FetchResult): ProjectConfig {

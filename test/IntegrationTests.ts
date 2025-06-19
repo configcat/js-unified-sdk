@@ -309,14 +309,16 @@ describe("Integration tests - Other cases", () => {
     const [[, , error]] = errors;
     assert.instanceOf(error, FormattableLogMessage);
 
-    assert.strictEqual(error.argNames.length, 1);
-    assert.strictEqual(error.argNames[0], "RAY_ID");
+    assert.strictEqual(error.argNames.length, 2);
+    assert.strictEqual(error.argNames[0], "SDK_KEY");
+    assert.strictEqual(error.argNames[1], "RAY_ID");
 
-    assert.strictEqual(error.argValues.length, 1);
-    const [rayId] = error.argValues;
-    assert.isString(rayId);
+    assert.strictEqual(error.argValues.length, 2);
+    const [actualSdkKey, actualRayId] = error.argValues;
+    assert.equal(actualSdkKey, "***************/**********************/****************~~~~~~");
+    assert.isString(actualRayId);
 
-    expect(error.toString()).to.contain(rayId);
+    expect(error.toString()).to.contain(actualRayId);
 
     client.dispose();
   });

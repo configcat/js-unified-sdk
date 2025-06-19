@@ -106,11 +106,11 @@ class SemVer implements ISemVer {
         version = version.version
       }
     } else if (typeof version !== 'string') {
-      throw new TypeError(`Invalid Version: ${version}`)
+      throw TypeError(`Invalid Version: ${version}`)
     }
 
     if (version.length > MAX_LENGTH) {
-      throw new TypeError(
+      throw TypeError(
         `version is longer than ${MAX_LENGTH} characters`
       )
     }
@@ -124,7 +124,7 @@ class SemVer implements ISemVer {
     const m = version.trim().match(options.loose ? re[t['LOOSE']] : re[t['FULL']])
 
     if (!m) {
-      throw new TypeError(`Invalid Version: ${version}`)
+      throw TypeError(`Invalid Version: ${version}`)
     }
 
     this.raw = version
@@ -135,15 +135,15 @@ class SemVer implements ISemVer {
     this.patch = +m[3]
 
     if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
-      throw new TypeError('Invalid major version')
+      throw TypeError('Invalid major version')
     }
 
     if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
-      throw new TypeError('Invalid minor version')
+      throw TypeError('Invalid minor version')
     }
 
     if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
-      throw new TypeError('Invalid patch version')
+      throw TypeError('Invalid patch version')
     }
 
     // numberify any prerelease numeric ids
@@ -362,7 +362,7 @@ class SemVer implements ISemVer {
         break
 
       default:
-        throw new Error(`invalid increment argument: ${release}`)
+        throw Error(`invalid increment argument: ${release}`)
     }
     this.format()
     this.raw = this.version

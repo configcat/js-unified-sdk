@@ -15,3 +15,7 @@ export function escapeRegExp(text: string): string {
 export function normalizePathSeparator(path: string): string {
   return path.replace(/\\/g, "/");
 }
+
+export function isWeakRefAvailable(): boolean {
+  return typeof WeakRef !== "undefined";
+}

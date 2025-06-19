@@ -40,9 +40,11 @@ export const enum RefreshErrorCode {
 /** Contains the result of an `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
   private readonly $errorMessage?: Message;
+  /** Error message in case the operation failed, otherwise `undefined`. */
   get errorMessage(): string | undefined { return this.$errorMessage?.toString(); }
 
   constructor(
+    /** The code identifying the reason for the error in case the operation failed. */
     readonly errorCode: RefreshErrorCode,
     /** Error message in case the operation failed, otherwise `undefined`. */
     errorMessage?: Message,
@@ -93,7 +95,7 @@ export const enum ClientCacheState {
 export interface IConfigService {
   readonly readyPromise: Promise<ClientCacheState>;
 
-  getConfig(): Promise<ProjectConfig>;
+  getConfigAsync(): Promise<ProjectConfig>;
 
   refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]>;
 
@@ -154,7 +156,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return this.status === ConfigServiceStatus.Disposed;
   }
 
-  abstract getConfig(): Promise<ProjectConfig>;
+  abstract getConfigAsync(): Promise<ProjectConfig>;
 
   async refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
     const latestConfig = await this.syncUpWithCache();
@@ -243,7 +245,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
           }
 
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was successful. Returning new config.");
-          return FetchResult.success(new ProjectConfig(response.body, configOrError, ProjectConfig.generateTimestamp(), response.eTag));
+          return FetchResult.success(new ProjectConfig(response.body, configOrError, ProjectConfig.generateTimestamp(), response.eTag), RefreshErrorCode.None);
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
@@ -253,11 +255,11 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
           }
 
           options.logger.debug("ConfigServiceBase.fetchAsync(): content was not modified. Returning last config with updated timestamp.");
-          return FetchResult.notModified(lastConfig.with(ProjectConfig.generateTimestamp()));
+          return FetchResult.notModified(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.None);
 
         case 403: // Forbidden
         case 404: // Not Found
-          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(response["rayId"]);
+          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(options.sdkKey, response["rayId"]);
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
           return FetchResult.error(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.InvalidSdkKey, toMessage(errorMessage));
 
@@ -283,7 +285,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     options.logger.debug("ConfigServiceBase.fetchRequestAsync() called.");
 
     for (let retryNumber = 0; ; retryNumber++) {
-      options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}`);
+      options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}.`);
 
       const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
       const response = await this.configFetcher.fetchAsync(request);
@@ -294,7 +296,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
       if (!response.body) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): no response body.");
-        return [response, new Error("No response body.")];
+        return [response, Error("No response body.")];
       }
 
       let config: Config;

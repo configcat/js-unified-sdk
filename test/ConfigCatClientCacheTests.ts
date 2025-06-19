@@ -1,8 +1,9 @@
 import { assert } from "chai";
 import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcher } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
+import { isWeakRefAvailable } from "./helpers/utils";
 import { ConfigCatClient, ConfigCatClientCache } from "#lib/ConfigCatClient";
-import { isWeakRefAvailable, setupPolyfills } from "#lib/Polyfills";
+import { setupPolyfills } from "#lib/Polyfills";
 import "./helpers/ConfigCatClientCacheExtensions";
 
 describe("ConfigCatClientCache", () => {
