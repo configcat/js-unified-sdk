@@ -23,3 +23,5 @@ export { FetchResult, FetchStatus } from "./ConfigFetcher";
 export type { IEventEmitter, IEventProvider } from "./EventEmitter";
 
 export { DefaultEventEmitter } from "./DefaultEventEmitter";
+
+export * as Utils from "./Utils";
