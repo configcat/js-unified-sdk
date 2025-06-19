@@ -282,7 +282,10 @@ export abstract class OptionsBase {
   }
 
   getUrl(): string {
-    return this.baseUrl + "/configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName + "?sdk=" + this.clientVersion;
+    const { baseUrl } = this;
+    return baseUrl
+      + (baseUrl.charCodeAt(baseUrl.length - 1) !== 0x2F /*'/'*/ ? "/" : "")
+      + "configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName + "?sdk=" + this.clientVersion;
   }
 
   getCacheKey(): string {
