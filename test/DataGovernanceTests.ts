@@ -294,7 +294,7 @@ export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
 
   get readyPromise(): Promise<ClientCacheState> { throw new Error("Getter not implemented."); }
 
-  getConfig(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
+  getConfigAsync(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
 
   refreshLogicAsync(): Promise<[FetchResult, ProjectConfig]> {
     return this.refreshConfigCoreAsync(ProjectConfig.empty, false);

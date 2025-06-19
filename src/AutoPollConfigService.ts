@@ -72,23 +72,23 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     return this.getCacheState(this.options.cache.getInMemory());
   }
 
-  async getConfig(): Promise<ProjectConfig> {
-    this.options.logger.debug("AutoPollConfigService.getConfig() called.");
+  async getConfigAsync(): Promise<ProjectConfig> {
+    this.options.logger.debug("AutoPollConfigService.getConfigAsync() called.");
 
     let cachedConfig = await this.syncUpWithCache();
 
     if (!cachedConfig.isExpired(this.pollIntervalMs)) {
       this.signalInitialization();
     } else if (!this.isOffline && !this.initialized) {
-      this.options.logger.debug("AutoPollConfigService.getConfig() - cache is empty or expired, waiting for initialization.");
+      this.options.logger.debug("AutoPollConfigService.getConfigAsync() - cache is empty or expired, waiting for initialization.");
       await this.initializationPromise;
       cachedConfig = this.options.cache.getInMemory();
     } else {
-      this.options.logger.debug("AutoPollConfigService.getConfig() - cache is empty or expired.");
+      this.options.logger.debug("AutoPollConfigService.getConfigAsync() - cache is empty or expired.");
       return cachedConfig;
     }
 
-    this.options.logger.debug("AutoPollConfigService.getConfig() - returning value from cache.");
+    this.options.logger.debug("AutoPollConfigService.getConfigAsync() - returning value from cache.");
     return cachedConfig;
   }
 

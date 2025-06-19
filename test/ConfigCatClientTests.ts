@@ -1286,7 +1286,7 @@ describe("ConfigCatClient", () => {
 
       // 1. Checks that client is initialized to offline mode
       assert.isTrue(client.isOffline);
-      assert.isTrue((await configService.getConfig()).isEmpty);
+      assert.isTrue((await configService.getConfigAsync()).isEmpty);
 
       // 2. Checks that repeated calls to setOffline() have no effect
       client.setOffline();
@@ -1305,7 +1305,7 @@ describe("ConfigCatClient", () => {
       assert.isFalse(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      const etag1 = ((await configService.getConfig()).httpETag ?? "0") as any | 0;
+      const etag1 = ((await configService.getConfigAsync()).httpETag ?? "0") as any | 0;
       if (configService instanceof LazyLoadConfigService) {
         expectedFetchTimes++;
       }
@@ -1319,7 +1319,7 @@ describe("ConfigCatClient", () => {
       assert.isFalse(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      const etag2 = ((await configService.getConfig()).httpETag ?? "0") as any | 0;
+      const etag2 = ((await configService.getConfigAsync()).httpETag ?? "0") as any | 0;
       assert.isTrue(etag2 > etag1);
 
       assert.isTrue(refreshResult.isSuccess);
@@ -1362,7 +1362,7 @@ describe("ConfigCatClient", () => {
 
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      const etag1 = ((await configService.getConfig()).httpETag ?? "0") as any | 0;
+      const etag1 = ((await configService.getConfigAsync()).httpETag ?? "0") as any | 0;
       if (configService instanceof LazyLoadConfigService) {
         expectedFetchTimes++;
       }
@@ -1381,7 +1381,7 @@ describe("ConfigCatClient", () => {
       assert.isTrue(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      assert.equal(etag1, ((await configService.getConfig()).httpETag ?? "0") as any | 0);
+      assert.equal(etag1, ((await configService.getConfigAsync()).httpETag ?? "0") as any | 0);
 
       // 4. Checks that forceRefreshAsync() does not initiate a HTTP call in offline mode
       const refreshResult = await client.forceRefreshAsync();
@@ -1389,7 +1389,7 @@ describe("ConfigCatClient", () => {
       assert.isTrue(client.isOffline);
       assert.equal(expectedFetchTimes, configFetcher.calledTimes);
 
-      assert.equal(etag1, ((await configService.getConfig()).httpETag ?? "0") as any | 0);
+      assert.equal(etag1, ((await configService.getConfigAsync()).httpETag ?? "0") as any | 0);
 
       assert.isFalse(refreshResult.isSuccess);
       assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.OfflineClient);
@@ -1455,7 +1455,7 @@ describe("ConfigCatClient", () => {
       const originalConfigService = client["configService"] as ConfigServiceBase<OptionsBase>;
       client["configService"] = new class implements IConfigService {
         readonly readyPromise = Promise.resolve(ClientCacheState.NoFlagData);
-        getConfig(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
+        getConfigAsync(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
         refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> { return Promise.reject(expectedErrorException); }
         get isOffline(): boolean { return false; }
         setOnline(): void { }
@@ -1541,7 +1541,7 @@ describe("ConfigCatClient", () => {
 
     client["configService"] = new class implements IConfigService {
       readonly readyPromise = Promise.resolve(ClientCacheState.NoFlagData);
-      getConfig(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
+      getConfigAsync(): Promise<ProjectConfig> { return Promise.resolve(ProjectConfig.empty); }
       refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> { throw errorException; }
       get isOffline(): boolean { return false; }
       setOnline(): void { }

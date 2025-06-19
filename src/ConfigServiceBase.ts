@@ -95,7 +95,7 @@ export const enum ClientCacheState {
 export interface IConfigService {
   readonly readyPromise: Promise<ClientCacheState>;
 
-  getConfig(): Promise<ProjectConfig>;
+  getConfigAsync(): Promise<ProjectConfig>;
 
   refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]>;
 
@@ -156,7 +156,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     return this.status === ConfigServiceStatus.Disposed;
   }
 
-  abstract getConfig(): Promise<ProjectConfig>;
+  abstract getConfigAsync(): Promise<ProjectConfig>;
 
   async refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
     const latestConfig = await this.syncUpWithCache();

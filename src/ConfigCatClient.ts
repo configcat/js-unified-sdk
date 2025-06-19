@@ -612,7 +612,7 @@ export class ConfigCatClient implements IConfigCatClient {
     this.options.logger.debug("getSettingsAsync() called.");
 
     const getRemoteConfigAsync: () => Promise<SettingsWithRemoteConfig> = async () => {
-      const config = await this.configService!.getConfig();
+      const config = await this.configService!.getConfigAsync();
       const settings = !config.isEmpty ? config.config!.settings : null;
       return [settings, config];
     };
