@@ -258,17 +258,17 @@ export class ConfigCatClient implements IConfigCatClient {
   ): IConfigCatClient {
     const invalidSdkKeyError = "Invalid 'sdkKey' value";
     if (!sdkKey) {
-      throw new Error(invalidSdkKeyError);
+      throw Error(invalidSdkKeyError);
     }
 
     const internalOptions =
       pollingMode === PollingMode.AutoPoll ? new AutoPollOptions(sdkKey, configCatKernel, options)
       : pollingMode === PollingMode.ManualPoll ? new ManualPollOptions(sdkKey, configCatKernel, options)
       : pollingMode === PollingMode.LazyLoad ? new LazyLoadOptions(sdkKey, configCatKernel, options)
-      : throwError(new Error("Invalid 'pollingMode' value"));
+      : throwError(Error("Invalid 'pollingMode' value"));
 
     if (internalOptions.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly && !isValidSdkKey(sdkKey, internalOptions.baseUrlOverriden)) {
-      throw new Error(invalidSdkKeyError);
+      throw Error(invalidSdkKeyError);
     }
 
     const [instance, instanceAlreadyCreated] = clientInstanceCache.getOrCreate(internalOptions);
@@ -285,7 +285,7 @@ export class ConfigCatClient implements IConfigCatClient {
     private readonly cacheToken?: object) {
 
     if (!options) {
-      throw new Error("Invalid 'options' value");
+      throw Error("Invalid 'options' value");
     }
 
     this.options = options;
@@ -308,7 +308,7 @@ export class ConfigCatClient implements IConfigCatClient {
         options instanceof AutoPollOptions ? new AutoPollConfigService(options)
         : options instanceof ManualPollOptions ? new ManualPollConfigService(options)
         : options instanceof LazyLoadOptions ? new LazyLoadConfigService(options)
-        : throwError(new Error("Invalid 'options' value"));
+        : throwError(Error("Invalid 'options' value"));
     } else {
       this.hooks.emit("clientReady", ClientCacheState.HasLocalOverrideFlagDataOnly);
     }
@@ -362,7 +362,7 @@ export class ConfigCatClient implements IConfigCatClient {
     }
 
     if (errors) {
-      throw typeof AggregateError !== "undefined" ? new AggregateError(errors) : errors.pop();
+      throw typeof AggregateError !== "undefined" ? AggregateError(errors) : errors.pop();
     }
   }
 
@@ -447,7 +447,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     if (evaluationErrors?.length) {
       this.options.logger.settingEvaluationError("getAllValuesAsync", "evaluation result",
-        typeof AggregateError !== "undefined" ? new AggregateError(evaluationErrors) : evaluationErrors.pop());
+        typeof AggregateError !== "undefined" ? AggregateError(evaluationErrors) : evaluationErrors.pop());
     }
 
     for (const evaluationDetail of evaluationDetailsArray) {
@@ -473,7 +473,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     if (evaluationErrors?.length) {
       this.options.logger.settingEvaluationError("getAllValueDetailsAsync", "evaluation result",
-        typeof AggregateError !== "undefined" ? new AggregateError(evaluationErrors) : evaluationErrors.pop());
+        typeof AggregateError !== "undefined" ? AggregateError(evaluationErrors) : evaluationErrors.pop());
     }
 
     for (const evaluationDetail of evaluationDetailsArray) {
@@ -780,13 +780,13 @@ function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {
 
 function validateKey(key: string): void {
   if (!key) {
-    throw new Error("Invalid 'key' value");
+    throw Error("Invalid 'key' value");
   }
 }
 
 function ensureAllowedDefaultValue(value: SettingValue): void {
   if (value != null && !isAllowedValue(value)) {
-    throw new TypeError("The default value must be boolean, number, string, null or undefined.");
+    throw TypeError("The default value must be boolean, number, string, null or undefined.");
   }
 }
 

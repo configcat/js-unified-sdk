@@ -296,7 +296,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
       if (!response.body) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): no response body.");
-        return [response, new Error("No response body.")];
+        return [response, Error("No response body.")];
       }
 
       let config: Config;

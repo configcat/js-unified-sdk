@@ -280,7 +280,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
           break;
 
         default:
-          throw new Error(); // execution should never get here
+          throw Error(); // execution should never get here
       }
 
       const success = result === true;
@@ -427,7 +427,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
           : arrayOrError;
 
       default:
-        throw new Error(); // execution should never get here (unless there is an error in the config JSON)
+        throw Error(); // execution should never get here (unless there is an error in the config JSON)
     }
   }
 
@@ -647,7 +647,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         result = prerequisiteFlagValue !== condition.comparisonValue;
         break;
       default:
-        throw new Error(); // execution should never get here (unless there is an error in the config JSON)
+        throw Error(); // execution should never get here (unless there is an error in the config JSON)
     }
 
     logBuilder?.newLine(`Prerequisite flag evaluation result: '${valueToString(prerequisiteFlagValue)}'.`)
@@ -690,7 +690,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
           result = !result;
           break;
         default:
-          throw new Error(); // execution should never get here (unless there is an error in the config JSON)
+          throw Error(); // execution should never get here (unless there is an error in the config JSON)
       }
     }
 

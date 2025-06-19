@@ -195,7 +195,7 @@ export abstract class OptionsBase {
   constructor(sdkKey: string, kernel: IConfigCatKernel, clientVersion: string, options?: IOptions | null) {
 
     if (!sdkKey) {
-      throw new Error("Invalid 'sdkKey' value");
+      throw Error("Invalid 'sdkKey' value");
     }
 
     this.sdkKey = sdkKey;
@@ -239,7 +239,7 @@ export abstract class OptionsBase {
 
       if (options.requestTimeoutMs) {
         if (options.requestTimeoutMs < 0) {
-          throw new Error("Invalid 'requestTimeoutMs' value");
+          throw Error("Invalid 'requestTimeoutMs' value");
         }
 
         this.requestTimeoutMs = options.requestTimeoutMs;
@@ -331,11 +331,11 @@ export class AutoPollOptions extends OptionsBase {
     const maxSetTimeoutIntervalSecs = 2147483;
 
     if (!(typeof this.pollIntervalSeconds === "number" && 1 <= this.pollIntervalSeconds && this.pollIntervalSeconds <= maxSetTimeoutIntervalSecs)) {
-      throw new Error("Invalid 'pollIntervalSeconds' value");
+      throw Error("Invalid 'pollIntervalSeconds' value");
     }
 
     if (!(typeof this.maxInitWaitTimeSeconds === "number" && this.maxInitWaitTimeSeconds <= maxSetTimeoutIntervalSecs)) {
-      throw new Error("Invalid 'maxInitWaitTimeSeconds' value");
+      throw Error("Invalid 'maxInitWaitTimeSeconds' value");
     }
   }
 }
@@ -362,7 +362,7 @@ export class LazyLoadOptions extends OptionsBase {
     }
 
     if (!(typeof this.cacheTimeToLiveSeconds === "number" && 1 <= this.cacheTimeToLiveSeconds && this.cacheTimeToLiveSeconds <= 2147483647)) {
-      throw new Error("Invalid 'cacheTimeToLiveSeconds' value");
+      throw Error("Invalid 'cacheTimeToLiveSeconds' value");
     }
   }
 }

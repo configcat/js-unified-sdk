@@ -53,7 +53,7 @@ export class ProjectConfig {
     for (let i = 0; i < separatorIndices.length; i++) {
       index = value.indexOf("\n", index);
       if (index < 0) {
-        throw new Error("Number of values is fewer than expected.");
+        throw Error("Number of values is fewer than expected.");
       }
 
       separatorIndices[i] = index++;
@@ -64,7 +64,7 @@ export class ProjectConfig {
 
     const fetchTime = parseInt(slice);
     if (isNaN(fetchTime)) {
-      throw new Error("Invalid fetch time: " + slice);
+      throw Error("Invalid fetch time: " + slice);
     }
 
     index = endIndex + 1;
@@ -101,7 +101,7 @@ export class Config implements IConfig {
   static deserialize(configJson: string): Config {
     const configJsonParsed: unknown = JSON.parse(configJson);
     if (typeof configJsonParsed !== "object" || !configJsonParsed) {
-      throw new Error("Invalid config JSON content:" + configJson);
+      throw Error("Invalid config JSON content:" + configJson);
     }
     return new Config(configJsonParsed);
   }
