@@ -319,7 +319,7 @@ export class ConfigCatClient implements IConfigCatClient {
   private static finalize(data: IFinalizationData) {
     // Safeguard against situations where user forgets to dispose of the client instance.
 
-    data.logger?.debug("finalize() called");
+    data.logger?.debug("finalize() called.");
 
     if (data.cacheToken) {
       clientInstanceCache.remove(data.sdkKey, data.cacheToken);
@@ -329,7 +329,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   private static close(configService?: IConfigService, logger?: LoggerWrapper, hooks?: Hooks) {
-    logger?.debug("close() called");
+    logger?.debug("close() called.");
 
     hooks?.tryDisconnect();
     configService?.dispose();
@@ -337,7 +337,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
   dispose(): void {
     const options = this.options;
-    options.logger.debug("dispose() called");
+    options.logger.debug("dispose() called.");
 
     if (this.cacheToken) {
       clientInstanceCache.remove(options.sdkKey, this.cacheToken);

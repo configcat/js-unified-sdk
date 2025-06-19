@@ -285,7 +285,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     options.logger.debug("ConfigServiceBase.fetchRequestAsync() called.");
 
     for (let retryNumber = 0; ; retryNumber++) {
-      options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}`);
+      options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}.`);
 
       const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
       const response = await this.configFetcher.fetchAsync(request);
