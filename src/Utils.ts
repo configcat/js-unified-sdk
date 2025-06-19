@@ -101,6 +101,10 @@ export function ensurePrototype<T>(obj: T, ctor: new (...args: any[]) => T): voi
   }
 }
 
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !isArray(value);
+}
+
 export function isArray(value: unknown): value is ReadonlyArray<unknown> {
   // See also: https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1477626624
   return Array.isArray(value);
@@ -190,6 +194,17 @@ export function parseFloatStrict(value: unknown): number {
   }
 
   return +value;
+}
+
+export function shallowClone<T extends {}>(obj: T, propertyReplacer?: (key: keyof T, value: unknown) => unknown): Record<keyof T, unknown> {
+  const clone = {} as Record<keyof T, unknown>;
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      clone[key] = propertyReplacer ? propertyReplacer(key, value) : value;
+    }
+  }
+  return clone;
 }
 
 export class LazyString<TState = any> {

@@ -2,8 +2,10 @@ import { AutoPollConfigService } from "./AutoPollConfigService";
 import type { ConfigCatClientOptions, IConfigCatKernel, OptionsBase, OptionsForPollingMode } from "./ConfigCatClientOptions";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode, PROXY_SDKKEY_PREFIX } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
+import { LogLevel } from "./ConfigCatLogger";
 import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
+import type { FlagOverrides } from "./FlagOverrides";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
@@ -13,7 +15,8 @@ import type { IConfig, ProjectConfig, Setting, SettingValue } from "./ProjectCon
 import type { IEvaluationDetails, IRolloutEvaluator, SettingTypeOf } from "./RolloutEvaluator";
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getEvaluationErrorCode, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
-import { errorToString, isArray, throwError } from "./Utils";
+import { getUserAttributes } from "./User";
+import { errorToString, isArray, isObject, shallowClone, throwError } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -287,7 +290,9 @@ export class ConfigCatClient implements IConfigCatClient {
 
     this.options = options;
 
-    this.options.logger.debug("Initializing ConfigCatClient. Options: " + JSON.stringify(this.options));
+    if (options.logger.isEnabled(LogLevel.Debug)) {
+      options.logger.debug("Initializing ConfigCatClient. Options: " + JSON.stringify(getSerializableOptions(options)));
+    }
 
     // To avoid possible memory leaks, the components of the client should not hold a strong reference to the hooks object (see also SafeHooksWrapper).
     this.hooks = options.yieldHooks();
@@ -787,6 +792,23 @@ function ensureAllowedDefaultValue(value: SettingValue): void {
 
 function ensureAllowedValue(value: NonNullable<SettingValue>): NonNullable<SettingValue> {
   return isAllowedValue(value) ? value : handleInvalidReturnValue(value);
+}
+
+export function getSerializableOptions(options: ConfigCatClientOptions): Record<string, unknown> {
+  // NOTE: We need to prevent internals from leaking into logs and avoid errors because of circular references in
+  // user-provided objects. See also: https://github.com/configcat/common-js/pull/111
+
+  return shallowClone(options, (key, value) => {
+    if (key === "defaultUser") {
+      return getUserAttributes(value as IUser);
+    }
+    if (key === "flagOverrides") {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      return shallowClone(value as FlagOverrides, (_, value) => isObject(value) ? value.toString() : value);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    return isObject(value) ? value.toString() : value;
+  });
 }
 
 /* GC finalization support */
