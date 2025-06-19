@@ -976,6 +976,60 @@ export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setti
   return true;
 }
 
+/** Setting key-value pair. */
+export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
+  settingKey: string;
+  settingValue: TValue;
+};
+
+export function findKeyAndValue(settings: Readonly<{ [key: string]: Setting }> | null,
+  variationId: string, logger: LoggerWrapper, defaultReturnValue: string
+): SettingKeyValue | null {
+  if (!checkSettingsAvailable(settings, logger, defaultReturnValue)) {
+    return null;
+  }
+
+  for (const [settingKey, setting] of Object.entries(settings)) {
+    if (variationId === setting.variationId) {
+      return { settingKey, settingValue: ensureAllowedValue(setting.value) };
+    }
+
+    const { targetingRules } = setting;
+    if (targetingRules.length > 0) {
+      for (let i = 0; i < targetingRules.length; i++) {
+        const then = targetingRules[i].then;
+        if (isArray(then)) {
+          for (let j = 0; j < then.length; j++) {
+            const percentageOption = then[j];
+            if (variationId === percentageOption.variationId) {
+              return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
+            }
+          }
+        } else if (variationId === then.variationId) {
+          return { settingKey, settingValue: ensureAllowedValue(then.value) };
+        }
+      }
+    }
+
+    const { percentageOptions } = setting;
+    if (percentageOptions.length > 0) {
+      for (let i = 0; i < percentageOptions.length; i++) {
+        const percentageOption = percentageOptions[i];
+        if (variationId === percentageOption.variationId) {
+          return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
+        }
+      }
+    }
+  }
+
+  logger.settingForVariationIdIsNotPresent(variationId);
+  return null;
+}
+
+function ensureAllowedValue(value: NonNullable<SettingValue>): NonNullable<SettingValue> {
+  return isAllowedValue(value) ? value : handleInvalidReturnValue(value);
+}
+
 export function isAllowedValue(value: unknown): value is NonNullable<SettingValue> {
   return inferSettingType(value) !== -1;
 }
@@ -1000,7 +1054,7 @@ function isCompatibleValue(value: SettingValue, settingType: SettingType): boole
   }
 }
 
-export function handleInvalidReturnValue(value: unknown): never {
+function handleInvalidReturnValue(value: unknown): never {
   throw new InvalidConfigModelError(
     value === null ? "Setting value is null."
     : value === void 0 ? "Setting value is undefined."

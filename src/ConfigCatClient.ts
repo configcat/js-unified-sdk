@@ -11,11 +11,11 @@ import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
 import type { IConfig, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
-import type { IEvaluationDetails, IRolloutEvaluator, SettingTypeOf } from "./RolloutEvaluator";
-import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, getEvaluationErrorCode, getTimestampAsDate, handleInvalidReturnValue, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
+import type { IEvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
+import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
-import { createWeakRef, errorToString, isArray, isObject, shallowClone, throwError } from "./Utils";
+import { createWeakRef, errorToString, isObject, shallowClone, throwError } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -186,6 +186,13 @@ export interface IConfigCatClientSnapshot {
  * @throws {TypeError} `defaultValue` is not of an allowed type.
  */
   getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): IEvaluationDetails<SettingTypeOf<T>>;
+
+  /**
+   * Returns the key of a setting and its value identified by the specified `variationId`.
+   * @param variationId Variation ID (analytics).
+   * @returns The key-value pair.
+   */
+  getKeyAndValue(variationId: string): SettingKeyValue | null;
 }
 
 export class ConfigCatClientCache {
@@ -487,49 +494,11 @@ export class ConfigCatClient implements IConfigCatClient {
     const defaultReturnValue = "null";
     try {
       const [settings] = await this.getSettingsAsync();
-      if (!checkSettingsAvailable(settings, this.options.logger, defaultReturnValue)) {
-        return null;
-      }
-
-      for (const [settingKey, setting] of Object.entries(settings)) {
-        if (variationId === setting.variationId) {
-          return { settingKey, settingValue: ensureAllowedValue(setting.value) };
-        }
-
-        const { targetingRules } = setting;
-        if (targetingRules.length > 0) {
-          for (let i = 0; i < targetingRules.length; i++) {
-            const then = targetingRules[i].then;
-            if (isArray(then)) {
-              for (let j = 0; j < then.length; j++) {
-                const percentageOption = then[j];
-                if (variationId === percentageOption.variationId) {
-                  return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
-                }
-              }
-            } else if (variationId === then.variationId) {
-              return { settingKey, settingValue: ensureAllowedValue(then.value) };
-            }
-          }
-        }
-
-        const { percentageOptions } = setting;
-        if (percentageOptions.length > 0) {
-          for (let i = 0; i < percentageOptions.length; i++) {
-            const percentageOption = percentageOptions[i];
-            if (variationId === percentageOption.variationId) {
-              return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
-            }
-          }
-        }
-      }
-
-      this.options.logger.settingForVariationIdIsNotPresent(variationId);
+      return findKeyAndValue(settings, variationId, this.options.logger, defaultReturnValue);
     } catch (err) {
       this.options.logger.settingEvaluationError("getKeyAndValueAsync", defaultReturnValue, err);
+      return null;
     }
-
-    return null;
   }
 
   async forceRefreshAsync(): Promise<RefreshResult> {
@@ -753,13 +722,19 @@ class Snapshot implements IConfigCatClientSnapshot {
     this.options.hooks.emit("flagEvaluated", evaluationDetails);
     return evaluationDetails;
   }
-}
 
-/** Setting key-value pair. */
-export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
-  settingKey: string;
-  settingValue: TValue;
-};
+  getKeyAndValue(variationId: string): SettingKeyValue | null {
+    this.options.logger.debug("Snapshot.getKeyAndValue() called.");
+
+    const defaultReturnValue = "null";
+    try {
+      return findKeyAndValue(this.mergedSettings, variationId, this.options.logger, defaultReturnValue);
+    } catch (err) {
+      this.options.logger.settingEvaluationError("Snapshot.getKeyAndValue", defaultReturnValue, err);
+      return null;
+    }
+  }
+}
 
 function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {
   // NOTE: String.prototype.startsWith was introduced after ES5. We'd rather work around it instead of polyfilling it.
@@ -786,10 +761,6 @@ function ensureAllowedDefaultValue(value: SettingValue): void {
   if (value != null && !isAllowedValue(value)) {
     throw TypeError("The default value must be boolean, number, string, null or undefined.");
   }
-}
-
-function ensureAllowedValue(value: NonNullable<SettingValue>): NonNullable<SettingValue> {
-  return isAllowedValue(value) ? value : handleInvalidReturnValue(value);
 }
 
 export function getSerializableOptions(options: ConfigCatClientOptions): Record<string, unknown> {

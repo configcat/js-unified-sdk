@@ -3,86 +3,118 @@ import { createAutoPollOptions, createKernel, FakeConfigFetcherWithNullNewConfig
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions } from "#lib/ConfigCatClientOptions";
 
-describe("ConfigCatClient", () => {
-  it("getKeyAndValueAsync() works with default", async () => {
-    const configCatKernel = createKernel({
-      configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+describe("Variation ID", () => {
+  for (const useSnapshot of [false, true]) {
+    it(`getKeyAndValue() works with default - useSnapshot: ${useSnapshot}`, async () => {
+      const configCatKernel = createKernel({
+        configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      });
+      const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+
+      await client.waitForReady();
+
+      const result = useSnapshot
+        ? client.snapshot().getKeyAndValue("abcdefgh")
+        : await client.getKeyAndValueAsync("abcdefgh");
+
+      assert.equal(result?.settingKey, "debug");
+      assert.equal(result?.settingValue, "def");
+
+      client.dispose();
     });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    const result = await client.getKeyAndValueAsync("abcdefgh");
-    assert.equal(result?.settingKey, "debug");
-    assert.equal(result?.settingValue, "def");
+    it(`getKeyAndValue() works with rollout rules - useSnapshot: ${useSnapshot}`, async () => {
+      const configCatKernel = createKernel({
+        configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      });
+      const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    client.dispose();
-  });
+      await client.waitForReady();
 
-  it("getKeyAndValueAsync() works with rollout rules", async () => {
-    const configCatKernel = createKernel({
-      configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      const result = useSnapshot
+        ? client.snapshot().getKeyAndValue("6ada5ff2")
+        : await client.getKeyAndValueAsync("6ada5ff2");
+
+      assert.equal(result?.settingKey, "debug");
+      assert.equal(result?.settingValue, "value");
+
+      client.dispose();
     });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    const result = await client.getKeyAndValueAsync("6ada5ff2");
-    assert.equal(result?.settingKey, "debug");
-    assert.equal(result?.settingValue, "value");
+    it(`getKeyAndValue() works with percentage options - useSnapshot: ${useSnapshot}`, async () => {
+      const configCatKernel = createKernel({
+        configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      });
+      const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    client.dispose();
-  });
+      await client.waitForReady();
 
-  it("getKeyAndValueAsync() works with percentage options", async () => {
-    const configCatKernel = createKernel({
-      configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      const result = useSnapshot
+        ? client.snapshot().getKeyAndValue("622f5d07")
+        : await client.getKeyAndValueAsync("622f5d07");
+
+      assert.equal(result?.settingKey, "debug2");
+      assert.equal(result?.settingValue, "value2");
+
+      client.dispose();
     });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    const result = await client.getKeyAndValueAsync("622f5d07");
-    assert.equal(result?.settingKey, "debug2");
-    assert.equal(result?.settingValue, "value2");
+    it(`getKeyAndValue() works with percentage options within targeting rule - useSnapshot: ${useSnapshot}`, async () => {
+      const configCatKernel = createKernel({
+        configFetcherFactory: () => new FakeConfigFetcherWithPercentageOptionsWithinTargetingRule(),
+      });
+      const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    client.dispose();
-  });
+      await client.waitForReady();
 
-  it("getKeyAndValueAsync() works with percentage options within targeting rule", async () => {
-    const configCatKernel = createKernel({
-      configFetcherFactory: () => new FakeConfigFetcherWithPercentageOptionsWithinTargetingRule(),
+      const result = useSnapshot
+        ? client.snapshot().getKeyAndValue("622f5d07")
+        : await client.getKeyAndValueAsync("622f5d07");
+
+      assert.equal(result?.settingKey, "debug");
+      assert.equal(result?.settingValue, "value2");
+
+      client.dispose();
     });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    const result = await client.getKeyAndValueAsync("622f5d07");
-    assert.equal(result?.settingKey, "debug");
-    assert.equal(result?.settingValue, "value2");
+    it(`getKeyAndValue() with null config - useSnapshot: ${useSnapshot}`, async () => {
+      const configCatKernel = createKernel({
+        configFetcherFactory: () => new FakeConfigFetcherWithNullNewConfig(),
+      });
+      const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null, maxInitWaitTimeSeconds: 0 }, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    client.dispose();
-  });
+      await client.waitForReady();
 
-  it("getKeyAndValueAsync() with null config", async () => {
-    const configCatKernel = createKernel({
-      configFetcherFactory: () => new FakeConfigFetcherWithNullNewConfig(),
+      const result = useSnapshot
+        ? client.snapshot().getKeyAndValue("622f5d07")
+        : await client.getKeyAndValueAsync("622f5d07");
+
+      assert.isNull(result);
+
+      client.dispose();
     });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null, maxInitWaitTimeSeconds: 0 }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    const result = await client.getKeyAndValueAsync("622f5d07");
-    assert.isNull(result);
+    it(`getKeyAndValue() with non-existing id - useSnapshot: ${useSnapshot}`, async () => {
+      const configCatKernel = createKernel({
+        configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      });
+      const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
 
-    client.dispose();
-  });
+      await client.waitForReady();
 
-  it("getKeyAndValueAsync() with non-existing id", async () => {
-    const configCatKernel = createKernel({
-      configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      const result = useSnapshot
+        ? client.snapshot().getKeyAndValue("non-exisiting")
+        : await client.getKeyAndValueAsync("non-exisiting");
+
+      assert.isNull(result);
+
+      client.dispose();
     });
-    const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
-
-    const result = await client.getKeyAndValueAsync("non-exisiting");
-    assert.isNull(result);
-
-    client.dispose();
-  });
+  }
 });

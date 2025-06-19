@@ -28,9 +28,9 @@ export type {
 
 export { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 
-export type { IConfigCatClient, IConfigCatClientSnapshot, SettingKeyValue } from "./ConfigCatClient";
+export type { IConfigCatClient, IConfigCatClientSnapshot } from "./ConfigCatClient";
 
-export type { IEvaluationDetails, SettingTypeOf } from "./RolloutEvaluator";
+export type { IEvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 
 export { EvaluationErrorCode } from "./RolloutEvaluator";
 
