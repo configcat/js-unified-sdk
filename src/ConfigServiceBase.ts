@@ -243,7 +243,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
           }
 
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was successful. Returning new config.");
-          return FetchResult.success(new ProjectConfig(response.body, configOrError, ProjectConfig.generateTimestamp(), response.eTag));
+          return FetchResult.success(new ProjectConfig(response.body, configOrError, ProjectConfig.generateTimestamp(), response.eTag), RefreshErrorCode.None);
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
@@ -253,7 +253,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
           }
 
           options.logger.debug("ConfigServiceBase.fetchAsync(): content was not modified. Returning last config with updated timestamp.");
-          return FetchResult.notModified(lastConfig.with(ProjectConfig.generateTimestamp()));
+          return FetchResult.notModified(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.None);
 
         case 403: // Forbidden
         case 404: // Not Found

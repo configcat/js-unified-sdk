@@ -4,7 +4,7 @@ import { EqualMatchingInjectorConfig, It, Mock, RejectedPromiseFactory, Resolved
 import { MimicsRejectedAsyncPresetFactory, MimicsResolvedAsyncPresetFactory, Presets, ReturnsAsyncPresetFactory, RootMockProvider, ThrowsAsyncPresetFactory } from "moq.ts/internal";
 /* eslint-enable import/no-duplicates */
 import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeCache, FakeConfigFetcherBase, FakeExternalAsyncCache, FakeExternalCache, FakeLogger } from "./helpers/fakes";
-import { ClientCacheState, RefreshResult } from "#lib";
+import { ClientCacheState, RefreshErrorCode, RefreshResult } from "#lib";
 import { AutoPollConfigService, POLL_EXPIRATION_TOLERANCE_MS } from "#lib/AutoPollConfigService";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { LoggerWrapper } from "#lib/ConfigCatLogger";
@@ -1034,7 +1034,7 @@ function createProjectConfig(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JS
 }
 
 function createFetchResult(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JSON): FetchResult {
-  return FetchResult.success(createProjectConfig(eTag, configJson));
+  return FetchResult.success(createProjectConfig(eTag, configJson), RefreshErrorCode.None);
 }
 
 function createConfigFromFetchResult(result: FetchResult): ProjectConfig {
