@@ -257,7 +257,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         case 403: // Forbidden
         case 404: // Not Found
-          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(response["rayId"]);
+          errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(options.sdkKey, response["rayId"]);
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
           return FetchResult.error(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.InvalidSdkKey, toMessage(errorMessage));
 
