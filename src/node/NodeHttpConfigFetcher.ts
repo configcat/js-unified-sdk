@@ -110,7 +110,8 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         }
 
         if (this.logger?.isEnabled(LogLevel.Debug)) {
-          this.logger.debug("NodeHttpConfigFetcher.fetchAsync() requestOptions: " + JSON.stringify(requestOptions));
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          this.logger.debug("NodeHttpConfigFetcher.fetchAsync() requestOptions: " + JSON.stringify({ ...requestOptions, agent: agent?.toString() }));
         }
 
         const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))

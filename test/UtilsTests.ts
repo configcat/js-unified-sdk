@@ -2,9 +2,17 @@ import { assert } from "chai";
 import { FakeLogger } from "./helpers/fakes";
 import { LoggerWrapper, toMessage } from "#lib/ConfigCatLogger";
 import { FetchError } from "#lib/ConfigFetcher";
-import { errorToString, formatStringList, LazyString, parseFloatStrict, utf8Encode } from "#lib/Utils";
+import { errorToString, formatStringList, getWeakRefStub, LazyString, parseFloatStrict, utf8Encode } from "#lib/Utils";
 
 describe("Utils", () => {
+  it("WeakRef fallback should work", () => {
+    const weakRefStub = getWeakRefStub() as WeakRefConstructor;
+
+    const obj: {} | null = {};
+    const objWeakRef = new weakRefStub(obj);
+
+    assert.strictEqual(objWeakRef.deref(), obj);
+  });
 
   for (const [input, expectedOutput] of <[string, number[]][]>[
     ["", []],
@@ -41,6 +49,8 @@ describe("Utils", () => {
     ["0", 0],
     ["-0", 0],
     ["+0", 0],
+    ["0e+1", 0],
+    ["0E+1", 0],
     ["1234567890", 1234567890],
     ["1234567890.0", 1234567890],
     ["1234567890e0", 1234567890],
@@ -48,7 +58,9 @@ describe("Utils", () => {
     ["+.1234567890", 0.1234567890],
     ["-.1234567890", -0.1234567890],
     ["+0.123e-3", 0.000123],
+    ["+0.123E-3", 0.000123],
     ["-0.123e+3", -123],
+    ["-0.123E+3", -123],
   ]) {
     it(`parseFloatStrict - input: ${input}`, () => {
       const actualOutput = parseFloatStrict(input);

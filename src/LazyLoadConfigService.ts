@@ -19,11 +19,11 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
     this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
   }
 
-  async getConfig(): Promise<ProjectConfig> {
-    this.options.logger.debug("LazyLoadConfigService.getConfig() called.");
+  async getConfigAsync(): Promise<ProjectConfig> {
+    this.options.logger.debug("LazyLoadConfigService.getConfigAsync() called.");
 
     function logExpired(logger: LoggerWrapper, appendix = "") {
-      logger.debug(`LazyLoadConfigService.getConfig(): cache is empty or expired${appendix}.`);
+      logger.debug(`LazyLoadConfigService.getConfigAsync(): cache is empty or expired${appendix}.`);
     }
 
     let cachedConfig = await this.syncUpWithCache();
@@ -38,7 +38,7 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
       return cachedConfig;
     }
 
-    this.options.logger.debug("LazyLoadConfigService.getConfig(): cache is valid, returning from cache.");
+    this.options.logger.debug("LazyLoadConfigService.getConfigAsync(): cache is valid, returning from cache.");
     return cachedConfig;
   }
 

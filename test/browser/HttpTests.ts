@@ -65,7 +65,7 @@ describe("HTTP tests", () => {
       assert.strictEqual(defaultValue, await client.getValueAsync("stringDefaultCat", defaultValue));
 
       assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.InvalidSdkKey);
-      assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Your SDK Key seems to be wrong.")));
+      assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Your SDK Key seems to be wrong:")));
 
       client.dispose();
     } finally {

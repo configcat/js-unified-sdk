@@ -1,8 +1,11 @@
 import { assert, expect } from "chai";
 import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeExternalCache } from "./helpers/fakes";
+import { OverrideBehaviour, User } from "#lib";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
+import { getSerializableOptions } from "#lib/ConfigCatClient";
 import { IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogFilterCallback, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
+import { createFlagOverridesFromMap } from "#lib/index.pubternals";
 import { ProjectConfig } from "#lib/ProjectConfig";
 
 describe("Options", () => {
@@ -418,6 +421,57 @@ describe("Options", () => {
       }
     });
   }
+
+  it("Dumping options should not leak internals or fail because of circular references", () => {
+    const logger = new class implements IConfigCatLogger {
+      circularRef?: IConfigCatLogger;
+      log() { }
+    }();
+    logger.circularRef = logger;
+
+    const defaultUser = new User("12345", "bob@example.com", void 0, {
+      ["RegisteredAt"]: new Date(2025, 0, 1),
+      nicknames: ["Bobby", "Robbie"],
+    });
+
+    const options = createAutoPollOptions("SDKKEY", {
+      logger,
+      pollIntervalSeconds: 5,
+      requestTimeoutMs: 20,
+      flagOverrides: createFlagOverridesFromMap({}, OverrideBehaviour.RemoteOverLocal),
+      defaultUser,
+    });
+
+    const actualDumpedOptions = JSON.stringify(getSerializableOptions(options));
+    const expectedDumpedOptions = `\
+{
+    "requestTimeoutMs": ${JSON.stringify(options.requestTimeoutMs)},
+    "baseUrlOverriden": ${JSON.stringify(options.baseUrlOverriden)},
+    "offline": ${JSON.stringify(options.offline)},
+    "sdkKey": ${JSON.stringify(options.sdkKey)},
+    "clientVersion": ${JSON.stringify(options.clientVersion)},
+    "configFetcher": "[object Object]",
+    "dataGovernance": ${JSON.stringify(options.dataGovernance)},
+    "baseUrl": ${JSON.stringify(options.baseUrl)},
+    "hooks": "[object Object]",
+    "flagOverrides": {
+        "dataSource": "[object Object]",
+        "behaviour": ${JSON.stringify(options.flagOverrides?.behaviour)}
+    },
+    "defaultUser": {
+        "Identifier": ${JSON.stringify(defaultUser.identifier)},
+        "Email": ${JSON.stringify(defaultUser.email)},
+        "RegisteredAt": ${JSON.stringify(defaultUser.custom["RegisteredAt"])},
+        "nicknames":${JSON.stringify(defaultUser.custom["nicknames"])}
+    },
+    "logger": "[object Object]",
+    "cache": "[object Object]",
+    "pollIntervalSeconds": ${JSON.stringify(options.pollIntervalSeconds)},
+    "maxInitWaitTimeSeconds": ${JSON.stringify(options.maxInitWaitTimeSeconds)}
+}`;
+
+    assert.deepEqual(JSON.parse(actualDumpedOptions), JSON.parse(expectedDumpedOptions));
+  });
 });
 
 class FakeOptionsBase extends OptionsBase { }

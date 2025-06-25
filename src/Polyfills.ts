@@ -27,22 +27,3 @@ export function ObjectEntriesPolyfill<T>(o: { [s: string]: T } | ArrayLike<T>): 
   }
   return result;
 }
-
-export function getWeakRefStub(): WeakRefConstructor {
-  type WeakRefImpl = WeakRef<WeakKey> & { target: object };
-
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const WeakRef = function(this: WeakRefImpl, target: object) {
-    this.target = target;
-  } as Function as WeakRefConstructor & { isFallback: boolean };
-
-  WeakRef.prototype.deref = function(this: WeakRefImpl) {
-    return this.target;
-  };
-
-  WeakRef.isFallback = true;
-
-  return WeakRef;
-}
-
-export const isWeakRefAvailable = (): boolean => typeof WeakRef === "function";
