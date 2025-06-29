@@ -53,7 +53,7 @@ export function createConsoleLogger(logLevel: LogLevel, eol?: string): IConfigCa
  * or the local values should be used only.
  * @param watchChanges If set to `true`, the input map will be tracked for changes.
  */
-export function createFlagOverridesFromMap(map: { [key: string]: NonNullable<SettingValue> }, behaviour: OverrideBehaviour, watchChanges?: boolean): FlagOverrides {
+export function createFlagOverridesFromMap(map: Record<string, NonNullable<SettingValue>>, behaviour: OverrideBehaviour, watchChanges?: boolean): FlagOverrides {
   return { dataSource: new MapOverrideDataSource(map, watchChanges), behaviour };
 }
 

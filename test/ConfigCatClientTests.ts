@@ -12,7 +12,7 @@ import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { setupPolyfills } from "#lib/Polyfills";
-import { Config, IConfig, ProjectConfig, SettingValue, SettingValueContainer } from "#lib/ProjectConfig";
+import { Config, deserializeConfig, ProjectConfig, SettingValue } from "#lib/ProjectConfig";
 import { EvaluateContext, EvaluationErrorCode, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
 import { delay, getMonotonicTimeMs, Message } from "#lib/Utils";
@@ -239,7 +239,7 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
@@ -283,7 +283,7 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
@@ -327,7 +327,7 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithRules;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
@@ -355,8 +355,8 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isDefined(actual.matchedTargetingRule);
-    assert.strictEqual(actual.value, (actual.matchedTargetingRule.then as SettingValueContainer).value);
-    assert.strictEqual(actual.variationId, (actual.matchedTargetingRule.then as SettingValueContainer).variationId);
+    assert.strictEqual(actual.value, actual.matchedTargetingRule.s?.v?.s);
+    assert.strictEqual(actual.variationId, actual.matchedTargetingRule.s?.i);
     assert.isUndefined(actual.matchedPercentageOption);
 
     assert.equal(1, flagEvaluatedEvents.length);
@@ -374,7 +374,7 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithPercentageOptions;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
@@ -402,8 +402,8 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
     assert.isDefined(actual.matchedPercentageOption);
-    assert.strictEqual(actual.value, actual.matchedPercentageOption.value);
-    assert.strictEqual(actual.variationId, actual.matchedPercentageOption.variationId);
+    assert.strictEqual(actual.value, actual.matchedPercentageOption.v?.s);
+    assert.strictEqual(actual.variationId, actual.matchedPercentageOption.i);
 
     assert.equal(1, flagEvaluatedEvents.length);
     assert.strictEqual(actual, flagEvaluatedEvents[0]);
@@ -420,7 +420,7 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
@@ -476,7 +476,7 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
@@ -529,7 +529,7 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
@@ -996,7 +996,7 @@ describe("ConfigCatClient", () => {
 
     const configFetcher = new FakeConfigFetcher(500);
     const configJson = "{\"f\": { \"debug\": { \"v\": { \"b\": false }, \"i\": \"abcdefgh\", \"t\": 0, \"p\": [], \"r\": [] } } }";
-    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
+    const configCache = new FakeCache(new ProjectConfig(configJson, deserializeConfig(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 10 }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -1011,7 +1011,7 @@ describe("ConfigCatClient", () => {
 
     const configFetcher = new FakeConfigFetcher(500);
     const configJson = "{\"f\": { \"debug\": { \"v\": { \"b\": false }, \"i\": \"abcdefgh\", \"t\": 0, \"p\": [], \"r\": [] } } }";
-    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
+    const configCache = new FakeCache(new ProjectConfig(configJson, deserializeConfig(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 10 }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
@@ -1408,13 +1408,13 @@ describe("ConfigCatClient", () => {
     it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of`, async () => {
       let clientReadyEventCount = 0;
       const configFetchedEvents: [RefreshResult, boolean][] = [];
-      const configChangedEvents: IConfig[] = [];
+      const configChangedEvents: Config[] = [];
       const flagEvaluatedEvents: IEvaluationDetails[] = [];
       const errorEvents: [string, any][] = [];
 
       const handleClientReady = () => clientReadyEventCount++;
       const handleConfigFetched = (result: RefreshResult, isInitiatedByUser: boolean) => configFetchedEvents.push([result, isInitiatedByUser]);
-      const handleConfigChanged = (pc: IConfig) => configChangedEvents.push(pc);
+      const handleConfigChanged = (pc: Config) => configChangedEvents.push(pc);
       const handleFlagEvaluated = (ed: IEvaluationDetails) => flagEvaluatedEvents.push(ed);
       const handleClientError = (msg: Message, err: any) => errorEvents.push([msg.toString(), err]);
 
@@ -1604,7 +1604,7 @@ describe("ConfigCatClient", () => {
 
         if (clientOptions.cache && (initialCacheState === "expired" || initialCacheState === "fresh")) {
           const timestamp = ProjectConfig.generateTimestamp() - expirationSeconds * 1000 * (initialCacheState === "expired" ? 1.5 : 0.5);
-          const pc = new ProjectConfig(configJson, Config.deserialize(configJson), timestamp, "\"etag\"");
+          const pc = new ProjectConfig(configJson, deserializeConfig(configJson), timestamp, "\"etag\"");
           await clientOptions.cache.set(options.getCacheKey(), ProjectConfig.serialize(pc));
         }
 

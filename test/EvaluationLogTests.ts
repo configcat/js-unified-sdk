@@ -122,13 +122,14 @@ function formatLogEvent(event: FakeLogger["events"][0]) {
 
 async function runTest(testSetName: string, configLocation: ConfigLocation, testCase: TestCase) {
   const config = await configLocation.fetchConfigCachedAsync();
+  const settings = config.f ?? {};
 
   const fakeLogger = new FakeLogger();
   const logger = new LoggerWrapper(fakeLogger);
   const evaluator = new RolloutEvaluator(logger);
 
   const user = createUser(testCase.user);
-  const evaluationDetails = evaluate(evaluator, config.settings, testCase.key, testCase.defaultValue, user, null, logger);
+  const evaluationDetails = evaluate(evaluator, settings, testCase.key, testCase.defaultValue, user, null, logger);
   const actualReturnValue = evaluationDetails.value;
 
   assert.strictEqual(actualReturnValue, testCase.returnValue);

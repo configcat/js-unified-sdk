@@ -161,15 +161,17 @@ function getTypedValue(value: string, settingType: SettingType): NonNullable<Set
 
 async function runMatrixTest(configLocation: ConfigLocation, key: string, user: User | undefined, expected: string, evaluator: RolloutEvaluator) {
   const config = await configLocation.fetchConfigCachedAsync();
-  const setting = config.settings[key];
+  const settings = config.f ?? {};
+  const setting = settings[key];
 
-  const actual = evaluate(evaluator, config.settings, key, null, user, null, evaluator["logger"]).value;
-  assert.strictEqual(actual, getTypedValue(expected, setting.type));
+  const actual = evaluate(evaluator, settings, key, null, user, null, evaluator["logger"]).value;
+  assert.strictEqual(actual, getTypedValue(expected, setting.t));
 }
 
 async function runVariationIdMatrixTest(configLocation: ConfigLocation, key: string, user: User | undefined, expected: string, evaluator: RolloutEvaluator) {
   const config = await configLocation.fetchConfigCachedAsync();
+  const settings = config.f ?? {};
 
-  const actual = evaluate(evaluator, config.settings, key, null, user, null, evaluator["logger"]).variationId;
+  const actual = evaluate(evaluator, settings, key, null, user, null, evaluator["logger"]).variationId;
   assert.strictEqual(actual, expected);
 }

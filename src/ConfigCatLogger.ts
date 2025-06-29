@@ -190,7 +190,7 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  forceRefreshError(methodName: string, ex: any): LogMessage {
+  clientMethodError(methodName: string, ex: any): LogMessage {
     return this.log(
       LogLevel.Error, 1003,
       FormattableLogMessage.from(

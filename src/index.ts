@@ -28,13 +28,11 @@ export type { FlagOverrides } from "./FlagOverrides";
 export { OverrideBehaviour } from "./FlagOverrides";
 
 export type {
-  ConditionTypeMap, ICondition, IConditionUnion, IConfig, IPercentageOption, IPrerequisiteFlagCondition,
-  ISegment, ISegmentCondition, ISetting, ISettingUnion, ISettingValueContainer, ITargetingRule,
-  IUserCondition, IUserConditionUnion, SettingTypeMap, SettingValue, UserConditionComparisonValueTypeMap,
-  VariationIdValue,
+  Condition, ConditionContainer, Config, PercentageOption, PrerequisiteFlagCondition, Segment, SegmentCondition,
+  Setting, SettingValue, SettingValueContainer, SettingValueModel, TargetingRule, UserCondition, VariationIdValue,
 } from "./ProjectConfig";
 
-export { ConfigJson } from "./ProjectConfig";
+export { ConfigJson, deserializeConfig, prepareConfig, createSettingFromValue } from "./ProjectConfig";
 
 export type { IEvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 

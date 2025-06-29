@@ -10,9 +10,9 @@ import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
-import type { IConfig, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
+import type { Config, MapOfMaybe, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
-import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
+import { checkSettingsAvailable, ensureSettingMap, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
 import { createWeakRef, errorToString, isObject, shallowClone, throwError } from "./Utils";
@@ -151,7 +151,7 @@ export interface IConfigCatClientSnapshot {
   readonly cacheState: ClientCacheState;
 
   /** The internally cached config at the time the snapshot was created. */
-  readonly fetchedConfig: IConfig | null;
+  readonly fetchedConfig: Config | null;
 
   /**
    * Returns the available setting keys.
@@ -246,7 +246,7 @@ export class ConfigCatClientCache {
 
 const clientInstanceCache = new ConfigCatClientCache();
 
-type SettingsWithRemoteConfig = [{ [key: string]: Setting } | null, ProjectConfig | null];
+type SettingsWithRemoteConfig = [settings: MapOfMaybe<Setting> | null, config: ProjectConfig | null];
 
 export class ConfigCatClient implements IConfigCatClient {
   protected configService?: IConfigService;
@@ -381,7 +381,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: { [key: string]: Setting } | null;
+      let settings: MapOfMaybe<Setting> | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
       value = evaluationDetails.value;
@@ -406,7 +406,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: { [key: string]: Setting } | null;
+      let settings: MapOfMaybe<Setting> | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
     } catch (err) {
@@ -509,7 +509,7 @@ export class ConfigCatClient implements IConfigCatClient {
         const [result] = await this.configService.refreshConfigAsync();
         return result;
       } catch (err) {
-        this.options.logger.forceRefreshError("forceRefreshAsync", err);
+        this.options.logger.clientMethodError("forceRefreshAsync", err);
         return RefreshResult.failure(RefreshErrorCode.UnexpectedError, errorToString(err), err);
       }
     } else {
@@ -550,29 +550,34 @@ export class ConfigCatClient implements IConfigCatClient {
   snapshot(): IConfigCatClientSnapshot {
     const getRemoteConfig: () => SettingsWithRemoteConfig = () => {
       const config = this.options.cache.getInMemory();
-      const settings = !config.isEmpty ? config.config!.settings : null;
+      const settings = !config.isEmpty ? ensureSettingMap(config.config!.f) : null;
       return [settings, config];
     };
 
-    let remoteSettings: { [key: string]: Setting } | null;
+    let remoteSettings: MapOfMaybe<Setting> | null;
     let remoteConfig: ProjectConfig | null;
-    const { flagOverrides } = this.options;
-    if (flagOverrides) {
-      const localSettings = flagOverrides.dataSource.getOverridesSync();
-      switch (flagOverrides.behaviour) {
-        case OverrideBehaviour.LocalOnly:
-          return new Snapshot(localSettings, null, this);
-        case OverrideBehaviour.LocalOverRemote:
-          [remoteSettings, remoteConfig] = getRemoteConfig();
-          return new Snapshot({ ...(remoteSettings ?? {}), ...localSettings }, remoteConfig, this);
-        case OverrideBehaviour.RemoteOverLocal:
-          [remoteSettings, remoteConfig] = getRemoteConfig();
-          return new Snapshot({ ...localSettings, ...(remoteSettings ?? {}) }, remoteConfig, this);
+    try {
+      const { flagOverrides } = this.options;
+      if (flagOverrides) {
+        const localSettings = flagOverrides.dataSource.getOverridesSync();
+        switch (flagOverrides.behaviour) {
+          case OverrideBehaviour.LocalOnly:
+            return new Snapshot(localSettings, null, this);
+          case OverrideBehaviour.LocalOverRemote:
+            [remoteSettings, remoteConfig] = getRemoteConfig();
+            return new Snapshot({ ...(remoteSettings ?? {}), ...localSettings }, remoteConfig, this);
+          case OverrideBehaviour.RemoteOverLocal:
+            [remoteSettings, remoteConfig] = getRemoteConfig();
+            return new Snapshot({ ...localSettings, ...(remoteSettings ?? {}) }, remoteConfig, this);
+        }
       }
-    }
 
-    [remoteSettings, remoteConfig] = getRemoteConfig();
-    return new Snapshot(remoteSettings, remoteConfig, this);
+      [remoteSettings, remoteConfig] = getRemoteConfig();
+      return new Snapshot(remoteSettings, remoteConfig, this);
+    } catch (err) {
+      this.options.logger.clientMethodError("snapshot", err);
+      return new Snapshot({}, null, this);
+    }
   }
 
   private async getSettingsAsync(): Promise<SettingsWithRemoteConfig> {
@@ -580,13 +585,13 @@ export class ConfigCatClient implements IConfigCatClient {
 
     const getRemoteConfigAsync: () => Promise<SettingsWithRemoteConfig> = async () => {
       const config = await this.configService!.getConfigAsync();
-      const settings = !config.isEmpty ? config.config!.settings : null;
+      const settings = !config.isEmpty ? ensureSettingMap(config.config!.f) : null;
       return [settings, config];
     };
 
     const { flagOverrides } = this.options;
     if (flagOverrides) {
-      let remoteSettings: { [key: string]: Setting } | null;
+      let remoteSettings: MapOfMaybe<Setting> | null;
       let remoteConfig: ProjectConfig | null;
       const localSettings = await flagOverrides.dataSource.getOverrides();
       switch (flagOverrides.behaviour) {
@@ -660,7 +665,7 @@ class Snapshot implements IConfigCatClientSnapshot {
   private readonly options: ConfigCatClientOptions;
 
   constructor(
-    private readonly mergedSettings: { [key: string]: Setting } | null,
+    private readonly mergedSettings: MapOfMaybe<Setting> | null,
     private readonly remoteConfig: ProjectConfig | null,
     client: ConfigCatClient) {
 

@@ -5,10 +5,12 @@ import type { LogMessage } from "./ConfigCatLogger";
 import { toMessage } from "./ConfigCatLogger";
 import type { FetchErrorCauses, FetchResponse, IConfigCatConfigFetcher } from "./ConfigFetcher";
 import { FetchError, FetchRequest, FetchResult, FetchStatus } from "./ConfigFetcher";
+import type { Preferences } from "./ConfigJson";
 import { RedirectMode } from "./ConfigJson";
-import { Config, ProjectConfig } from "./ProjectConfig";
+import type { Config, ObjectMaybe } from "./ProjectConfig";
+import { deserializeConfig, prepareConfig, ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
-import { isPromiseLike } from "./Utils";
+import { isObject, isPromiseLike } from "./Utils";
 
 /** Specifies the possible config data refresh error codes. */
 export const enum RefreshErrorCode {
@@ -224,7 +226,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
   protected onConfigChanged(newConfig: ProjectConfig): void {
     this.options.logger.debug("config changed");
-    this.options.hooks.emit("configChanged", newConfig.config ?? new Config({}));
+    this.options.hooks.emit("configChanged", newConfig.config ?? prepareConfig({}));
   }
 
   private async fetchAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
@@ -234,18 +236,18 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     let errorMessage: LogMessage;
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const [response, configOrError] = await this.fetchRequestAsync(lastConfig.httpETag);
+      const [response, config, error] = await this.fetchRequestAsync(lastConfig.httpETag);
 
       switch (response.statusCode) {
         case 200: // OK
-          if (!(configOrError instanceof Config)) {
-            errorMessage = options.logger.fetchReceived200WithInvalidBody(response["rayId"], configOrError);
+          if (!config) {
+            errorMessage = options.logger.fetchReceived200WithInvalidBody(response["rayId"], error);
             options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
-            return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseContent, toMessage(errorMessage), configOrError);
+            return FetchResult.error(lastConfig, RefreshErrorCode.InvalidHttpResponseContent, toMessage(errorMessage), error);
           }
 
           options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was successful. Returning new config.");
-          return FetchResult.success(new ProjectConfig(response.body, configOrError, ProjectConfig.generateTimestamp(), response.eTag), RefreshErrorCode.None);
+          return FetchResult.success(new ProjectConfig(response.body, config, ProjectConfig.generateTimestamp(), response.eTag), RefreshErrorCode.None);
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
@@ -279,8 +281,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  private async fetchRequestAsync(lastETag: string | undefined, maxRetryCount = 2): Promise<[FetchResponse, (Config | any)?]> {
+  private async fetchRequestAsync(lastETag: string | undefined, maxRetryCount = 2): Promise<[FetchResponse, Config?, any?]> {
     const options = this.options;
     options.logger.debug("ConfigServiceBase.fetchRequestAsync() called.");
 
@@ -296,34 +297,34 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
       if (!response.body) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): no response body.");
-        return [response, Error("No response body.")];
+        return [response, void 0, Error("No response body.")];
       }
 
       let config: Config;
       try {
-        config = Config.deserialize(response.body);
+        config = deserializeConfig(response.body);
       } catch (err) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): invalid response body.");
-        return [response, err];
+        return [response, void 0, err];
       }
 
-      const preferences = config.preferences;
-      if (!preferences) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): preferences is empty.");
+      const preferences: ObjectMaybe<Preferences> | undefined = config.p;
+      if (preferences == null || !isObject(preferences)) {
+        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): preferences are missing or invalid.");
         return [response, config];
       }
 
-      const baseUrl = preferences.baseUrl;
+      const baseUrl = preferences.u;
 
-      // If the base_url is the same as the last called one, just return the response.
-      if (!baseUrl || baseUrl === options.baseUrl) {
+      // If baseUrl is the same as the last known one, just return the response.
+      if (typeof baseUrl !== "string" || baseUrl === options.baseUrl) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): baseUrl OK.");
         return [response, config];
       }
 
-      const redirect = preferences.redirectMode;
+      const redirect = preferences.r;
 
-      // If the base_url is overridden, and the redirect parameter is not 2 (force),
+      // If baseUrl is overridden, and the redirect parameter is not 2 (force),
       // the SDK should not redirect the calls and it just have to return the response.
       if (options.baseUrlOverriden && redirect !== RedirectMode.Force) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): options.baseUrlOverriden && redirect !== 2.");
@@ -428,4 +429,3 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     });
   }
 }
-

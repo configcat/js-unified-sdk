@@ -1,7 +1,7 @@
 import type { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter, IEventProvider } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
-import type { IConfig } from "./ProjectConfig";
+import type { Config } from "./ProjectConfig";
 import type { IEvaluationDetails } from "./RolloutEvaluator";
 import type { Message } from "./Utils";
 
@@ -29,7 +29,7 @@ export type HookEvents = {
    * Occurs after the internally cached config has been updated to a newer version, either as a result of synchronization
    * with the external cache, or as a result of fetching a newer version from the ConfigCat CDN.
    */
-  configChanged: [newConfig: IConfig];
+  configChanged: [newConfig: Config];
   /** Occurs in the case of a failure in the client. */
   clientError: [message: Message, exception?: any];
 };

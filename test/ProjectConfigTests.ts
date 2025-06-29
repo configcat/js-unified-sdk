@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { Config, ProjectConfig } from "#lib/ProjectConfig";
+import { prepareConfig, ProjectConfig } from "#lib/ProjectConfig";
 
 describe("ProjectConfig", () => {
   it("isEmpty - empty instance should be empty", () => {
@@ -11,7 +11,7 @@ describe("ProjectConfig", () => {
   });
 
   it("isEmpty - instance with config should not be empty", () => {
-    assert.isFalse(new ProjectConfig("{}", new Config({}), 1000, "\"eTag\"").isEmpty);
+    assert.isFalse(new ProjectConfig("{}", prepareConfig({}), 1000, "\"eTag\"").isEmpty);
   });
 
   it("with - returned instance should contain the same data except for timestamp - empty", () => {
@@ -25,7 +25,7 @@ describe("ProjectConfig", () => {
 
   it("with - returned instance should contain the same data except for timestamp - non-empty", () => {
     const timestamp = 2000;
-    const pc = new ProjectConfig("{}", new Config({}), 1000, "\"eTag\"");
+    const pc = new ProjectConfig("{}", prepareConfig({}), 1000, "\"eTag\"");
     const returnedPc = pc.with(timestamp);
     assert.equal(returnedPc.config, pc.config);
     assert.equal(returnedPc.configJson, pc.configJson);
@@ -49,12 +49,12 @@ describe("ProjectConfig", () => {
 
   it("isExpired - instance with config is expired when timestamp is too old", () => {
     const timestamp = ProjectConfig.generateTimestamp() - 2000;
-    assert.isTrue(new ProjectConfig("{}", new Config({}), timestamp, "\"eTag\"").isExpired(1000));
+    assert.isTrue(new ProjectConfig("{}", prepareConfig({}), timestamp, "\"eTag\"").isExpired(1000));
   });
 
   it("isExpired - instance with config is not expired when timestamp is not old enough", () => {
     const timestamp = ProjectConfig.generateTimestamp();
-    assert.isFalse(new ProjectConfig("{}", new Config({}), timestamp, "\"eTag\"").isExpired(1000));
+    assert.isFalse(new ProjectConfig("{}", prepareConfig({}), timestamp, "\"eTag\"").isExpired(1000));
   });
 
   it("serialization works - empty", () => {
@@ -71,7 +71,7 @@ describe("ProjectConfig", () => {
   });
 
   it("serialization works - non-empty", () => {
-    const pc = new ProjectConfig("{}", new Config({}), 1000, "\"eTag\"");
+    const pc = new ProjectConfig("{}", prepareConfig({}), 1000, "\"eTag\"");
 
     const serializedPc = ProjectConfig.serialize(pc);
     const deserializedPc = ProjectConfig.deserialize(serializedPc);
