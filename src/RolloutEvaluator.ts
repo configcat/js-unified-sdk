@@ -13,8 +13,8 @@ import type { Message } from "./Utils";
 import { ensurePrototype, errorToString, formatStringList, isArray, isStringArray, LazyString, parseFloatStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
-  private $visitedFlags?: string[];
-  get visitedFlags(): string[] { return this.$visitedFlags ??= []; }
+  private _visitedFlags?: string[];
+  get visitedFlags(): string[] { return this._visitedFlags ??= []; }
 
   isMissingUserObjectLogged?: boolean;
   isMissingUserObjectAttributeLogged?: boolean;
@@ -31,7 +31,7 @@ export class EvaluateContext {
 
   static forPrerequisiteFlag(key: string, setting: Setting, dependentFlagContext: EvaluateContext): EvaluateContext {
     const context = new EvaluateContext(key, setting, dependentFlagContext.user, dependentFlagContext.settings);
-    context.$visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the list is created!
+    context._visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the list is created!
     context.logBuilder = dependentFlagContext.logBuilder;
     return context;
   }
@@ -896,19 +896,19 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
 export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
   fetchTime?: Date, user?: IUser, errorMessage?: Message, errorException?: any, errorCode = EvaluationErrorCode.UnexpectedError
 ): IEvaluationDetails<SettingTypeOf<T>> {
-  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { $errorMessage?: Message } = {
+  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { _errorMessage?: Message } = {
     key,
     value: defaultValue as SettingTypeOf<T>,
     fetchTime,
     user,
     isDefaultValue: true,
     errorCode,
-    get errorMessage() { return this.$errorMessage?.toString(); },
+    get errorMessage() { return this._errorMessage?.toString(); },
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     errorException,
   };
   if (errorMessage != null) {
-    evaluationDetails.$errorMessage = errorMessage;
+    evaluationDetails._errorMessage = errorMessage;
   }
   return evaluationDetails;
 }

@@ -39,9 +39,9 @@ export const enum RefreshErrorCode {
 
 /** Contains the result of an `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
-  private readonly $errorMessage?: Message;
+  private readonly _errorMessage?: Message;
   /** Error message in case the operation failed, otherwise `undefined`. */
-  get errorMessage(): string | undefined { return this.$errorMessage?.toString(); }
+  get errorMessage(): string | undefined { return this._errorMessage?.toString(); }
 
   constructor(
     /** The code identifying the reason for the error in case the operation failed. */
@@ -56,12 +56,12 @@ export class RefreshResult {
     }
 
     if (errorMessage != null) {
-      this.$errorMessage = errorMessage;
+      this._errorMessage = errorMessage;
     }
   }
 
   /** Indicates whether the operation was successful or not. */
-  get isSuccess(): boolean { return this.$errorMessage == null; }
+  get isSuccess(): boolean { return this._errorMessage == null; }
 
   static from(fetchResult: FetchResult): RefreshResult {
     return fetchResult.status !== FetchStatus.Errored
