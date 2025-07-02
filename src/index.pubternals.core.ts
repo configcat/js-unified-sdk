@@ -3,7 +3,7 @@ import type { IConfigCatClient } from "./ConfigCatClient";
 import type { IConfigCatKernel, OptionsForPollingMode, PollingMode } from "./ConfigCatClientOptions";
 import type { IConfigCatLogger, LogLevel } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger } from "./ConfigCatLogger";
-import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
+import type { FlagOverrides, IOverrideDataSource, IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
 import { MapOverrideDataSource, QueryParamsOverrideDataSource } from "./FlagOverrides";
 import type { SettingValue } from "./ProjectConfig";
 
@@ -48,8 +48,8 @@ export function createConsoleLogger(logLevel: LogLevel, eol?: string): IConfigCa
  * Creates an instance of `FlagOverrides` that uses a map data source.
  * @param map The map that contains the overrides.
  * @param behaviour The override behaviour.
- * Specifies whether the local values should override the remote values
- * or local values should only be used when a remote value doesn't exist
+ * Specifies whether the local values should override the remote values,
+ * or local values should only be used when a remote value doesn't exist,
  * or the local values should be used only.
  * @param watchChanges If set to `true`, the input map will be tracked for changes.
  */
@@ -60,8 +60,8 @@ export function createFlagOverridesFromMap(map: Record<string, NonNullable<Setti
 /**
  * Creates an instance of `FlagOverrides` that uses query string parameters as data source.
  * @param behaviour The override behaviour.
- * Specifies whether the local values should override the remote values
- * or local values should only be used when a remote value doesn't exist
+ * Specifies whether the local values should override the remote values,
+ * or local values should only be used when a remote value doesn't exist,
  * or the local values should be used only.
  * @param watchChanges If set to `true`, the query string will be tracked for changes.
  * @param paramPrefix The parameter name prefix used to indicate which query string parameters
@@ -74,6 +74,18 @@ export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
   watchChanges?: boolean, paramPrefix?: string, queryStringProvider?: IQueryStringProvider
 ): FlagOverrides {
   return { dataSource: new QueryParamsOverrideDataSource(watchChanges, paramPrefix, queryStringProvider), behaviour };
+}
+
+/**
+ * Creates an instance of `FlagOverrides` that uses a custom implementation of `IOverrideDataSource`.
+ * @param dataSource An instance of the custom `IOverrideDataSource` implementation.
+ * @param behaviour The override behaviour.
+ * Specifies whether the local values should override the remote values,
+ * or local values should only be used when a remote value doesn't exist,
+ * or the local values should be used only.
+ */
+export function createCustomFlagOverrides(dataSource: IOverrideDataSource, behaviour: OverrideBehaviour): FlagOverrides {
+  return { dataSource, behaviour };
 }
 
 export type { IQueryStringProvider };

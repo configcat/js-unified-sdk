@@ -28,7 +28,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     });
 }
 
-export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals.core";
+export { createConsoleLogger, createFlagOverridesFromMap, createCustomFlagOverrides, disposeAllClients } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
 export interface IDenoAutoPollOptions extends IAutoPollOptions {

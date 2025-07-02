@@ -559,7 +559,7 @@ export class ConfigCatClient implements IConfigCatClient {
     try {
       const { flagOverrides } = this.options;
       if (flagOverrides) {
-        const localSettings = flagOverrides.dataSource.getOverridesSync();
+        const localSettings = flagOverrides.dataSource.getOverrides();
         switch (flagOverrides.behaviour) {
           case OverrideBehaviour.LocalOnly:
             return new Snapshot(localSettings, null, this);
@@ -593,7 +593,7 @@ export class ConfigCatClient implements IConfigCatClient {
     if (flagOverrides) {
       let remoteSettings: MapOfMaybe<Setting> | null;
       let remoteConfig: ProjectConfig | null;
-      const localSettings = await flagOverrides.dataSource.getOverrides();
+      const localSettings = flagOverrides.dataSource.getOverrides();
       switch (flagOverrides.behaviour) {
         case OverrideBehaviour.LocalOnly:
           return [localSettings, null];

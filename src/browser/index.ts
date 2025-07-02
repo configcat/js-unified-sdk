@@ -37,7 +37,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
   });
 }
 
-export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";
+export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, createCustomFlagOverrides, disposeAllClients } from "../index.pubternals.core";
 
 export type { IQueryStringProvider } from "../index.pubternals.core";
 

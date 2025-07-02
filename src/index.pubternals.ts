@@ -18,6 +18,4 @@ export { DefaultEventEmitter } from "./DefaultEventEmitter";
 
 export type { IEventEmitter, IEventProvider } from "./EventEmitter";
 
-export type { IOverrideDataSource } from "./FlagOverrides";
-
 export * as Utils from "./Utils";

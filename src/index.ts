@@ -34,6 +34,8 @@ export type {
 
 export { ConfigJson, deserializeConfig, prepareConfig, createSettingFromValue } from "./ProjectConfig";
 
+export type { IOverrideDataSource } from "./FlagOverrides";
+
 export type { IEvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 
 export { EvaluationErrorCode } from "./RolloutEvaluator";

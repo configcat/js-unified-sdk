@@ -36,9 +36,7 @@ export function nameOfOverrideBehaviour(value: OverrideBehaviour): string {
 }
 
 export interface IOverrideDataSource {
-  getOverrides(): Promise<Record<string, Setting>>;
-
-  getOverridesSync(): Record<string, Setting>;
+  getOverrides(): Record<string, Setting>;
 }
 
 /* Map */
@@ -54,11 +52,7 @@ export class MapOverrideDataSource implements IOverrideDataSource {
     }
   }
 
-  getOverrides(): Promise<Record<string, Setting>> {
-    return Promise.resolve(this.getOverridesSync());
-  }
-
-  getOverridesSync(): Record<string, Setting> {
+  getOverrides(): Record<string, Setting> {
     return this.map
       ? getSettingsFromMap(this.map)
       : this.initialSettings;
@@ -114,11 +108,7 @@ export class QueryParamsOverrideDataSource implements IOverrideDataSource {
     this.queryString = getQueryString(currentQueryStringOrParams);
   }
 
-  getOverrides(): Promise<Record<string, Setting>> {
-    return Promise.resolve(this.getOverridesSync());
-  }
-
-  getOverridesSync(): Record<string, Setting> {
+  getOverrides(): Record<string, Setting> {
     if (this.watchChanges) {
       const currentQueryStringOrParams = this.queryStringProvider.currentValue;
       const currentQueryString = getQueryString(currentQueryStringOrParams);
