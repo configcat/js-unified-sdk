@@ -1,4 +1,4 @@
-import { assert, expect } from "chai";
+import { assert } from "chai";
 import { deserializeConfig, prepareConfig, ProjectConfig } from "#lib/ProjectConfig";
 
 describe("ProjectConfig", () => {

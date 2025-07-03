@@ -117,14 +117,12 @@ type AdjustedConfigJsonConfig = PartialWithNull<ChangePropType<
   { "p": PartialWithNull<ConfigJson.Preferences> }
 >>;
 
-/**
- * Describes a ConfigCat config's data model used for feature flag evaluation.
- */
+/** Describes a ConfigCat config's data model used for feature flag evaluation. */
 export declare abstract class Config implements Immutable<AdjustedConfigJsonConfig> {
   // NOTE: Prevents structural compatibility with arbitrary objects (see the explanation above).
   declare private readonly _guard: unknown;
 
-  declare readonly p?: Immutable<Partial<ConfigJson.Preferences>> | null;
+  declare readonly p?: Immutable<PartialWithNull<ConfigJson.Preferences>> | null;
   declare readonly s?: ReadonlyArray<Segment & ConfigJson.Segment> | null;
   declare readonly f?: { readonly [key: string]: Setting & ConfigJson.SettingUnion } | null;
 }
@@ -147,27 +145,39 @@ export declare abstract class SettingValueModel implements Immutable<FlattenedCo
   declare readonly d?: number | null;
 }
 
-type AdjustedConfigJsonServedValue = OptionalWithNull<ConfigJson.ServedValue, "i">;
+type AdjustedConfigJsonServedValue = ChangePropType<
+  OptionalWithNull<ConfigJson.ServedValue, "i">,
+  { "v": ConfigJson.SettingValue | NonNullable<SettingValue> }
+>;
 
 /** Contains a setting value along with related data. */
-export declare abstract class SettingValueContainer implements Immutable<AdjustedConfigJsonServedValue> {
-  declare readonly v: SettingValueModel & ConfigJson.SettingValue;
+export declare abstract class SettingValueContainer<
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  TValue extends ConfigJson.SettingValue | NonNullable<SettingValue> = SettingValueModel & ConfigJson.SettingValue
+> implements Immutable<AdjustedConfigJsonServedValue> {
+
+  declare readonly v: TValue;
   /** @remarks May be missing in the case of flag overrides. */
   declare readonly i?: string | null;
 }
 
 type AdjustedConfigJsonSetting = ChangePropType<
   OptionalWithNull<ConfigJson.Setting, "i" | "a" | "r" | "p">,
-  { "t": SettingType | UnknownSettingType }
+  { "t": SettingType | UnknownSettingType; "v": SettingValueModel | NonNullable<SettingValue> }
 >;
 
 /** Describes a feature flag or setting. */
-export declare abstract class Setting extends SettingValueContainer implements Immutable<AdjustedConfigJsonSetting> {
+export declare abstract class Setting extends SettingValueContainer<
+  ConfigJson.SettingValue & SettingValueModel | NonNullable<SettingValue>
+> implements Immutable<AdjustedConfigJsonSetting> {
+
   /** @remarks Can also be `-1` when the setting comes from a simple flag override. */
   declare readonly t: SettingType | UnknownSettingType;
   declare readonly a?: string | null;
   declare readonly r?: ReadonlyArray<TargetingRule & ConfigJson.TargetingRule> | null;
   declare readonly p?: ReadonlyArray<PercentageOption & ConfigJson.PercentageOption> | null;
+  /** @remarks May be a plain `SettingValue` in the case of a a simple flag override. */
+  declare readonly v: ConfigJson.SettingValue & SettingValueModel | NonNullable<SettingValue>;
 
   /* eslint-disable @typescript-eslint/naming-convention */
   declare protected _configJsonSalt: string | undefined;
@@ -233,7 +243,7 @@ export declare abstract class SegmentCondition implements Immutable<ConfigJson.S
  *
  * @remarks Does superficial model validation only, meaning that the method makes sure that the specified `configJson`
  * matches the type definition of the `Config` data model, but doesn't check for semantic issues. E.g. doesn't validate
- * that a referenced segment or feature flag actually exists. This is handled by feature flag evaluation.
+ * that a referenced segment or feature flag actually exists. (Such cases are handled by feature flag evaluation.)
  */
 export function deserializeConfig(configJson: string): Config {
   const configJsonParsed: unknown = JSON.parse(configJson);
@@ -245,23 +255,26 @@ export function deserializeConfig(configJson: string): Config {
  *
  * @remarks Does superficial model validation only, meaning that the method makes sure that the specified `config`
  * matches the type definition of the `Config` data model, but doesn't check for semantic issues. E.g. doesn't validate
- * that a referenced segment or feature flag actually exists. This is handled by feature flag evaluation.
+ * that a referenced segment or feature flag actually exists. (Such cases are handled by feature flag evaluation.)
  */
 export function prepareConfig(config: Partial<ConfigJson.Config>): Config {
   checkConfig(config, ["$"]);
 
-  const settingMap = config.f;
-  let settings: ReadonlyArray<ConfigJson.SettingUnion>;
-  if (isObject(settingMap) && (settings = Object.values(settingMap)).length) {
+  const settings = config.f;
+  if (settings) {
     const salt = config.p?.s;
     const segments = config.s;
-    for (const setting of settings as ReadonlyArray<Setting>) {
-      setting["_configJsonSalt"] = salt;
-      setting["_configSegments"] = segments;
+
+    for (const key in settings) {
+      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+        const setting = settings[key];
+        setting["_configJsonSalt"] = salt;
+        setting["_configSegments"] = segments;
+      }
     }
   }
 
-  return config as Config;
+  return config;
 }
 
 /**
@@ -271,10 +284,10 @@ export function createSettingFromValue(value: NonNullable<SettingValue>): Settin
   return {
     t: -1 satisfies UnknownSettingType,
     v: value,
-  } as unknown as Setting;
+  } satisfies Partial<Setting> as Setting;
 }
 
-function checkConfig(config: Partial<ConfigJson.Config>, path: string[]) {
+function checkConfig(config: Partial<ConfigJson.Config>, path: string[]): asserts config is Config & Partial<ConfigJson.Config> {
   if (config == null) {
     throwConfigJsonMissingRequiredValue(path);
   }

@@ -10,7 +10,7 @@ import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, isArray, isNumberInRange, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, isNumberInRange, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType?: SettingType | UnknownSettingType;
@@ -909,8 +909,7 @@ function getSettingType(setting: Setting): SettingType | UnknownSettingType {
 }
 
 function isSettingWithSimpleValue(setting: Setting): boolean {
-  return (setting?.r == null || !isArray(setting.r) || !setting.r.length)
-    && (setting?.p == null || !isArray(setting.p) || !setting.p.length);
+  return !setting.r?.length && !setting.p?.length;
 }
 
 export function hasPercentageOptions(targetingRule: TargetingRule): boolean;
@@ -956,34 +955,34 @@ function getConditionType(container: ConditionContainer): keyof ConditionContain
   return type;
 }
 
-export function unwrapValue(settingValue: SettingValueModel, settingType: SettingType | UnknownSettingType | null,
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
   ignoreIfInvalid?: false
 ): NonNullable<SettingValue>;
-export function unwrapValue(settingValue: SettingValueModel, settingType: SettingType | UnknownSettingType | null,
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
   ignoreIfInvalid: true
 ): NonNullable<SettingValue> | undefined;
-export function unwrapValue(settingValue: SettingValueModel, settingType: SettingType | UnknownSettingType | null,
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
   ignoreIfInvalid?: boolean
 ): NonNullable<SettingValue> | undefined {
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (settingType) {
     case SettingType.Boolean: {
-      const value = settingValue.b;
+      const value = (settingValue as SettingValueModel).b;
       if (value != null) return value;
       break;
     }
     case SettingType.String: {
-      const value = settingValue.s;
+      const value = (settingValue as SettingValueModel).s;
       if (value != null) return value;
       break;
     }
     case SettingType.Int: {
-      const value = settingValue.i;
+      const value = (settingValue as SettingValueModel).i;
       if (value != null) return value;
       break;
     }
     case SettingType.Double: {
-      const value = settingValue.d;
+      const value = (settingValue as SettingValueModel).d;
       if (value != null) return value;
       break;
     }
@@ -1093,7 +1092,7 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
   return {
     key,
     value: evaluateResult.returnValue as SettingTypeOf<T>,
-    variationId: evaluateResult.selectedValue.i as VariationIdValue,
+    variationId: evaluateResult.selectedValue.i,
     fetchTime,
     user,
     isDefaultValue: false,
@@ -1135,15 +1134,14 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
       toMessage(errorMessage), void 0, EvaluationErrorCode.ConfigJsonNotAvailable);
   }
 
-  let setting: Setting | undefined;
-  if (!Object.prototype.hasOwnProperty.call(settings, key) || !(setting = settings[key])) {
+  if (!Object.prototype.hasOwnProperty.call(settings, key)) {
     const availableKeys = new LazyString(settings, settings => formatStringList(Object.keys(settings)));
     errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, availableKeys);
     return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
       toMessage(errorMessage), void 0, EvaluationErrorCode.SettingKeyMissing);
   }
 
-  const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, setting, user, settings));
+  const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, settings[key], user, settings));
 
   return evaluationDetailsFromEvaluateResult<T>(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
 }

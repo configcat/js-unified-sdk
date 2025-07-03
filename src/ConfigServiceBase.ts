@@ -308,7 +308,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
 
       const preferences = config.p;
-      if (preferences == null) {
+      if (!preferences) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): preferences are missing or invalid.");
         return [response, config];
       }
