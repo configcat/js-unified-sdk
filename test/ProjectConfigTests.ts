@@ -1,5 +1,5 @@
-import { assert } from "chai";
-import { prepareConfig, ProjectConfig } from "#lib/ProjectConfig";
+import { assert, expect } from "chai";
+import { deserializeConfig, prepareConfig, ProjectConfig } from "#lib/ProjectConfig";
 
 describe("ProjectConfig", () => {
   it("isEmpty - empty instance should be empty", () => {
@@ -82,4 +82,36 @@ describe("ProjectConfig", () => {
     assert.equal(deserializedPc.timestamp, pc.timestamp);
     assert.isFalse(deserializedPc.isEmpty);
   });
+
+  for (const [configJson, expectedPath, expectedErrorType] of <[string, string?, string?][]>[
+    ["null", "$", "Missing required value"],
+    ["[]", "$", "Type mismatch"],
+    ["{}"],
+    ['{"s":null}'],
+    ['{"s":{}}', "$.s", "Type mismatch"],
+    ['{"s":[]}'],
+    ['{"s":[null]}', "$.s[0]", "Missing required value"],
+    ['{"f":null}'],
+    ['{"f":[]}', "$.f", "Type mismatch"],
+    ['{"f":{}}'],
+    ['{"f":{"flag":null}}', "$.f.flag", "Missing required value"],
+    ['{"s":[{"n":"Beta users","r":[{"a":"Email","c":16,"l":[1, null]}]}]}', "$.s[0].r[0].l[0]", "Type mismatch"],
+    ['{"s":[{"n":"Beta users","r":[{"a":"Email","c":16,"l":["",null]}]}]}', "$.s[0].r[0].l[1]", "Missing required value"],
+  ]) {
+    it(`Type checking works - configJson: ${configJson}`, () => {
+      try {
+        deserializeConfig(configJson);
+        if (expectedPath) {
+          assert.fail("Expected error but none was thrown.");
+        }
+      } catch (err) {
+        if (!expectedPath) {
+          assert.fail("Didn't expect error but one was thrown. " + err);
+        }
+        assert.instanceOf(err, TypeError);
+        assert.isTrue(err.message.endsWith(expectedPath));
+        assert.include(err.message, expectedErrorType!);
+      }
+    });
+  }
 });

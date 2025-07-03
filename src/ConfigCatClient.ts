@@ -10,9 +10,9 @@ import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
-import type { Config, MapOfMaybe, ProjectConfig, Setting, SettingValue } from "./ProjectConfig";
+import type { Config, ProjectConfig, SettingMap, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
-import { checkSettingsAvailable, ensureSettingMap, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
+import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
 import { createWeakRef, errorToString, isObject, shallowClone, throwError } from "./Utils";
@@ -246,7 +246,7 @@ export class ConfigCatClientCache {
 
 const clientInstanceCache = new ConfigCatClientCache();
 
-type SettingsWithRemoteConfig = [settings: MapOfMaybe<Setting> | null, config: ProjectConfig | null];
+type SettingsWithRemoteConfig = [settings: SettingMap | null, config: ProjectConfig | null];
 
 export class ConfigCatClient implements IConfigCatClient {
   protected configService?: IConfigService;
@@ -381,7 +381,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: MapOfMaybe<Setting> | null;
+      let settings: SettingMap | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
       value = evaluationDetails.value;
@@ -406,7 +406,7 @@ export class ConfigCatClient implements IConfigCatClient {
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
-      let settings: MapOfMaybe<Setting> | null;
+      let settings: SettingMap | null;
       [settings, remoteConfig] = await this.getSettingsAsync();
       evaluationDetails = evaluate(this.evaluator, settings, key, defaultValue, user, remoteConfig, this.options.logger);
     } catch (err) {
@@ -550,11 +550,11 @@ export class ConfigCatClient implements IConfigCatClient {
   snapshot(): IConfigCatClientSnapshot {
     const getRemoteConfig: () => SettingsWithRemoteConfig = () => {
       const config = this.options.cache.getInMemory();
-      const settings = !config.isEmpty ? ensureSettingMap(config.config!.f) : null;
+      const settings = !config.isEmpty ? config.config!.f ?? {} : null;
       return [settings, config];
     };
 
-    let remoteSettings: MapOfMaybe<Setting> | null;
+    let remoteSettings: SettingMap | null;
     let remoteConfig: ProjectConfig | null;
     try {
       const { flagOverrides } = this.options;
@@ -585,13 +585,13 @@ export class ConfigCatClient implements IConfigCatClient {
 
     const getRemoteConfigAsync: () => Promise<SettingsWithRemoteConfig> = async () => {
       const config = await this.configService!.getConfigAsync();
-      const settings = !config.isEmpty ? ensureSettingMap(config.config!.f) : null;
+      const settings = !config.isEmpty ? config.config!.f ?? {} : null;
       return [settings, config];
     };
 
     const { flagOverrides } = this.options;
     if (flagOverrides) {
-      let remoteSettings: MapOfMaybe<Setting> | null;
+      let remoteSettings: SettingMap | null;
       let remoteConfig: ProjectConfig | null;
       const localSettings = flagOverrides.dataSource.getOverrides();
       switch (flagOverrides.behaviour) {
@@ -665,7 +665,7 @@ class Snapshot implements IConfigCatClientSnapshot {
   private readonly options: ConfigCatClientOptions;
 
   constructor(
-    private readonly mergedSettings: MapOfMaybe<Setting> | null,
+    private readonly mergedSettings: SettingMap | null,
     private readonly remoteConfig: ProjectConfig | null,
     client: ConfigCatClient) {
 

@@ -5,12 +5,11 @@ import type { LogMessage } from "./ConfigCatLogger";
 import { toMessage } from "./ConfigCatLogger";
 import type { FetchErrorCauses, FetchResponse, IConfigCatConfigFetcher } from "./ConfigFetcher";
 import { FetchError, FetchRequest, FetchResult, FetchStatus } from "./ConfigFetcher";
-import type { Preferences } from "./ConfigJson";
 import { RedirectMode } from "./ConfigJson";
-import type { Config, ObjectMaybe } from "./ProjectConfig";
+import type { Config } from "./ProjectConfig";
 import { deserializeConfig, prepareConfig, ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
-import { isObject, isPromiseLike } from "./Utils";
+import { isPromiseLike } from "./Utils";
 
 /** Specifies the possible config data refresh error codes. */
 export const enum RefreshErrorCode {
@@ -308,8 +307,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
         return [response, void 0, err];
       }
 
-      const preferences: ObjectMaybe<Preferences> | undefined = config.p;
-      if (preferences == null || !isObject(preferences)) {
+      const preferences = config.p;
+      if (preferences == null) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): preferences are missing or invalid.");
         return [response, config];
       }
@@ -317,7 +316,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       const baseUrl = preferences.u;
 
       // If baseUrl is the same as the last known one, just return the response.
-      if (typeof baseUrl !== "string" || baseUrl === options.baseUrl) {
+      if (baseUrl == null || baseUrl === options.baseUrl) {
         options.logger.debug("ConfigServiceBase.fetchRequestAsync(): baseUrl OK.");
         return [response, config];
       }

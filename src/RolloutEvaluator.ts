@@ -3,14 +3,14 @@ import { LogLevel, toMessage } from "./ConfigCatLogger";
 import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, inferValue, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
-import type { ArrayOfMaybe, Condition, ConditionContainer, MapOfMaybe, Maybe, ObjectMaybe, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, Segment, SegmentCondition, Setting, SettingValue, SettingValueContainer, SettingValueModel, TargetingRule, UnknownSettingType, UserCondition, VariationIdValue } from "./ProjectConfig";
+import type { Condition, ConditionContainer, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingMap, SettingValue, SettingValueContainer, SettingValueModel, TargetingRule, UnknownSettingType, UserCondition, VariationIdValue } from "./ProjectConfig";
 import { InvalidConfigModelError, nameOfSettingType } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, isArray, isNumberInRange, isObject, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, isArray, isNumberInRange, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType?: SettingType | UnknownSettingType;
@@ -26,13 +26,13 @@ export class EvaluateContext {
 
   constructor(
     readonly key: string,
-    readonly setting: ObjectMaybe<Setting>, // type ensured by RolloutEvaluator.evaluate
+    readonly setting: Setting,
     readonly user: IUser | undefined,
-    readonly settings: MapOfMaybe<Setting>
+    readonly settings: SettingMap
   ) {
   }
 
-  static forPrerequisiteFlag(key: string, setting: ObjectMaybe<Setting>, dependentFlagContext: EvaluateContext): EvaluateContext {
+  static forPrerequisiteFlag(key: string, setting: Setting, dependentFlagContext: EvaluateContext): EvaluateContext {
     const context = new EvaluateContext(key, setting, dependentFlagContext.user, dependentFlagContext.settings);
     context._visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the list is created!
     context.logBuilder = dependentFlagContext.logBuilder;
@@ -85,13 +85,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     try {
       // NOTE: We've already checked earlier in the call chain that the defaultValue is of an allowed type (see also ensureAllowedDefaultValue).
 
-      const setting = ensureSetting(context.setting);
-
       // Setting type -1 indicates a setting which comes from a simple flag override (see also createSettingFromValue and getSettingType).
       const settingType = context.settingType;
       const inferredSettingType = settingType !== (-1 satisfies UnknownSettingType)
         ? settingType
-        : inferSettingType(setting.v);
+        : inferSettingType(context.setting.v);
 
       // When a default value other than null or undefined is specified, the return value must have the same type as the default value
       // so that the consistency between TS (compile-time) and JS (run-time) return value types is maintained.
@@ -127,29 +125,29 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   private evaluateSetting(context: EvaluateContext): IntermediateEvaluateResult {
     let evaluateResult: IntermediateEvaluateResult | undefined;
 
-    const targetingRules = ensureTargetingRuleList(context.setting.r);
-    if (targetingRules.length > 0 && (evaluateResult = this.evaluateTargetingRules(targetingRules, context))) {
+    const targetingRules = context.setting.r;
+    if (targetingRules?.length && (evaluateResult = this.evaluateTargetingRules(targetingRules, context))) {
       return evaluateResult;
     }
 
-    const percentageOptions = ensurePercentageOptionList(context.setting.p);
-    if (percentageOptions.length > 0 && (evaluateResult = this.evaluatePercentageOptions(percentageOptions, void 0, context))) {
+    const percentageOptions = context.setting.p;
+    if (percentageOptions?.length && (evaluateResult = this.evaluatePercentageOptions(percentageOptions, void 0, context))) {
       return evaluateResult;
     }
 
     return { selectedValue: context.setting as SettingValueContainer };
   }
 
-  private evaluateTargetingRules(targetingRules: ArrayOfMaybe<TargetingRule>, context: EvaluateContext): IntermediateEvaluateResult | undefined {
+  private evaluateTargetingRules(targetingRules: ReadonlyArray<TargetingRule>, context: EvaluateContext): IntermediateEvaluateResult | undefined {
     const logBuilder = context.logBuilder;
 
     logBuilder?.newLine("Evaluating targeting rules and applying the first match if any:");
 
     for (let i = 0; i < targetingRules.length; i++) {
-      const targetingRule = ensureTargetingRule(targetingRules[i]);
-      const conditions = ensureConditionList<ConditionContainer>(targetingRule.c);
+      const targetingRule = targetingRules[i];
+      const conditions = targetingRule.c;
 
-      const isMatchOrError = this.evaluateConditions(conditions, void 0, targetingRule, context.key, context);
+      const isMatchOrError = this.evaluateConditions(conditions ?? [], void 0, targetingRule, context.key, context);
 
       if (isMatchOrError !== true) {
         if (isEvaluationError(isMatchOrError)) {
@@ -161,13 +159,10 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       }
 
       if (!hasPercentageOptions(targetingRule)) {
-        return {
-          selectedValue: targetingRule.s as SettingValueContainer,
-          matchedTargetingRule: targetingRule as TargetingRule,
-        };
+        return { selectedValue: targetingRule.s!, matchedTargetingRule: targetingRule };
       }
 
-      const percentageOptions = targetingRule.p as ArrayOfMaybe<PercentageOption>;
+      const percentageOptions = targetingRule.p!;
 
       logBuilder?.increaseIndent();
 
@@ -182,8 +177,8 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
   }
 
-  private evaluatePercentageOptions(percentageOptions: ArrayOfMaybe<PercentageOption>,
-    matchedTargetingRule: ObjectMaybe<TargetingRule> | undefined, context: EvaluateContext
+  private evaluatePercentageOptions(percentageOptions: ReadonlyArray<PercentageOption>,
+    matchedTargetingRule: TargetingRule | undefined, context: EvaluateContext
   ): IntermediateEvaluateResult | undefined {
     const logBuilder = context.logBuilder;
 
@@ -198,15 +193,13 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return;
     }
 
-    let percentageOptionsAttributeName = context.setting.a as string | null | undefined;
+    let percentageOptionsAttributeName = context.setting.a;
     let percentageOptionsAttributeValue: UserAttributeValue | null | undefined;
     if (percentageOptionsAttributeName == null) {
       percentageOptionsAttributeName = "Identifier" satisfies WellKnownUserObjectAttribute;
       percentageOptionsAttributeValue = getUserIdentifier(context.user);
-    } else if (typeof percentageOptionsAttributeName === "string") {
-      percentageOptionsAttributeValue = getUserAttribute(context.user, percentageOptionsAttributeName);
     } else {
-      throwInvalidConfigModelError("Percentage evaluation attribute is invalid.");
+      percentageOptionsAttributeValue = getUserAttribute(context.user, percentageOptionsAttributeName);
     }
 
     if (percentageOptionsAttributeValue == null) {
@@ -229,11 +222,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     let bucket = 0;
     for (let i = 0; i < percentageOptions.length; i++) {
-      const percentageOption = ensurePercentageOption(percentageOptions[i]);
+      const percentageOption = percentageOptions[i];
 
       const percentage = percentageOption.p;
-      if (typeof percentage !== "number" || percentage < 0) {
-        throwInvalidConfigModelError("Percentage is missing or invalid.");
+      if (percentage < 0) {
+        throwInvalidConfigModelError("Percentage option percentage is invalid.");
       }
 
       bucket += percentage;
@@ -247,18 +240,14 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         logBuilder.newLine(`- Hash value ${hashValue} selects % option ${i + 1} (${percentage}%), '${valueToString(percentageOptionValue)}'.`);
       }
 
-      return {
-        selectedValue: percentageOption as SettingValueContainer,
-        matchedTargetingRule: matchedTargetingRule as TargetingRule,
-        matchedPercentageOption: percentageOption as PercentageOption,
-      };
+      return { selectedValue: percentageOption, matchedTargetingRule, matchedPercentageOption: percentageOption };
     }
 
     throwInvalidConfigModelError("Sum of percentage option percentages is less than 100.");
   }
 
-  private evaluateConditions(conditions: ArrayOfMaybe<ConditionContainer | Condition>, conditionType: (keyof ConditionContainer) | undefined,
-    targetingRule: ObjectMaybe<TargetingRule> | undefined, contextSalt: string, context: EvaluateContext
+  private evaluateConditions(conditions: ReadonlyArray<ConditionContainer | Condition>, conditionType: (keyof ConditionContainer) | undefined,
+    targetingRule: TargetingRule | undefined, contextSalt: string, context: EvaluateContext
   ): boolean | string {
     // The result of a condition evaluation is either match (true) / no match (false) or an error (string).
     let result: boolean | string = true;
@@ -270,13 +259,13 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     const unwrapCondition = !conditionType;
     for (let i = 0; i < conditions.length; i++) {
-      let condition: ObjectMaybe<Condition>;
+      let condition: Condition;
       if (unwrapCondition) {
-        const container = conditions[i];
+        const container = conditions[i] as ConditionContainer;
         conditionType = getConditionType(container)!;
-        condition = conditionType ? (container as ConditionContainer)[conditionType]! : ensureCondition(void 0);
+        condition = container[conditionType]!;
       } else {
-        condition = ensureCondition(conditions[i]);
+        condition = conditions[i] as Condition;
       }
 
       if (logBuilder) {
@@ -291,17 +280,17 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
       switch (conditionType!) {
         case "u" satisfies keyof ConditionContainer:
-          result = this.evaluateUserCondition(condition as ObjectMaybe<UserCondition>, contextSalt, context);
+          result = this.evaluateUserCondition(condition as UserCondition, contextSalt, context);
           newLineBeforeThen = conditions.length > 1;
           break;
 
         case "p" satisfies keyof ConditionContainer:
-          result = this.evaluatePrerequisiteFlagCondition(condition as ObjectMaybe<PrerequisiteFlagCondition>, context);
+          result = this.evaluatePrerequisiteFlagCondition(condition as PrerequisiteFlagCondition, context);
           newLineBeforeThen = true;
           break;
 
         case "s" satisfies keyof ConditionContainer:
-          result = this.evaluateSegmentCondition(condition as ObjectMaybe<SegmentCondition>, context);
+          result = this.evaluateSegmentCondition(condition as SegmentCondition, context);
           newLineBeforeThen = !isEvaluationError(result) || result !== missingUserObjectError || conditions.length > 1;
           break;
 
@@ -331,7 +320,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return result;
   }
 
-  private evaluateUserCondition(condition: ObjectMaybe<UserCondition>, contextSalt: string, context: EvaluateContext): boolean | string {
+  private evaluateUserCondition(condition: UserCondition, contextSalt: string, context: EvaluateContext): boolean | string {
     const logBuilder = context.logBuilder;
     logBuilder?.appendUserCondition(condition);
 
@@ -345,9 +334,6 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
 
     const userAttributeName = condition.a;
-    if (typeof userAttributeName !== "string") {
-      throwInvalidConfigModelError("Comparison attribute is missing or invalid.");
-    }
 
     const userAttributeValue = getUserAttribute(context.user, userAttributeName);
     if (userAttributeValue == null || userAttributeValue === "") { // besides null and undefined, empty string is considered missing value as well
@@ -362,57 +348,57 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.TextEquals:
       case UserComparator.TextNotEquals:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextEquals(text, ensureStringComparisonValue(condition.s), comparator === UserComparator.TextNotEquals);
+        return this.evaluateTextEquals(text, ensureComparisonValue(condition.s), comparator === UserComparator.TextNotEquals);
 
       case UserComparator.SensitiveTextEquals:
       case UserComparator.SensitiveTextNotEquals:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextEquals(text, ensureStringComparisonValue(condition.s),
+        return this.evaluateSensitiveTextEquals(text, ensureComparisonValue(condition.s),
           getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveTextNotEquals);
 
       case UserComparator.TextIsOneOf:
       case UserComparator.TextIsNotOneOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextIsOneOf(text, ensureComparisonValues(condition.l), comparator === UserComparator.TextIsNotOneOf);
+        return this.evaluateTextIsOneOf(text, ensureComparisonValue(condition.l), comparator === UserComparator.TextIsNotOneOf);
 
       case UserComparator.SensitiveTextIsOneOf:
       case UserComparator.SensitiveTextIsNotOneOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextIsOneOf(text, ensureComparisonValues(condition.l),
+        return this.evaluateSensitiveTextIsOneOf(text, ensureComparisonValue(condition.l),
           getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveTextIsNotOneOf);
 
       case UserComparator.TextStartsWithAnyOf:
       case UserComparator.TextNotStartsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextSliceEqualsAnyOf(text, ensureComparisonValues(condition.l), true, comparator === UserComparator.TextNotStartsWithAnyOf);
+        return this.evaluateTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l), true, comparator === UserComparator.TextNotStartsWithAnyOf);
 
       case UserComparator.SensitiveTextStartsWithAnyOf:
       case UserComparator.SensitiveTextNotStartsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, ensureComparisonValues(condition.l),
+        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l),
           getConfigJsonSalt(context.setting), contextSalt, true, comparator === UserComparator.SensitiveTextNotStartsWithAnyOf);
 
       case UserComparator.TextEndsWithAnyOf:
       case UserComparator.TextNotEndsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextSliceEqualsAnyOf(text, ensureComparisonValues(condition.l), false, comparator === UserComparator.TextNotEndsWithAnyOf);
+        return this.evaluateTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l), false, comparator === UserComparator.TextNotEndsWithAnyOf);
 
       case UserComparator.SensitiveTextEndsWithAnyOf:
       case UserComparator.SensitiveTextNotEndsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, ensureComparisonValues(condition.l),
+        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l),
           getConfigJsonSalt(context.setting), contextSalt, false, comparator === UserComparator.SensitiveTextNotEndsWithAnyOf);
 
       case UserComparator.TextContainsAnyOf:
       case UserComparator.TextNotContainsAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextContainsAnyOf(text, ensureComparisonValues(condition.l), comparator === UserComparator.TextNotContainsAnyOf);
+        return this.evaluateTextContainsAnyOf(text, ensureComparisonValue(condition.l), comparator === UserComparator.TextNotContainsAnyOf);
 
       case UserComparator.SemVerIsOneOf:
       case UserComparator.SemVerIsNotOneOf:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof versionOrError !== "string"
-          ? this.evaluateSemVerIsOneOf(versionOrError, ensureComparisonValues(condition.l), comparator === UserComparator.SemVerIsNotOneOf)
+          ? this.evaluateSemVerIsOneOf(versionOrError, ensureComparisonValue(condition.l), comparator === UserComparator.SemVerIsNotOneOf)
           : versionOrError;
 
       case UserComparator.SemVerLess:
@@ -421,7 +407,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.SemVerGreaterOrEquals:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof versionOrError !== "string"
-          ? this.evaluateSemVerRelation(versionOrError, comparator, ensureStringComparisonValue(condition.s))
+          ? this.evaluateSemVerRelation(versionOrError, comparator, ensureComparisonValue(condition.s))
           : versionOrError;
 
       case UserComparator.NumberEquals:
@@ -432,33 +418,33 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.NumberGreaterOrEquals:
         numberOrError = getUserAttributeValueAsNumber(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof numberOrError !== "string"
-          ? this.evaluateNumberRelation(numberOrError, comparator, ensureNumberComparisonValue(condition.d))
+          ? this.evaluateNumberRelation(numberOrError, comparator, ensureComparisonValue(condition.d))
           : numberOrError;
 
       case UserComparator.DateTimeBefore:
       case UserComparator.DateTimeAfter:
         numberOrError = getUserAttributeValueAsUnixTimeSeconds(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof numberOrError !== "string"
-          ? this.evaluateDateTimeRelation(numberOrError, ensureNumberComparisonValue(condition.d), comparator === UserComparator.DateTimeBefore)
+          ? this.evaluateDateTimeRelation(numberOrError, ensureComparisonValue(condition.d), comparator === UserComparator.DateTimeBefore)
           : numberOrError;
 
       case UserComparator.ArrayContainsAnyOf:
       case UserComparator.ArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof arrayOrError !== "string"
-          ? this.evaluateArrayContainsAnyOf(arrayOrError, ensureComparisonValues(condition.l), comparator === UserComparator.ArrayNotContainsAnyOf)
+          ? this.evaluateArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l), comparator === UserComparator.ArrayNotContainsAnyOf)
           : arrayOrError;
 
       case UserComparator.SensitiveArrayContainsAnyOf:
       case UserComparator.SensitiveArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof arrayOrError !== "string"
-          ? this.evaluateSensitiveArrayContainsAnyOf(arrayOrError, ensureComparisonValues(condition.l),
+          ? this.evaluateSensitiveArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l),
             getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveArrayNotContainsAnyOf)
           : arrayOrError;
 
       default:
-        throwInvalidConfigModelError("Comparison operator is missing or invalid.");
+        throwInvalidConfigModelError("Comparison operator is invalid.");
     }
   }
 
@@ -471,30 +457,22 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return (hash === comparisonValue) !== negate;
   }
 
-  private evaluateTextIsOneOf(text: string, comparisonValues: ArrayOfMaybe<string>, negate: boolean): boolean {
-    for (let i = 0; i < comparisonValues.length; i++) {
-      if (ensureStringComparisonValue(comparisonValues[i]) === text) {
-        return !negate;
-      }
-    }
-
-    return negate;
+  private evaluateTextIsOneOf(text: string, comparisonValues: ReadonlyArray<string>, negate: boolean): boolean {
+    // NOTE: Array.prototype.indexOf uses strict equality.
+    const result = comparisonValues.indexOf(text) >= 0;
+    return result !== negate;
   }
 
-  private evaluateSensitiveTextIsOneOf(text: string, comparisonValues: ArrayOfMaybe<string>, configJsonSalt: string, contextSalt: string, negate: boolean): boolean {
+  private evaluateSensitiveTextIsOneOf(text: string, comparisonValues: ReadonlyArray<string>, configJsonSalt: string, contextSalt: string, negate: boolean): boolean {
     const hash = hashComparisonValue(text, configJsonSalt, contextSalt);
-    for (let i = 0; i < comparisonValues.length; i++) {
-      if (ensureStringComparisonValue(comparisonValues[i]) === hash) {
-        return !negate;
-      }
-    }
-
-    return negate;
+    // NOTE: Array.prototype.indexOf uses strict equality.
+    const result = comparisonValues.indexOf(hash) >= 0;
+    return result !== negate;
   }
 
-  private evaluateTextSliceEqualsAnyOf(text: string, comparisonValues: ArrayOfMaybe<string>, startsWith: boolean, negate: boolean): boolean {
+  private evaluateTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>, startsWith: boolean, negate: boolean): boolean {
     for (let i = 0; i < comparisonValues.length; i++) {
-      const item = ensureStringComparisonValue(comparisonValues[i]);
+      const item = comparisonValues[i];
 
       if (text.length < item.length) {
         continue;
@@ -510,13 +488,13 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return negate;
   }
 
-  private evaluateSensitiveTextSliceEqualsAnyOf(text: string, comparisonValues: ArrayOfMaybe<string>,
+  private evaluateSensitiveTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>,
     configJsonSalt: string, contextSalt: string, startsWith: boolean, negate: boolean
   ): boolean {
     const textUtf8 = utf8Encode(text);
 
     for (let i = 0; i < comparisonValues.length; i++) {
-      const item = ensureStringComparisonValue(comparisonValues[i]);
+      const item = comparisonValues[i];
 
       let sliceLength: number, hash2: string;
       const index = item.indexOf("_");
@@ -525,8 +503,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         || sliceLength < 0
         || !(hash2 = item.slice(index + 1))
       ) {
-        ensureStringComparisonValue(void 0);
-        break; // execution should never get here (this is just for keeping the TS compiler happy)
+        throwInvalidConfigModelError("Comparison value is invalid.");
       }
 
       if (textUtf8.length < sliceLength) {
@@ -545,9 +522,9 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return negate;
   }
 
-  private evaluateTextContainsAnyOf(text: string, comparisonValues: ArrayOfMaybe<string>, negate: boolean): boolean {
+  private evaluateTextContainsAnyOf(text: string, comparisonValues: ReadonlyArray<string>, negate: boolean): boolean {
     for (let i = 0; i < comparisonValues.length; i++) {
-      if (text.indexOf(ensureStringComparisonValue(comparisonValues[i])) >= 0) {
+      if (text.indexOf(comparisonValues[i]) >= 0) {
         return !negate;
       }
     }
@@ -555,11 +532,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return negate;
   }
 
-  private evaluateSemVerIsOneOf(version: ISemVer, comparisonValues: ArrayOfMaybe<string>, negate: boolean): boolean {
+  private evaluateSemVerIsOneOf(version: ISemVer, comparisonValues: ReadonlyArray<string>, negate: boolean): boolean {
     let result = false;
 
     for (let i = 0; i < comparisonValues.length; i++) {
-      const item = ensureStringComparisonValue(comparisonValues[i]);
+      const item = comparisonValues[i];
 
       // NOTE: Previous versions of the evaluation algorithm ignore empty comparison values.
       // We keep this behavior for backward compatibility.
@@ -623,44 +600,42 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return before ? number < comparisonValue : number > comparisonValue;
   }
 
-  private evaluateArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ArrayOfMaybe<string>, negate: boolean): boolean {
+  private evaluateArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ReadonlyArray<string>, negate: boolean): boolean {
     for (let i = 0; i < array.length; i++) {
-      const text = array[i];
-      for (let j = 0; j < comparisonValues.length; j++) {
-        if (ensureStringComparisonValue(comparisonValues[j]) === text) {
-          return !negate;
-        }
+      // NOTE: Array.prototype.indexOf uses strict equality.
+      const result = comparisonValues.indexOf(array[i]) >= 0;
+      if (result) {
+        return !negate;
       }
     }
 
     return negate;
   }
 
-  private evaluateSensitiveArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ArrayOfMaybe<string>,
+  private evaluateSensitiveArrayContainsAnyOf(array: ReadonlyArray<string>, comparisonValues: ReadonlyArray<string>,
     configJsonSalt: string, contextSalt: string, negate: boolean
   ): boolean {
     for (let i = 0; i < array.length; i++) {
       const hash = hashComparisonValue(array[i], configJsonSalt, contextSalt);
-      for (let j = 0; j < comparisonValues.length; j++) {
-        if (ensureStringComparisonValue(comparisonValues[j]) === hash) {
-          return !negate;
-        }
+      // NOTE: Array.prototype.indexOf uses strict equality.
+      const result = comparisonValues.indexOf(hash) >= 0;
+      if (result) {
+        return !negate;
       }
     }
 
     return negate;
   }
 
-  private evaluatePrerequisiteFlagCondition(condition: ObjectMaybe<PrerequisiteFlagCondition>, context: EvaluateContext): boolean {
+  private evaluatePrerequisiteFlagCondition(condition: PrerequisiteFlagCondition, context: EvaluateContext): boolean {
     const logBuilder = context.logBuilder;
     logBuilder?.appendPrerequisiteFlagCondition(condition, context.settings);
 
     const prerequisiteFlagKey = condition.f;
-    if (typeof prerequisiteFlagKey !== "string") {
-      throwInvalidConfigModelError("Prerequisite flag key is missing or invalid.");
-    }
 
-    const prerequisiteFlag = ensureSetting(context.settings[prerequisiteFlagKey], "Prerequisite flag is missing or invalid.");
+    const prerequisiteFlag = Object.prototype.hasOwnProperty.call(context.settings, prerequisiteFlagKey)
+      ? context.settings[prerequisiteFlagKey]
+      : throwInvalidConfigModelError("Prerequisite flag is missing.");
 
     const prerequisiteFlagType = getSettingType(prerequisiteFlag);
     let inferredPrerequisiteFlagType: SettingType | undefined;
@@ -723,7 +698,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         result = prerequisiteFlagValue !== comparisonValue;
         break;
       default:
-        throwInvalidConfigModelError("Comparison operator is missing or invalid.");
+        throwInvalidConfigModelError("Comparison operator is invalid.");
     }
 
     logBuilder?.newLine(`Prerequisite flag evaluation result: '${valueToString(prerequisiteFlagValue)}'.`)
@@ -736,11 +711,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return result;
   }
 
-  private evaluateSegmentCondition(condition: ObjectMaybe<SegmentCondition>, context: EvaluateContext): boolean | string {
-    const maybeSegments: Maybe<ReadonlyArray<Segment>> = (context.setting as Setting)["_configSegments"];
+  private evaluateSegmentCondition(condition: SegmentCondition, context: EvaluateContext): boolean | string {
+    const segments = context.setting["_configSegments"];
 
     const logBuilder = context.logBuilder;
-    logBuilder?.appendSegmentCondition(condition, maybeSegments);
+    logBuilder?.appendSegmentCondition(condition, segments);
 
     if (!context.user) {
       if (!context.isMissingUserObjectLogged) {
@@ -751,27 +726,25 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return missingUserObjectError;
     }
 
-    const segments = ensureSegmentList(maybeSegments);
-
     const segmentIndex = condition?.s;
-    if (!isNumberInRange(segmentIndex, 0, segments.length - 1)) {
+    if (!segments || !isNumberInRange(segmentIndex, 0, segments.length - 1)) {
       throwInvalidConfigModelError("Segment reference is invalid.");
     }
 
-    const segment = ensureSegment(segments[segmentIndex]);
+    const segment = segments[segmentIndex];
 
     const segmentName = segment?.n;
-    if (typeof segmentName !== "string" || !segmentName.length) {
-      throwInvalidConfigModelError("Segment name is missing.'");
+    if (!segmentName.length) {
+      throwInvalidConfigModelError("Segment name is missing.");
     }
 
     logBuilder?.newLine("(")
       .increaseIndent()
       .newLine(`Evaluating segment '${segmentName}':`);
 
-    const conditions = ensureConditionList<UserCondition>(segment?.r);
+    const conditions = segment?.r;
 
-    const segmentResult = this.evaluateConditions(conditions, "u", void 0, segmentName, context);
+    const segmentResult = this.evaluateConditions(conditions ?? [], "u", void 0, segmentName, context);
     let result = segmentResult;
 
     if (!isEvaluationError(result)) {
@@ -782,7 +755,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
           result = !result;
           break;
         default:
-          throwInvalidConfigModelError("Comparison operator is missing or invalid.");
+          throwInvalidConfigModelError("Comparison operator is invalid.");
       }
     }
 
@@ -828,7 +801,7 @@ function userAttributeValueToString(userAttributeValue: UserAttributeValue): str
 }
 
 function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
-  condition: ObjectMaybe<UserCondition>, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): string {
   if (typeof attributeValue === "string") {
     return attributeValue;
@@ -841,7 +814,7 @@ function getUserAttributeValueAsText(attributeName: string, attributeValue: User
 }
 
 function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: UserAttributeValue,
-  condition: ObjectMaybe<UserCondition>, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): ISemVer | string {
   let version: ISemVer | null;
   if (typeof attributeValue === "string" && (version = parseSemVer(attributeValue.trim()))) {
@@ -851,7 +824,7 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
 }
 
 function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue,
-  condition: ObjectMaybe<UserCondition>, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): number | string {
   if (typeof attributeValue === "number") {
     return attributeValue;
@@ -865,7 +838,7 @@ function getUserAttributeValueAsNumber(attributeName: string, attributeValue: Us
 }
 
 function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue,
-  condition: ObjectMaybe<UserCondition>, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): number | string {
   if (attributeValue instanceof Date) {
     return attributeValue.getTime() / 1000;
@@ -882,7 +855,7 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
 }
 
 function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue,
-  condition: ObjectMaybe<UserCondition>, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): ReadonlyArray<string> | string {
   let stringArray: unknown = attributeValue;
   if (typeof stringArray === "string") {
@@ -896,7 +869,7 @@ function getUserAttributeValueAsStringArray(attributeName: string, attributeValu
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid string array`);
 }
 
-function handleInvalidUserAttribute(logger: LoggerWrapper, condition: ObjectMaybe<UserCondition>, key: string, attributeName: string, reason: string): string {
+function handleInvalidUserAttribute(logger: LoggerWrapper, condition: UserCondition, key: string, attributeName: string, reason: string): string {
   const conditionString = new LazyString(condition, condition => formatUserCondition(condition));
   logger.userObjectAttributeIsInvalid(conditionString, key, reason, attributeName);
   return invalidUserAttributeError(attributeName, reason);
@@ -925,88 +898,31 @@ function isCompatibleValue(value: SettingValue, settingType: SettingType): boole
   }
 }
 
-export function ensureSettingMap(settings: Maybe<Readonly<Record<string, Setting>>>): MapOfMaybe<Setting> {
-  return isObject(settings ??= {}) ? settings : throwInvalidConfigModelError("Setting map is invalid.");
-}
-
-function ensureSetting(setting: Maybe<Setting>, message?: string): ObjectMaybe<Setting> {
-  return isObject(setting) ? setting : throwInvalidConfigModelError(message ?? "Setting is missing or invalid.");
-}
-
-function ensureSegmentList(segments: Maybe<ReadonlyArray<Segment>>): ArrayOfMaybe<Segment> {
-  return isArray(segments ??= []) ? segments : throwInvalidConfigModelError("Segment list is invalid.");
-}
-
-function ensureSegment(segment: Maybe<Segment>): ObjectMaybe<Segment> {
-  return isObject(segment) ? segment : throwInvalidConfigModelError("Segment is missing or invalid.");
-}
-
-function ensureTargetingRuleList(targetingRules: Maybe<ReadonlyArray<TargetingRule>>): ArrayOfMaybe<TargetingRule> {
-  return isArray(targetingRules ??= []) ? targetingRules : throwInvalidConfigModelError("Targeting rule list is invalid.");
-}
-
-function ensureTargetingRule(targetingRule: Maybe<TargetingRule>): ObjectMaybe<TargetingRule> {
-  return isObject(targetingRule) ? targetingRule : throwInvalidConfigModelError("Targeting rule is missing or invalid.");
-}
-
-function ensurePercentageOptionList(percentageOptions: Maybe<ReadonlyArray<PercentageOption>>): ArrayOfMaybe<PercentageOption> {
-  return isArray(percentageOptions ??= []) ? percentageOptions : throwInvalidConfigModelError("Percentage option list is invalid.");
-}
-
-function ensurePercentageOption(percentageOption: Maybe<PercentageOption>): ObjectMaybe<PercentageOption> {
-  return isObject(percentageOption) ? percentageOption : throwInvalidConfigModelError("Percentage option is missing or invalid.");
-}
-
-function ensureConditionList<TCondition extends ConditionContainer | Condition>(conditions: Maybe<ReadonlyArray<TCondition>>): ArrayOfMaybe<TCondition> {
-  return isArray(conditions ??= []) ? conditions : throwInvalidConfigModelError("Condition list is invalid.");
-}
-
-function ensureCondition(condition: Maybe<Condition>): ObjectMaybe<Condition> {
-  return isObject(condition) ? condition : throwInvalidConfigModelError("Condition is missing or invalid.");
-}
-
-function ensureComparisonValues(comparisonValues: Maybe<ReadonlyArray<string>>): ArrayOfMaybe<string> {
-  return isArray(comparisonValues) ? comparisonValues : throwInvalidConfigModelError("Comparison value is missing or invalid.");
-}
-
-function ensureStringComparisonValue(comparisonValue: Maybe<string>): string {
-  return typeof comparisonValue === "string" ? comparisonValue : throwInvalidConfigModelError("Comparison value is missing or invalid.");
-}
-
-function ensureNumberComparisonValue(comparisonValue: Maybe<number>): number {
-  return typeof comparisonValue === "number" ? comparisonValue : throwInvalidConfigModelError("Comparison value is missing or invalid.");
-}
-
-function getConfigJsonSalt(setting: ObjectMaybe<Setting>): string {
-  const configJsonSalt = (setting as Setting)["_configJsonSalt"];
-  return typeof configJsonSalt === "string" ? configJsonSalt : throwInvalidConfigModelError("Config JSON salt is missing or invalid.");
-}
-
-function getSettingType(setting: ObjectMaybe<Setting>): SettingType | UnknownSettingType {
-  const settingType = setting?.t;
+function getSettingType(setting: Setting): SettingType | UnknownSettingType {
+  const settingType = setting.t;
   if (isNumberInRange(settingType, SettingType.Boolean, SettingType.Double)
     || settingType === (-1 satisfies UnknownSettingType) && isSettingWithSimpleValue(setting)) {
     return settingType;
   }
 
-  throwInvalidConfigModelError("Setting type is missing or invalid.");
+  throwInvalidConfigModelError("Setting type is invalid.");
 }
 
-function isSettingWithSimpleValue(setting: ObjectMaybe<Setting>): boolean {
+function isSettingWithSimpleValue(setting: Setting): boolean {
   return (setting?.r == null || !isArray(setting.r) || !setting.r.length)
     && (setting?.p == null || !isArray(setting.p) || !setting.p.length);
 }
 
-export function hasPercentageOptions(targetingRule: ObjectMaybe<TargetingRule>): boolean;
-export function hasPercentageOptions(targetingRule: ObjectMaybe<TargetingRule>, ignoreIfInvalid: true): boolean | undefined;
-export function hasPercentageOptions(targetingRule: ObjectMaybe<TargetingRule>, ignoreIfInvalid?: boolean): boolean | undefined {
-  const simpleValue: Maybe<SettingValueContainer> = targetingRule.s;
-  const percentageOptions: Maybe<ReadonlyArray<PercentageOption>> = targetingRule.p;
+export function hasPercentageOptions(targetingRule: TargetingRule): boolean;
+export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid: true): boolean | undefined;
+export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid?: boolean): boolean | undefined {
+  const simpleValue = targetingRule.s;
+  const percentageOptions = targetingRule.p;
   if (simpleValue != null) {
-    if (percentageOptions == null && isObject(simpleValue)) {
+    if (percentageOptions == null) {
       return false;
     }
-  } else if (isArray(percentageOptions) && percentageOptions.length) {
+  } else if (percentageOptions?.length) {
     return true;
   }
 
@@ -1015,73 +931,60 @@ export function hasPercentageOptions(targetingRule: ObjectMaybe<TargetingRule>, 
   }
 }
 
-function getConditionType(container: Maybe<ConditionContainer>): keyof ConditionContainer | undefined {
-  let type: keyof ConditionContainer | undefined, condition: Maybe<Condition>;
+function getConditionType(container: ConditionContainer): keyof ConditionContainer {
+  let type: keyof ConditionContainer | undefined | false, condition: Condition | null | undefined;
 
-  condition = (container as ConditionContainer)?.u;
+  condition = container.u;
   if (condition != null) {
-    if (!isObject(condition)) {
-      return;
-    }
     type = "u";
   }
 
-  condition = (container as ConditionContainer)?.p;
+  condition = container.p;
   if (condition != null) {
-    if (type || !isObject(condition)) {
-      return;
-    }
-    type = "p";
+    type = !type ? "p" : false;
   }
 
-  condition = (container as ConditionContainer)?.s;
+  condition = container.s;
   if (condition != null) {
-    if (type || !isObject(condition)) {
-      return;
-    }
-    type = "s";
+    type = !type ? "s" : false;
+  }
+
+  if (!type) {
+    throwInvalidConfigModelError("Condition is missing or invalid.");
   }
 
   return type;
 }
 
-export function unwrapValue(settingValue: Maybe<SettingValueModel>, settingType: SettingType | UnknownSettingType | null,
+export function unwrapValue(settingValue: SettingValueModel, settingType: SettingType | UnknownSettingType | null,
   ignoreIfInvalid?: false
 ): NonNullable<SettingValue>;
-export function unwrapValue(settingValue: Maybe<SettingValueModel>, settingType: SettingType | UnknownSettingType | null,
+export function unwrapValue(settingValue: SettingValueModel, settingType: SettingType | UnknownSettingType | null,
   ignoreIfInvalid: true
 ): NonNullable<SettingValue> | undefined;
-export function unwrapValue(settingValue: Maybe<SettingValueModel>, settingType: SettingType | UnknownSettingType | null,
+export function unwrapValue(settingValue: SettingValueModel, settingType: SettingType | UnknownSettingType | null,
   ignoreIfInvalid?: boolean
 ): NonNullable<SettingValue> | undefined {
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (settingType) {
     case SettingType.Boolean: {
-      const value = (settingValue as SettingValueModel)?.b;
-      if (typeof value === "boolean") {
-        return value;
-      }
+      const value = settingValue.b;
+      if (value != null) return value;
       break;
     }
     case SettingType.String: {
-      const value = (settingValue as SettingValueModel)?.s;
-      if (typeof value === "string") {
-        return value;
-      }
+      const value = settingValue.s;
+      if (value != null) return value;
       break;
     }
     case SettingType.Int: {
-      const value = (settingValue as SettingValueModel)?.i;
-      if (typeof value === "number" && Number.isSafeInteger(value)) {
-        return value;
-      }
+      const value = settingValue.i;
+      if (value != null) return value;
       break;
     }
     case SettingType.Double: {
-      const value = (settingValue as SettingValueModel)?.d;
-      if (typeof value === "number") {
-        return value;
-      }
+      const value = settingValue.d;
+      if (value != null) return value;
       break;
     }
     case (-1 satisfies UnknownSettingType):
@@ -1103,6 +1006,14 @@ export function unwrapValue(settingValue: Maybe<SettingValueModel>, settingType:
   if (!ignoreIfInvalid) {
     throwInvalidConfigModelError("Setting value is missing or invalid.");
   }
+}
+
+function getConfigJsonSalt(setting: Setting): string {
+  return setting["_configJsonSalt"] ?? throwInvalidConfigModelError("Config JSON salt is missing.");
+}
+
+function ensureComparisonValue<T>(comparisonValue: T | null | undefined): T {
+  return comparisonValue ?? throwInvalidConfigModelError("Comparison value is missing.");
 }
 
 function throwInvalidConfigModelError(message: string): never {
@@ -1213,7 +1124,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
   return evaluationDetails;
 }
 
-export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: MapOfMaybe<Setting> | null,
+export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: SettingMap | null,
   key: string, defaultValue: T, user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper
 ): IEvaluationDetails<SettingTypeOf<T>> {
 
@@ -1224,20 +1135,20 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
       toMessage(errorMessage), void 0, EvaluationErrorCode.ConfigJsonNotAvailable);
   }
 
-  const setting = settings[key];
-  if (setting === void 0) {
+  let setting: Setting | undefined;
+  if (!Object.prototype.hasOwnProperty.call(settings, key) || !(setting = settings[key])) {
     const availableKeys = new LazyString(settings, settings => formatStringList(Object.keys(settings)));
     errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, availableKeys);
     return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
       toMessage(errorMessage), void 0, EvaluationErrorCode.SettingKeyMissing);
   }
 
-  const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, setting!, user, settings));
+  const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, setting, user, settings));
 
   return evaluationDetailsFromEvaluateResult<T>(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
 }
 
-export function evaluateAll(evaluator: IRolloutEvaluator, settings: MapOfMaybe<Setting> | null,
+export function evaluateAll(evaluator: IRolloutEvaluator, settings: SettingMap | null,
   user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string
 ): [IEvaluationDetails[], any[] | undefined] {
 
@@ -1252,7 +1163,7 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: MapOfMaybe<S
   for (const [key, setting] of Object.entries(settings)) {
     let evaluationDetails: IEvaluationDetails;
     try {
-      const evaluateResult = evaluator.evaluate(null, new EvaluateContext(key, setting!, user, settings));
+      const evaluateResult = evaluator.evaluate(null, new EvaluateContext(key, setting, user, settings));
       evaluationDetails = evaluationDetailsFromEvaluateResult(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
     } catch (err) {
       errors ??= [];
@@ -1267,9 +1178,9 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: MapOfMaybe<S
   return [evaluationDetailsArray, errors];
 }
 
-export function checkSettingsAvailable(settings: MapOfMaybe<Setting> | null, logger: LoggerWrapper,
+export function checkSettingsAvailable(settings: SettingMap | null, logger: LoggerWrapper,
   defaultReturnValue: string
-): settings is MapOfMaybe<Setting> {
+): settings is SettingMap {
   if (!settings) {
     logger.configJsonIsNotPresent(defaultReturnValue);
     return false;
@@ -1284,34 +1195,34 @@ export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
   settingValue: TValue;
 };
 
-export function findKeyAndValue(settings: MapOfMaybe<Setting> | null,
+export function findKeyAndValue(settings: SettingMap | null,
   variationId: string, logger: LoggerWrapper, defaultReturnValue: string
 ): SettingKeyValue | null {
   if (!checkSettingsAvailable(settings, logger, defaultReturnValue)) {
     return null;
   }
 
-  for (const [settingKey, setting] of Object.entries(settings) as [string, ObjectMaybe<Setting>][]) {
-    const settingType = getSettingType(ensureSetting(setting));
+  for (const [settingKey, setting] of Object.entries(settings)) {
+    const settingType = getSettingType(setting);
 
     if (variationId === setting.i) {
       return { settingKey, settingValue: unwrapValue(setting.v, settingType) };
     }
 
-    const targetingRules = ensureTargetingRuleList(setting.r);
-    if (targetingRules.length > 0) {
+    const targetingRules = setting.r;
+    if (targetingRules?.length) {
       for (let i = 0; i < targetingRules.length; i++) {
-        const targetingRule = ensureTargetingRule(targetingRules[i]);
+        const targetingRule = targetingRules[i];
         if (hasPercentageOptions(targetingRule)) {
-          const percentageOptions = targetingRule.p as ArrayOfMaybe<PercentageOption>;
-          for (let j = 0; j < percentageOptions.length; j++) {
-            const percentageOption = ensurePercentageOption(percentageOptions[j]);
+          const percentageOptions = targetingRule.p;
+          for (let j = 0; j < percentageOptions!.length; j++) {
+            const percentageOption = percentageOptions![j];
             if (variationId === percentageOption.i) {
               return { settingKey, settingValue: unwrapValue(percentageOption.v, settingType) };
             }
           }
         } else {
-          const simpleValue = targetingRule.s as ObjectMaybe<SettingValueContainer>;
+          const simpleValue = targetingRule.s!;
           if (variationId === simpleValue.i) {
             return { settingKey, settingValue: unwrapValue(simpleValue.v, settingType) };
           }
@@ -1319,10 +1230,10 @@ export function findKeyAndValue(settings: MapOfMaybe<Setting> | null,
       }
     }
 
-    const percentageOptions = ensurePercentageOptionList(setting.p);
-    if (percentageOptions.length > 0) {
+    const percentageOptions = setting.p;
+    if (percentageOptions?.length) {
       for (let i = 0; i < percentageOptions.length; i++) {
-        const percentageOption = ensurePercentageOption(percentageOptions[i]);
+        const percentageOption = percentageOptions[i];
         if (variationId === percentageOption.i) {
           return { settingKey, settingValue: unwrapValue(percentageOption.v, settingType) };
         }
