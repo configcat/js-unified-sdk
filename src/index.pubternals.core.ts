@@ -3,7 +3,7 @@ import type { IConfigCatClient } from "./ConfigCatClient";
 import type { IConfigCatKernel, OptionsForPollingMode, PollingMode } from "./ConfigCatClientOptions";
 import type { IConfigCatLogger, LogLevel } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger } from "./ConfigCatLogger";
-import type { FlagOverrides, IOverrideDataSource, IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
+import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
 import { MapOverrideDataSource, QueryParamsOverrideDataSource } from "./FlagOverrides";
 import type { SettingValue } from "./ProjectConfig";
 
