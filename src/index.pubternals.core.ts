@@ -76,16 +76,4 @@ export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
   return { dataSource: new QueryParamsOverrideDataSource(watchChanges, paramPrefix, queryStringProvider), behaviour };
 }
 
-/**
- * Creates an instance of `FlagOverrides` that uses a custom implementation of `IOverrideDataSource`.
- * @param dataSource An instance of the custom `IOverrideDataSource` implementation.
- * @param behaviour The override behaviour.
- * Specifies whether the local values should override the remote values,
- * or local values should only be used when a remote value doesn't exist,
- * or the local values should be used only.
- */
-export function createCustomFlagOverrides(dataSource: IOverrideDataSource, behaviour: OverrideBehaviour): FlagOverrides {
-  return { dataSource, behaviour };
-}
-
 export type { IQueryStringProvider };

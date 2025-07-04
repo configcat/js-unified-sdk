@@ -4,7 +4,7 @@ import { RefreshErrorCode, SettingKeyValue, User } from "#lib";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { IOverrideDataSource, IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
-import { createCustomFlagOverrides, createFlagOverridesFromQueryParams } from "#lib/index.pubternals";
+import { createFlagOverridesFromQueryParams } from "#lib/index.pubternals";
 import { ConfigJson, InvalidConfigModelError, prepareConfig, Setting, SettingValue } from "#lib/ProjectConfig";
 import { EvaluationError, EvaluationErrorCode, isAllowedValue } from "#lib/RolloutEvaluator";
 
@@ -436,7 +436,7 @@ describe("Local Overrides", () => {
     })();
 
     const options: ManualPollOptions = createManualPollOptions("localhost", {
-      flagOverrides: createCustomFlagOverrides(customDataSource, OverrideBehaviour.LocalOnly),
+      flagOverrides: { dataSource: customDataSource, behaviour: OverrideBehaviour.LocalOnly },
     });
     const client: IConfigCatClient = new ConfigCatClient(options);
 

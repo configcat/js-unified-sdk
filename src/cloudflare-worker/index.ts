@@ -34,7 +34,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
   });
 }
 
-export { createConsoleLogger, createFlagOverridesFromMap, createCustomFlagOverrides, disposeAllClients } from "../index.pubternals.core";
+export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals.core";
 
 declare const URL: typeof cloudflare.URL;
 
