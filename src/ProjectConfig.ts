@@ -163,7 +163,7 @@ export declare abstract class SettingValueContainer<
 
 type AdjustedConfigJsonSetting = ChangePropType<
   OptionalWithNull<ConfigJson.Setting, "i" | "a" | "r" | "p">,
-  { "t": SettingType | UnknownSettingType; "v": SettingValueModel | NonNullable<SettingValue> }
+  { "t": SettingType | UnknownSettingType; "v": ConfigJson.SettingValue | NonNullable<SettingValue> }
 >;
 
 /** Describes a feature flag or setting. */
@@ -176,7 +176,7 @@ export declare abstract class Setting extends SettingValueContainer<
   declare readonly a?: string | null;
   declare readonly r?: ReadonlyArray<TargetingRule & ConfigJson.TargetingRule> | null;
   declare readonly p?: ReadonlyArray<PercentageOption & ConfigJson.PercentageOption> | null;
-  /** @remarks May be a plain `SettingValue` in the case of a a simple flag override. */
+  /** @remarks Can be a plain `boolean`, `string` or `number` value in the case of a a simple flag override. */
   declare readonly v: ConfigJson.SettingValue & SettingValueModel | NonNullable<SettingValue>;
 
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -529,7 +529,7 @@ type Immutable<T> = { readonly [K in keyof T]:
   : T[K]
 };
 
-/** Makes properties specified by `K` optional in object `T` while also allowing `null`. */
+/** Makes all properties optional in object `T` while also allowing `null`. */
 type PartialWithNull<T> = { [P in keyof T]?: T[P] | null };
 
 /** Makes properties specified by `K` optional in object `T` while also allowing `null`. */
