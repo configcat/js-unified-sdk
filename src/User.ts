@@ -43,7 +43,7 @@ export interface IUser {
    * * accept `string` values containing a valid JSON string which can be deserialized to an array of `string`,
    * * all other values are considered invalid (a warning will be logged and the currently evaluated targeting rule will be skipped).
    **/
-  custom: { [key: string]: UserAttributeValue };
+  custom: Record<string, UserAttributeValue>;
 }
 
 /**
@@ -65,22 +65,26 @@ export class User implements IUser {
     public identifier: string,
     public email?: string,
     public country?: string,
-    public custom: { [key: string]: UserAttributeValue } = {}
+    public custom: Record<string, UserAttributeValue> = {}
   ) {
   }
 }
 
+export function getUserIdentifier(user: IUser): string {
+  return user.identifier ?? "";
+}
+
 export function getUserAttribute(user: IUser, name: string): UserAttributeValue | null | undefined {
   switch (name) {
-    case "Identifier" satisfies WellKnownUserObjectAttribute: return user.identifier ?? "";
+    case "Identifier" satisfies WellKnownUserObjectAttribute: return getUserIdentifier(user);
     case "Email" satisfies WellKnownUserObjectAttribute: return user.email;
     case "Country" satisfies WellKnownUserObjectAttribute: return user.country;
     default: return user.custom?.[name];
   }
 }
 
-export function getUserAttributes(user: IUser): { [key: string]: UserAttributeValue } {
-  const result: { [key: string]: UserAttributeValue } = {};
+export function getUserAttributes(user: IUser): Record<string, UserAttributeValue> {
+  const result: Record<string, UserAttributeValue> = {};
 
   const identifierAttribute: WellKnownUserObjectAttribute = "Identifier";
   const emailAttribute: WellKnownUserObjectAttribute = "Email";

@@ -128,8 +128,12 @@ export function ensurePrototype<T>(obj: T, ctor: new (...args: any[]) => T): voi
   }
 }
 
+export function isNumberInRange(value: unknown, minValue: number, maxValue: number): value is number {
+  return typeof value === "number" && minValue <= value && value <= maxValue;
+}
+
 export function isObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !isArray(value);
+  return typeof value === "object" && value !== null && !isArray(value);
 }
 
 export function isArray(value: unknown): value is ReadonlyArray<unknown> {
@@ -209,14 +213,21 @@ export function utf8Encode(text: string): string {
   return utf8text += text.slice(chunkStart, i);
 }
 
-export function parseFloatStrict(value: unknown): number {
-  // NOTE: JS's float to string conversion is too forgiving, it accepts hex numbers and ignores invalid characters after the number.
+export function parseIntStrict(value: string): number {
+  // NOTE: JS's int to string conversion (parseInt) is too forgiving, it accepts hex numbers and ignores invalid characters after the number.
 
-  if (typeof value === "number") {
-    return value;
+  if (!value.length || !/^\s*[+-]?\d+\s*$/.test(value)) {
+    return NaN;
   }
 
-  if (typeof value !== "string" || !value.length || /^\s*$|^\s*0[^\d.eE]/.test(value)) {
+  const number = +value;
+  return Number.isSafeInteger(number) ? number : NaN;
+}
+
+export function parseFloatStrict(value: string): number {
+  // NOTE: JS's float to string conversion is too forgiving, it accepts hex numbers and ignores invalid characters after the number.
+
+  if (!value.length || /^\s*$|^\s*0[^\d.eE]/.test(value)) {
     return NaN;
   }
 

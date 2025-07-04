@@ -42,8 +42,8 @@ declare const URL: typeof cloudflare.URL;
  * Creates an instance of `FlagOverrides` that uses the query string parameters
  * of the specified request as data source.
  * @param behaviour The override behaviour.
- * Specifies whether the local values should override the remote values
- * or local values should only be used when a remote value doesn't exist
+ * Specifies whether the local values should override the remote values,
+ * or local values should only be used when a remote value doesn't exist,
  * or the local values should be used only.
  * @param request The request.
  * @param paramPrefix The parameter name prefix used to indicate which query string parameters
@@ -56,8 +56,8 @@ export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
 /**
  * Creates an instance of `FlagOverrides` that uses query string parameters as data source.
  * @param behaviour The override behaviour.
- * Specifies whether the local values should override the remote values
- * or local values should only be used when a remote value doesn't exist
+ * Specifies whether the local values should override the remote values,
+ * or local values should only be used when a remote value doesn't exist,
  * or the local values should be used only.
  * @param watchChanges If set to `true`, the query string will be tracked for changes.
  * @param paramPrefix The parameter name prefix used to indicate which query string parameters

@@ -10,7 +10,7 @@ describe("Variation ID", () => {
         configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
       });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
 
       await client.waitForReady();
 
@@ -29,7 +29,7 @@ describe("Variation ID", () => {
         configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
       });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
 
       await client.waitForReady();
 
@@ -48,7 +48,7 @@ describe("Variation ID", () => {
         configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
       });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
 
       await client.waitForReady();
 
@@ -67,7 +67,7 @@ describe("Variation ID", () => {
         configFetcherFactory: () => new FakeConfigFetcherWithPercentageOptionsWithinTargetingRule(),
       });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
 
       await client.waitForReady();
 
@@ -86,7 +86,7 @@ describe("Variation ID", () => {
         configFetcherFactory: () => new FakeConfigFetcherWithNullNewConfig(),
       });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null, maxInitWaitTimeSeconds: 0 }, configCatKernel);
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
 
       await client.waitForReady();
 
@@ -104,7 +104,7 @@ describe("Variation ID", () => {
         configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
       });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
 
       await client.waitForReady();
 

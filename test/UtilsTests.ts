@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { FakeLogger } from "./helpers/fakes";
 import { LoggerWrapper, toMessage } from "#lib/ConfigCatLogger";
 import { FetchError } from "#lib/ConfigFetcher";
-import { errorToString, formatStringList, getWeakRefStub, LazyString, parseFloatStrict, utf8Encode } from "#lib/Utils";
+import { errorToString, formatStringList, getWeakRefStub, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "#lib/Utils";
 
 describe("Utils", () => {
   it("WeakRef fallback should work", () => {
@@ -64,6 +64,57 @@ describe("Utils", () => {
   ]) {
     it(`parseFloatStrict - input: ${input}`, () => {
       const actualOutput = parseFloatStrict(input);
+      assert.isNumber(actualOutput);
+      if (isNaN(expectedOutput)) {
+        assert.isNaN(actualOutput);
+      } else {
+        assert.strictEqual(actualOutput, expectedOutput);
+      }
+    });
+  }
+
+  for (const [input, expectedOutput] of <[string, number][]>[
+    ["", NaN],
+    [" ", NaN],
+    ["NaN", NaN],
+    ["Infinity", NaN],
+    ["+Infinity", NaN],
+    ["-Infinity", -NaN],
+    ["1", 1],
+    ["1 ", 1],
+    [" 1", 1],
+    [" 1 ", 1],
+    ["0x1", NaN],
+    [" 0x1", NaN],
+    ["+0x1", NaN],
+    ["-0x1", NaN],
+    ["1f", NaN],
+    ["1e", NaN],
+    ["0+", NaN],
+    ["0-", NaN],
+    ["2023.11.13", NaN],
+    ["0", 0],
+    ["-0", 0],
+    ["+0", 0],
+    ["0e+1", NaN],
+    ["0E+1", NaN],
+    ["1234567890", 1234567890],
+    ["1234567890.0", NaN],
+    ["1234567890e0", NaN],
+    [".1234567890", NaN],
+    ["+.1234567890", NaN],
+    ["-.1234567890", NaN],
+    ["+0.123e-3", NaN],
+    ["+0.123E-3", NaN],
+    ["-0.123e+3", NaN],
+    ["-0.123E+3", NaN],
+    ["9007199254740991", Number.MAX_SAFE_INTEGER],
+    ["9007199254740992", NaN],
+    ["-9007199254740991", Number.MIN_SAFE_INTEGER],
+    ["-9007199254740992", NaN],
+  ]) {
+    it(`parseIntStrict - input: ${input}`, () => {
+      const actualOutput = parseIntStrict(input);
       assert.isNumber(actualOutput);
       if (isNaN(expectedOutput)) {
         assert.isNaN(actualOutput);

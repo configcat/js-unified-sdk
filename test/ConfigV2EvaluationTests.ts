@@ -17,13 +17,14 @@ describe("Setting evaluation (config v2)", () => {
     it("Prerequisite flag circular dependency detection", async () => {
       const configLocation = new LocalFileConfigLocation("test", "data", "test_circulardependency_v6.json");
       const config = await configLocation.fetchConfigAsync();
+      const settings = config.f ?? {};
 
       const fakeLogger = new FakeLogger();
       const logger = new LoggerWrapper(fakeLogger);
       const evaluator = new RolloutEvaluator(logger);
 
       try {
-        evaluate(evaluator, config.settings, key, null, void 0, null, logger);
+        evaluate(evaluator, settings, key, null, void 0, null, logger);
         assert.fail("evaluate should throw.");
       } catch (err) {
         const errMsg = errorToString(err);
@@ -169,6 +170,7 @@ describe("Setting evaluation (config v2)", () => {
     it(`IEvaluationDetails.matchedTargetingRule/matchedTargetingOption - sdkKey: ${sdkKey} | key: ${key} | userId: ${userId} | email: ${email} | percentageBase: ${percentageBase}`, async () => {
       const configLocation = new CdnConfigLocation(sdkKey);
       const config = await configLocation.fetchConfigAsync();
+      const settings = config.f ?? {};
 
       const fakeLogger = new FakeLogger();
       const logger = new LoggerWrapper(fakeLogger);
@@ -176,7 +178,7 @@ describe("Setting evaluation (config v2)", () => {
 
       const user = userId != null ? new User(userId, email!, void 0, { ["PercentageBase"]: percentageBase! }) : null;
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, null, user!, null, logger);
+      const evaluationDetails = evaluate(evaluator, settings, key, null, user!, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
       assert.strictEqual(evaluationDetails.matchedTargetingRule !== void 0, expectedIsExpectedMatchedTargetingRuleSet);
@@ -187,6 +189,7 @@ describe("Setting evaluation (config v2)", () => {
   it("User Object attribute conversions - text comparisons", async () => {
     const configLocation = new CdnConfigLocation("configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/OfQqcTjfFUGBwMKqtyEOrQ");
     const config = await configLocation.fetchConfigCachedAsync();
+    const settings = config.f ?? {};
 
     const fakeLogger = new FakeLogger();
     const logger = new LoggerWrapper(fakeLogger);
@@ -196,7 +199,7 @@ describe("Setting evaluation (config v2)", () => {
     const user = new User("12345", void 0, void 0, { [customAttributeName]: customAttributeValue });
 
     const key = "boolTextEqualsNumber";
-    const evaluationDetails = evaluate(evaluator, config.settings, key, null, user, null, logger);
+    const evaluationDetails = evaluate(evaluator, settings, key, null, user, null, logger);
 
     assert.strictEqual(evaluationDetails.value, true);
 
@@ -281,6 +284,7 @@ describe("Setting evaluation (config v2)", () => {
     it(`User Object attribute conversions - non-text comparisons - sdkKey: ${sdkKey} | key: ${key} | userId: ${userId} | customAttributeName: ${customAttributeName} | customAttributeValue: ${customAttributeValue}`, async () => {
       const configLocation = new CdnConfigLocation(sdkKey);
       const config = await configLocation.fetchConfigCachedAsync();
+      const settings = config.f ?? {};
 
       const fakeLogger = new FakeLogger();
       const logger = new LoggerWrapper(fakeLogger);
@@ -288,7 +292,7 @@ describe("Setting evaluation (config v2)", () => {
 
       const user = new User(userId, void 0, void 0, { [customAttributeName]: customAttributeValue });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, null, user, null, logger);
+      const evaluationDetails = evaluate(evaluator, settings, key, null, user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });
@@ -316,6 +320,7 @@ describe("Setting evaluation (config v2)", () => {
     it(`Comparison attribute conversion to canonical string representation - key: ${key} | customAttributeValue: ${customAttributeValue}`, async () => {
       const configLocation = new LocalFileConfigLocation("test", "data", "comparison_attribute_conversion.json");
       const config = await configLocation.fetchConfigAsync();
+      const settings = config.f ?? {};
 
       const fakeLogger = new FakeLogger();
       const logger = new LoggerWrapper(fakeLogger);
@@ -325,7 +330,7 @@ describe("Setting evaluation (config v2)", () => {
         ["Custom1"]: customAttributeValue,
       });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
+      const evaluationDetails = evaluate(evaluator, settings, key, "default", user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });
@@ -376,6 +381,7 @@ describe("Setting evaluation (config v2)", () => {
     it(`Comparison attribute trimming - key: ${key}`, async () => {
       const configLocation = new LocalFileConfigLocation("test", "data", "comparison_attribute_trimming.json");
       const config = await configLocation.fetchConfigAsync();
+      const settings = config.f ?? {};
 
       const fakeLogger = new FakeLogger();
       const logger = new LoggerWrapper(fakeLogger);
@@ -387,7 +393,7 @@ describe("Setting evaluation (config v2)", () => {
         ["Date"]: " 1705253400 ",
       });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
+      const evaluationDetails = evaluate(evaluator, settings, key, "default", user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });
@@ -428,6 +434,7 @@ describe("Setting evaluation (config v2)", () => {
     it(`Comparison value trimming - key: ${key}`, async () => {
       const configLocation = new LocalFileConfigLocation("test", "data", "comparison_value_trimming.json");
       const config = await configLocation.fetchConfigAsync();
+      const settings = config.f ?? {};
 
       const fakeLogger = new FakeLogger();
       const logger = new LoggerWrapper(fakeLogger);
@@ -439,7 +446,7 @@ describe("Setting evaluation (config v2)", () => {
         ["Date"]: "1705253400",
       });
 
-      const evaluationDetails = evaluate(evaluator, config.settings, key, "default", user, null, logger);
+      const evaluationDetails = evaluate(evaluator, settings, key, "default", user, null, logger);
 
       assert.strictEqual(evaluationDetails.value, expectedReturnValue);
     });

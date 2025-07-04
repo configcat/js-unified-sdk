@@ -21,7 +21,7 @@ describe("Flag Overrides (Cloudflare Workers)", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, request, void 0),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
     assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
@@ -40,7 +40,7 @@ describe("Flag Overrides (Cloudflare Workers)", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, true, void 0, queryStringProvider),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
     assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");

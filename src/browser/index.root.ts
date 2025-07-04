@@ -18,7 +18,7 @@ export const getClient: <TMode extends PollingMode | undefined>(
   sdkKey: string, pollingMode?: TMode, options?: OptionsForPollingMode<TMode>
 ) => IConfigCatClient = getClientImpl;
 
-export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals.core";
+export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";
 
 export type { INodeAutoPollOptions, INodeLazyLoadingOptions, INodeManualPollOptions } from "../node";
 

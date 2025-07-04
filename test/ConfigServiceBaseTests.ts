@@ -11,7 +11,7 @@ import { LoggerWrapper } from "#lib/ConfigCatLogger";
 import { FetchRequest, FetchResponse, FetchResult, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { ManualPollConfigService } from "#lib/ManualPollConfigService";
-import { Config, IConfig, ProjectConfig } from "#lib/ProjectConfig";
+import { Config, deserializeConfig, ProjectConfig } from "#lib/ProjectConfig";
 import { AbortToken, delay, throwError } from "#lib/Utils";
 
 describe("ConfigServiceBaseTests", () => {
@@ -369,7 +369,7 @@ describe("ConfigServiceBaseTests", () => {
       const cache = new ExternalConfigCache(fakeExternalCache, logger);
 
       const clientReadyEvents: ClientCacheState[] = [];
-      const configChangedEvents: IConfig[] = [];
+      const configChangedEvents: Config[] = [];
 
       const fr: FetchResult = createFetchResult();
       const fetcherMock = new Mock<IConfigFetcher>()
@@ -920,7 +920,7 @@ describe("ConfigServiceBaseTests", () => {
       .returns();
 
     const configFetchedEvents: [RefreshResult, boolean][] = [];
-    const configChangedEvents: IConfig[] = [];
+    const configChangedEvents: Config[] = [];
 
     const options = createManualPollOptions(
       "APIKEY",
@@ -956,7 +956,7 @@ describe("ConfigServiceBaseTests", () => {
 
     assert.strictEqual(configChangedEvents.length, 1);
     const [configChangedEvent] = configChangedEvents;
-    assert.strictEqual(configChangedEvent.salt, "0");
+    assert.strictEqual(configChangedEvent?.p?.s, "0");
 
     service.dispose();
   });
@@ -979,7 +979,7 @@ describe("ConfigServiceBaseTests", () => {
       .returns();
 
     const configFetchedEvents: [RefreshResult, boolean][] = [];
-    const configChangedEvents: IConfig[] = [];
+    const configChangedEvents: Config[] = [];
 
     const options = createManualPollOptions(
       "APIKEY",
@@ -1028,7 +1028,7 @@ const DEFAULT_CONFIG_JSON = '{"f": { "debug": { "v": { "b": true }, "i": "abcdef
 function createProjectConfig(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JSON): ProjectConfig {
   return new ProjectConfig(
     configJson,
-    Config.deserialize(configJson),
+    deserializeConfig(configJson),
     1,
     eTag);
 }

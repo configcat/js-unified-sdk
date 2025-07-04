@@ -4,7 +4,7 @@ import { DataGovernance, IConfigCatKernel, OptionsBase } from "#lib/ConfigCatCli
 import { FetchRequest, FetchResponse, FetchResult, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import type * as ConfigJson from "#lib/ConfigJson";
 import { ClientCacheState, ConfigServiceBase, RefreshErrorCode } from "#lib/ConfigServiceBase";
-import { Config, ProjectConfig } from "#lib/ProjectConfig";
+import { prepareConfig, ProjectConfig } from "#lib/ProjectConfig";
 
 const globalUrl = "https://cdn-global.configcat.com";
 const euOnlyUrl = "https://cdn-eu.configcat.com";
@@ -23,12 +23,13 @@ describe("DataGovernance", () => {
     configService.prepareResponse(globalUrl, globalUrl, 0, testObject);
 
     let [, config] = await configService.refreshLogicAsync();
-    assert.equal(JSON.stringify(JSON.parse(config.configJson!)["f"]), JSON.stringify(testObject));
+
+    assert.equal(JSON.stringify(config.config!.f), JSON.stringify(testObject));
     configService.validateCallCount(1);
     configService.validateCall(0, globalUrl);
 
     [, config] = await configService.refreshLogicAsync();
-    assert.equal(JSON.stringify(JSON.parse(config.configJson!)["f"]), JSON.stringify(testObject));
+    assert.equal(JSON.stringify(config.config!.f), JSON.stringify(testObject));
     configService.validateCallCount(2);
     configService.validateCall(0, globalUrl);
     configService.validateCall(1, globalUrl);
@@ -313,7 +314,7 @@ export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
     };
 
     configFetcher.prepareResponse(this.getUrl(baseUrl),
-      FetchResult.success(new ProjectConfig(JSON.stringify(configJson), new Config(configJson), ProjectConfig.generateTimestamp(), "etag"), RefreshErrorCode.None));
+      FetchResult.success(new ProjectConfig(JSON.stringify(configJson), prepareConfig(configJson), ProjectConfig.generateTimestamp(), "etag"), RefreshErrorCode.None));
   }
 
   validateCallCount(callCount: number): void {

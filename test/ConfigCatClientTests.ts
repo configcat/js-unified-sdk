@@ -12,7 +12,7 @@ import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { setupPolyfills } from "#lib/Polyfills";
-import { Config, IConfig, ProjectConfig, SettingValue, SettingValueContainer } from "#lib/ProjectConfig";
+import { Config, deserializeConfig, ProjectConfig, SettingValue } from "#lib/ProjectConfig";
 import { EvaluateContext, EvaluationErrorCode, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
 import { delay, getMonotonicTimeMs, Message } from "#lib/Utils";
@@ -55,7 +55,7 @@ describe("ConfigCatClient", () => {
   it("Initialization With AutoPollOptions should create an instance, getValueAsync works", async () => {
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
 
     assert.equal(true, await client.getValueAsync("debug", false, new User("identifier")));
@@ -72,7 +72,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
 
     assert.equal(true, await client.getValueAsync("debug", false, new User("identifier")));
@@ -88,7 +88,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options: ManualPollOptions = createManualPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
 
     assert.equal(false, await client.getValueAsync("debug", false, new User("identifier")));
@@ -105,7 +105,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options: ManualPollOptions = createManualPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
     client.forceRefreshAsync().then(() => {
       client.getValueAsync("debug", false).then(function(value) {
@@ -120,7 +120,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
 
     client.getValueAsync("debug", false).then(function(value) {
@@ -134,7 +134,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithNullNewConfig() });
     const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
 
     client.getValueAsync("debug", false).then(function(value) {
@@ -148,7 +148,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
 
     const flagEvaluatedEvents: IEvaluationDetails[] = [];
@@ -167,7 +167,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithTwoKeys() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
     const keys = await client.getAllKeysAsync();
     assert.equal(keys.length, 2);
@@ -181,7 +181,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithNullNewConfig() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null, maxInitWaitTimeSeconds: 0 }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
     const keys = await client.getAllKeysAsync();
     assert.equal(keys.length, 0);
@@ -199,7 +199,7 @@ describe("ConfigCatClient", () => {
     const configCache = new FakeCache();
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const user = new User("a@configcat.com");
 
@@ -239,11 +239,11 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const user = new User("a@configcat.com");
 
@@ -283,11 +283,11 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const user = new User("a@configcat.com");
 
@@ -327,11 +327,11 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithRules;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const user = new User("a@configcat.com");
     user.custom = { eyeColor: "red" };
@@ -355,8 +355,8 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.errorMessage);
     assert.isUndefined(actual.errorException);
     assert.isDefined(actual.matchedTargetingRule);
-    assert.strictEqual(actual.value, (actual.matchedTargetingRule.then as SettingValueContainer).value);
-    assert.strictEqual(actual.variationId, (actual.matchedTargetingRule.then as SettingValueContainer).variationId);
+    assert.strictEqual(actual.value, actual.matchedTargetingRule.s?.v?.s);
+    assert.strictEqual(actual.variationId, actual.matchedTargetingRule.s?.i);
     assert.isUndefined(actual.matchedPercentageOption);
 
     assert.equal(1, flagEvaluatedEvents.length);
@@ -374,11 +374,11 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithPercentageOptions;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const user = new User("a@configcat.com");
 
@@ -402,8 +402,8 @@ describe("ConfigCatClient", () => {
     assert.isUndefined(actual.errorException);
     assert.isUndefined(actual.matchedTargetingRule);
     assert.isDefined(actual.matchedPercentageOption);
-    assert.strictEqual(actual.value, actual.matchedPercentageOption.value);
-    assert.strictEqual(actual.variationId, actual.matchedPercentageOption.variationId);
+    assert.strictEqual(actual.value, actual.matchedPercentageOption.v?.s);
+    assert.strictEqual(actual.variationId, actual.matchedPercentageOption.i);
 
     assert.equal(1, flagEvaluatedEvents.length);
     assert.strictEqual(actual, flagEvaluatedEvents[0]);
@@ -420,11 +420,11 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const err = new Error("Something went wrong.");
     client["evaluator"] = new class implements IRolloutEvaluator {
@@ -476,11 +476,11 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const user = new User("a@configcat.com");
 
@@ -529,11 +529,11 @@ describe("ConfigCatClient", () => {
     const timestamp = ProjectConfig.generateTimestamp();
 
     const configFetcherClass = FakeConfigFetcherWithTwoKeys;
-    const cachedPc = new ProjectConfig(configFetcherClass.configJson, Config.deserialize(configFetcherClass.configJson), timestamp, "etag");
+    const cachedPc = new ProjectConfig(configFetcherClass.configJson, deserializeConfig(configFetcherClass.configJson), timestamp, "etag");
     const configCache = new FakeCache(cachedPc);
     const configCatKernel = createKernel({ configFetcherFactory: () => new configFetcherClass(), defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const err = new Error("Something went wrong.");
     client["evaluator"] = new class implements IRolloutEvaluator {
@@ -599,7 +599,7 @@ describe("ConfigCatClient", () => {
       setupHooks: hooks => hooks.on("configChanged", () => configChangedEventCount++),
     };
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", userOptions, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
     try {
       await delay(2.5 * pollIntervalSeconds * 1000);
 
@@ -618,7 +618,7 @@ describe("ConfigCatClient", () => {
       setupHooks: hooks => hooks.on("configChanged", () => configChangedEventCount++),
     };
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", userOptions, configCatKernel);
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
     try {
       await delay(2.5 * pollIntervalSeconds * 1000);
 
@@ -634,7 +634,7 @@ describe("ConfigCatClient", () => {
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
     const startTime: number = getMonotonicTimeMs();
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     const actualValue = await client.getValueAsync("debug", false);
     const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
@@ -658,7 +658,7 @@ describe("ConfigCatClient", () => {
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
       const startTime: number = getMonotonicTimeMs();
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const actualDetails = await client.getValueDetailsAsync("debug", false);
       const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
@@ -679,7 +679,7 @@ describe("ConfigCatClient", () => {
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
     const startTime: number = getMonotonicTimeMs();
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     const actualValue = await client.getValueAsync("debug", false);
     const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
@@ -704,7 +704,7 @@ describe("ConfigCatClient", () => {
       const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcher() });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, configCatKernel);
 
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const state = await client.waitForReady();
 
       assert.equal(state, ClientCacheState.HasUpToDateFlagData);
@@ -720,7 +720,7 @@ describe("ConfigCatClient", () => {
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
 
       const startTime: number = getMonotonicTimeMs();
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const state = await client.waitForReady();
       const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
@@ -753,7 +753,7 @@ describe("ConfigCatClient", () => {
       }, configCatKernel);
 
       const startTime: number = getMonotonicTimeMs();
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const state = await client.waitForReady();
       const elapsedMilliseconds: number = getMonotonicTimeMs() - startTime;
 
@@ -778,7 +778,7 @@ describe("ConfigCatClient", () => {
         cache: new FakeExternalCacheWithInitialData(),
       }, configCatKernel);
 
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const state = await client.waitForReady();
 
       assert.equal(state, ClientCacheState.HasUpToDateFlagData);
@@ -794,7 +794,7 @@ describe("ConfigCatClient", () => {
         cache: new FakeExternalCacheWithInitialData(120_000),
       }, configCatKernel);
 
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const state = await client.waitForReady();
 
       assert.equal(state, ClientCacheState.HasCachedFlagDataOnly);
@@ -810,7 +810,7 @@ describe("ConfigCatClient", () => {
         cache: new FakeExternalCacheWithInitialData(),
       }, configCatKernel);
 
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const state = await client.waitForReady();
 
       assert.equal(state, ClientCacheState.HasCachedFlagDataOnly);
@@ -833,7 +833,7 @@ describe("ConfigCatClient", () => {
         },
       }, configCatKernel);
 
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
       const state = await client.waitForReady();
 
       assert.equal(state, ClientCacheState.HasLocalOverrideFlagDataOnly);
@@ -850,7 +850,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     const user: User = new User("");
 
@@ -865,7 +865,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     const user: User = new User("userId");
 
@@ -880,7 +880,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithTwoCaseSensitiveKeys() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     let actual = await client.getValueAsync("debug", "N/A");
 
@@ -898,7 +898,7 @@ describe("ConfigCatClient", () => {
   it("getValueAsync - case sensitive attribute tests", async () => {
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithTwoCaseSensitiveKeys() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     let user: User = new User("", void 0, void 0, { "CUSTOM": "c" });
     let actual = await client.getValueAsync("debug", "N/A", user);
@@ -922,7 +922,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithTwoKeys() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     const flagEvaluatedEvents: IEvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
@@ -940,7 +940,7 @@ describe("ConfigCatClient", () => {
 
     const configCatKernel = createKernel({ configFetcherFactory: () => new FakeConfigFetcherWithNullNewConfig() });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null, maxInitWaitTimeSeconds: 0 }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     const flagEvaluatedEvents: IEvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
@@ -960,7 +960,7 @@ describe("ConfigCatClient", () => {
     const configFetcher = new FakeConfigFetcher(500);
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher });
     const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", void 0, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     await Promise.all([client.getValueAsync("debug", false), client.getValueAsync("debug", false)]);
     assert.equal(1, configFetcher.calledTimes);
@@ -973,7 +973,7 @@ describe("ConfigCatClient", () => {
     const configFetcher = new FakeConfigFetcher(500);
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher });
     const options: LazyLoadOptions = createLazyLoadOptions("APIKEY", void 0, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     let callbackCount = 0;
 
@@ -996,10 +996,10 @@ describe("ConfigCatClient", () => {
 
     const configFetcher = new FakeConfigFetcher(500);
     const configJson = "{\"f\": { \"debug\": { \"v\": { \"b\": false }, \"i\": \"abcdefgh\", \"t\": 0, \"p\": [], \"r\": [] } } }";
-    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
+    const configCache = new FakeCache(new ProjectConfig(configJson, deserializeConfig(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 10 }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     client.getValueAsync("debug", false).then(value => {
       client.dispose();
@@ -1011,10 +1011,10 @@ describe("ConfigCatClient", () => {
 
     const configFetcher = new FakeConfigFetcher(500);
     const configJson = "{\"f\": { \"debug\": { \"v\": { \"b\": false }, \"i\": \"abcdefgh\", \"t\": 0, \"p\": [], \"r\": [] } } }";
-    const configCache = new FakeCache(new ProjectConfig(configJson, Config.deserialize(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
+    const configCache = new FakeCache(new ProjectConfig(configJson, deserializeConfig(configJson), ProjectConfig.generateTimestamp() - 10000000, "etag2"));
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: 10 }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     const value = await client.getValueAsync("debug", false);
     assert.isTrue(value);
@@ -1027,7 +1027,7 @@ describe("ConfigCatClient", () => {
     const configFetcher = new FakeConfigFetcher(500);
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher });
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { pollIntervalSeconds: 2 }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
     client.dispose();
     assert.equal(configFetcher.calledTimes, 0);
     setTimeout(() => {
@@ -1279,7 +1279,7 @@ describe("ConfigCatClient", () => {
       const configCache = new FakeCache();
       const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
       const options = optionsFactory("APIKEY", configCatKernel, true);
-      const client = new ConfigCatClient(options, configCatKernel);
+      const client = new ConfigCatClient(options);
       const configService = client["configService"] as ConfigServiceBase<OptionsBase>;
 
       let expectedFetchTimes = 0;
@@ -1347,7 +1347,7 @@ describe("ConfigCatClient", () => {
       const configCache = new FakeCache();
       const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
       const options = optionsFactory("APIKEY", configCatKernel, false);
-      const client = new ConfigCatClient(options, configCatKernel);
+      const client = new ConfigCatClient(options);
       const configService = client["configService"] as ConfigServiceBase<OptionsBase>;
 
       let expectedFetchTimes = 0;
@@ -1408,13 +1408,13 @@ describe("ConfigCatClient", () => {
     it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of`, async () => {
       let clientReadyEventCount = 0;
       const configFetchedEvents: [RefreshResult, boolean][] = [];
-      const configChangedEvents: IConfig[] = [];
+      const configChangedEvents: Config[] = [];
       const flagEvaluatedEvents: IEvaluationDetails[] = [];
       const errorEvents: [string, any][] = [];
 
       const handleClientReady = () => clientReadyEventCount++;
       const handleConfigFetched = (result: RefreshResult, isInitiatedByUser: boolean) => configFetchedEvents.push([result, isInitiatedByUser]);
-      const handleConfigChanged = (pc: IConfig) => configChangedEvents.push(pc);
+      const handleConfigChanged = (pc: Config) => configChangedEvents.push(pc);
       const handleFlagEvaluated = (ed: IEvaluationDetails) => flagEvaluatedEvents.push(ed);
       const handleClientError = (msg: Message, err: any) => errorEvents.push([msg.toString(), err]);
 
@@ -1436,7 +1436,7 @@ describe("ConfigCatClient", () => {
       const expectedErrorException = new Error("Something went wrong.");
 
       // 1. Client gets created
-      const client = new ConfigCatClient(options, configCatKernel);
+      const client = new ConfigCatClient(options);
 
       if (!addListenersViaOptions) {
         setupHooks(client);
@@ -1516,7 +1516,7 @@ describe("ConfigCatClient", () => {
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
 
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     const refreshResult = await client.forceRefreshAsync();
 
@@ -1537,7 +1537,7 @@ describe("ConfigCatClient", () => {
     const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher, defaultCacheFactory: () => configCache });
     const options = createManualPollOptions("APIKEY", void 0, configCatKernel);
 
-    const client = new ConfigCatClient(options, configCatKernel);
+    const client = new ConfigCatClient(options);
 
     client["configService"] = new class implements IConfigService {
       readonly readyPromise = Promise.resolve(ClientCacheState.NoFlagData);
@@ -1604,11 +1604,11 @@ describe("ConfigCatClient", () => {
 
         if (clientOptions.cache && (initialCacheState === "expired" || initialCacheState === "fresh")) {
           const timestamp = ProjectConfig.generateTimestamp() - expirationSeconds * 1000 * (initialCacheState === "expired" ? 1.5 : 0.5);
-          const pc = new ProjectConfig(configJson, Config.deserialize(configJson), timestamp, "\"etag\"");
+          const pc = new ProjectConfig(configJson, deserializeConfig(configJson), timestamp, "\"etag\"");
           await clientOptions.cache.set(options.getCacheKey(), ProjectConfig.serialize(pc));
         }
 
-        const client = new ConfigCatClient(options, configCatKernel);
+        const client = new ConfigCatClient(options);
         try {
           // After client instantiation, if IConfigCatCache.get is a sync operation, the snapshot should immediately report the expected cache state.
           let snapshot = client.snapshot();

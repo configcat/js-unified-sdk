@@ -1,11 +1,11 @@
 import { assert, expect } from "chai";
 import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig } from "./helpers/fakes";
-import { RefreshErrorCode, SettingKeyValue } from "#lib";
+import { RefreshErrorCode, SettingKeyValue, User } from "#lib";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
-import { IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
+import { IOverrideDataSource, IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { createFlagOverridesFromQueryParams } from "#lib/index.pubternals";
-import { InvalidConfigModelError, SettingValue } from "#lib/ProjectConfig";
+import { ConfigJson, InvalidConfigModelError, prepareConfig, Setting, SettingValue } from "#lib/ProjectConfig";
 import { EvaluationError, EvaluationErrorCode, isAllowedValue } from "#lib/RolloutEvaluator";
 
 describe("Local Overrides", () => {
@@ -28,7 +28,7 @@ describe("Local Overrides", () => {
         behaviour: OverrideBehaviour.LocalOnly,
       },
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("enabledFeature", null), true);
     assert.equal(await client.getValueAsync("disabledFeature", null), false);
@@ -67,7 +67,7 @@ describe("Local Overrides", () => {
         behaviour: OverrideBehaviour.LocalOnly,
       },
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("enabledFeature", null), true);
     assert.equal(await client.getValueAsync("disabledFeature", null), false);
@@ -106,7 +106,7 @@ describe("Local Overrides", () => {
         behaviour: OverrideBehaviour.LocalOnly,
       },
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     let snapshot = client.snapshot();
     assert.equal(await snapshot.getValue("enabledFeature", null), true);
@@ -141,7 +141,7 @@ describe("Local Overrides", () => {
         behaviour: OverrideBehaviour.LocalOverRemote,
       },
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("fakeKey", false), true);
     assert.equal(await client.getValueAsync("nonexisting", false), true);
@@ -162,7 +162,7 @@ describe("Local Overrides", () => {
         behaviour: OverrideBehaviour.RemoteOverLocal,
       },
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("fakeKey", true), false);
     assert.equal(await client.getValueAsync("nonexisting", false), true);
@@ -184,7 +184,7 @@ describe("Local Overrides", () => {
       },
       maxInitWaitTimeSeconds: 1,
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("fakeKey", false), true);
     assert.equal(await client.getValueAsync("nonexisting", false), true);
@@ -208,7 +208,7 @@ describe("Local Overrides", () => {
         behaviour: OverrideBehaviour.RemoteOverLocal,
       },
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("enabled-feature", false), true);
     assert.equal(await client.getValueAsync("disabled_feature", true), false);
@@ -231,7 +231,7 @@ describe("Local Overrides", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, false, void 0, queryStringProvider),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
     assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
@@ -255,7 +255,7 @@ describe("Local Overrides", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, true, void 0, queryStringProvider),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
     assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
@@ -282,7 +282,7 @@ describe("Local Overrides", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, true, void 0, queryStringProvider),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "OVERRIDE_CAT");
     assert.equal(await client.getValueAsync("stringDefaultDog", ""), "DOG");
@@ -308,7 +308,7 @@ describe("Local Overrides", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, void 0, "", queryStringProvider),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("numberDefaultZero", 0), 43);
     assert.equal(await client.getValueAsync("cc-numberDefaultZero", 0), 44);
@@ -327,7 +327,7 @@ describe("Local Overrides", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, void 0, void 0, queryStringProvider),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "TRUE");
     assert.equal(await client.getValueAsync("boolDefaultFalse", false), true);
@@ -346,7 +346,7 @@ describe("Local Overrides", () => {
     const options: AutoPollOptions = createAutoPollOptions("localhost", {
       flagOverrides: createFlagOverridesFromQueryParams(OverrideBehaviour.LocalOverRemote, void 0, void 0, queryStringProvider),
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     assert.equal(await client.getValueAsync("stringDefaultCat", ""), "");
     assert.isNull(await client.getValueAsync("some", null));
@@ -354,9 +354,106 @@ describe("Local Overrides", () => {
     client.dispose();
   });
 
+  it("Values from custom data source", async () => {
+    // "Beta users" segment: Email IS ONE OF ['jane@example.com', 'john@example.com']
+    const config = prepareConfig({
+      "p": {
+        "s": "UZWYnRWPwF7hApMquVrUmyPRGziigICYz372JOYqXgw=",
+      } as ConfigJson.Preferences,
+      "s": [
+        {
+          "n": "Beta users",
+          "r": [
+            {
+              "a": "Email",
+              "c": 16,
+              "l": [
+                "89f6d080752f2969b6802c399e6141885c4ce40fb151f41b9ec955c1f4790490",
+                "2dde8bd2436cb07d45fb455847f8a09ea2427313c278b3352a39db31e6106c4c",
+              ],
+            },
+          ],
+        },
+      ],
+      "f": {
+        "isInSegment": {
+          "t": 0,
+          "r": [
+            {
+              "c": [
+                {
+                  "s": {
+                    "s": 0,
+                    "c": 0,
+                  },
+                },
+              ],
+              "s": {
+                "v": {
+                  "b": true,
+                },
+                "i": "1",
+              },
+            },
+          ],
+          "v": {
+            "b": false,
+          },
+          "i": "0",
+        },
+        "isNotInSegment": {
+          "t": 0,
+          "r": [
+            {
+              "c": [
+                {
+                  "s": {
+                    "s": 0,
+                    "c": 1,
+                  },
+                },
+              ],
+              "s": {
+                "v": {
+                  "b": true,
+                },
+                "i": "1",
+              },
+            },
+          ],
+          "v": {
+            "b": false,
+          },
+          "i": "0",
+        },
+      },
+    });
+
+    const customDataSource = new (class implements IOverrideDataSource {
+      getOverrides(): Record<string, Setting> {
+        return config.f!;
+      }
+    })();
+
+    const options: ManualPollOptions = createManualPollOptions("localhost", {
+      flagOverrides: { dataSource: customDataSource, behaviour: OverrideBehaviour.LocalOnly },
+    });
+    const client: IConfigCatClient = new ConfigCatClient(options);
+
+    const keys = await client.snapshot().getAllKeys();
+    expect(keys).to.have.members(["isInSegment", "isNotInSegment"]);
+
+    const user = new User("12345", "jane@example.com");
+
+    assert.isTrue(await client.getValueAsync("isInSegment", null, user));
+    assert.isFalse(await client.getValueAsync("isNotInSegment", null, user));
+
+    client.dispose();
+  });
+
   it("LocalOnly - forceRefreshAsync() should return failure", async () => {
     const configCatKernel = createKernel({
-      configFetcherFactory: () => new FakeConfigFetcherBase('{"f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
+      configFetcherFactory: () => new FakeConfigFetcherBase('{"s": "f":{"fakeKey":{"t":0,"v":{"b":false}}}}'),
     });
     const options: ManualPollOptions = createManualPollOptions("localhost", {
       flagOverrides: {
@@ -367,7 +464,7 @@ describe("Local Overrides", () => {
         behaviour: OverrideBehaviour.LocalOnly,
       },
     }, configCatKernel);
-    const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+    const client: IConfigCatClient = new ConfigCatClient(options);
 
     const refreshResult = await client.forceRefreshAsync();
 
@@ -418,7 +515,7 @@ describe("Local Overrides", () => {
         },
       }, configCatKernel);
 
-      const client: IConfigCatClient = new ConfigCatClient(options, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
 
       const actualEvaluatedValueDetails = await client.getValueDetailsAsync(key, defaultValue as SettingValue);
       const actualEvaluatedValue = actualEvaluatedValueDetails.value;

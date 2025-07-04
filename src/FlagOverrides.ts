@@ -1,5 +1,5 @@
-import type { SettingValue } from "./ProjectConfig";
-import { Setting } from "./ProjectConfig";
+import type { Setting, SettingValue } from "./ProjectConfig";
+import { createSettingFromValue } from "./ProjectConfig";
 import { isArray, parseFloatStrict } from "./Utils";
 
 export type FlagOverrides = {
@@ -35,44 +35,36 @@ export function nameOfOverrideBehaviour(value: OverrideBehaviour): string {
   return OverrideBehaviour[value] as string;
 }
 
-type SettingMap = { [key: string]: Setting };
-
 export interface IOverrideDataSource {
-  getOverrides(): Promise<SettingMap>;
-
-  getOverridesSync(): SettingMap;
+  getOverrides(): Record<string, Setting>;
 }
 
 /* Map */
 
 export class MapOverrideDataSource implements IOverrideDataSource {
-  private readonly initialSettings: SettingMap;
-  private readonly map?: { [key: string]: NonNullable<SettingValue> };
+  private readonly initialSettings: Record<string, Setting>;
+  private readonly map?: Record<string, NonNullable<SettingValue>>;
 
-  constructor(map: { [key: string]: NonNullable<SettingValue> }, watchChanges?: boolean) {
+  constructor(map: Record<string, NonNullable<SettingValue>>, watchChanges?: boolean) {
     this.initialSettings = getSettingsFromMap(map);
     if (watchChanges) {
       this.map = map;
     }
   }
 
-  getOverrides(): Promise<SettingMap> {
-    return Promise.resolve(this.getOverridesSync());
-  }
-
-  getOverridesSync(): SettingMap {
+  getOverrides(): Record<string, Setting> {
     return this.map
       ? getSettingsFromMap(this.map)
       : this.initialSettings;
   }
 }
 
-function getSettingsFromMap(map: { [key: string]: NonNullable<SettingValue> }) {
-  const settings: SettingMap = {};
+function getSettingsFromMap(map: Record<string, NonNullable<SettingValue>>) {
+  const settings: Record<string, Setting> = {};
 
   for (const key in map) {
     if (Object.prototype.hasOwnProperty.call(map, key)) {
-      settings[key] = Setting.fromValue(map[key]);
+      settings[key] = createSettingFromValue(map[key]);
     }
   }
 
@@ -85,7 +77,7 @@ const DEFAULT_PARAM_PREFIX = "cc-";
 const FORCE_STRING_VALUE_SUFFIX = ";str";
 
 export interface IQueryStringProvider {
-  readonly currentValue?: string | { [key: string]: string | ReadonlyArray<string> };
+  readonly currentValue?: string | Record<string, string | ReadonlyArray<string>>;
 }
 
 class DefaultQueryStringProvider implements IQueryStringProvider {
@@ -102,7 +94,7 @@ export class QueryParamsOverrideDataSource implements IOverrideDataSource {
   private readonly paramPrefix: string;
   private readonly queryStringProvider: IQueryStringProvider;
   private queryString: string | undefined;
-  private settings: SettingMap;
+  private settings: Record<string, Setting>;
 
   constructor(watchChanges?: boolean, paramPrefix?: string, queryStringProvider?: IQueryStringProvider) {
     this.watchChanges = watchChanges;
@@ -116,11 +108,7 @@ export class QueryParamsOverrideDataSource implements IOverrideDataSource {
     this.queryString = getQueryString(currentQueryStringOrParams);
   }
 
-  getOverrides(): Promise<SettingMap> {
-    return Promise.resolve(this.getOverridesSync());
-  }
-
-  getOverridesSync(): SettingMap {
+  getOverrides(): Record<string, Setting> {
     if (this.watchChanges) {
       const currentQueryStringOrParams = this.queryStringProvider.currentValue;
       const currentQueryString = getQueryString(currentQueryStringOrParams);
@@ -134,7 +122,7 @@ export class QueryParamsOverrideDataSource implements IOverrideDataSource {
   }
 }
 
-function getQueryString(queryStringOrParams: string | { [key: string]: string | ReadonlyArray<string> } | undefined) {
+function getQueryString(queryStringOrParams: string | Record<string, string | ReadonlyArray<string>> | undefined) {
   if (queryStringOrParams == null) {
     return "";
   }
@@ -166,8 +154,8 @@ function getQueryString(queryStringOrParams: string | { [key: string]: string | 
   return queryString;
 }
 
-function getSettingsFromQueryString(queryStringOrParams: string | { [key: string]: string | ReadonlyArray<string> } | undefined, paramPrefix: string) {
-  const settings: SettingMap = {};
+function getSettingsFromQueryString(queryStringOrParams: string | Record<string, string | ReadonlyArray<string>> | undefined, paramPrefix: string) {
+  const settings: Record<string, Setting> = {};
 
   if (typeof queryStringOrParams === "string") {
     extractSettingFromQueryString(queryStringOrParams, paramPrefix, settings);
@@ -178,7 +166,7 @@ function getSettingsFromQueryString(queryStringOrParams: string | { [key: string
   return settings;
 }
 
-function extractSettingsFromQueryParams(queryParams: { [key: string]: string | ReadonlyArray<string> } | undefined, paramPrefix: string, settings: SettingMap) {
+function extractSettingsFromQueryParams(queryParams: Record<string, string | ReadonlyArray<string>> | undefined, paramPrefix: string, settings: Record<string, Setting>) {
   for (const key in queryParams) {
     if (!Object.prototype.hasOwnProperty.call(queryParams, key)) continue;
 
@@ -197,7 +185,7 @@ function extractSettingsFromQueryParams(queryParams: { [key: string]: string | R
   }
 }
 
-function extractSettingFromQueryString(queryString: string, paramPrefix: string, settings: SettingMap) {
+function extractSettingFromQueryString(queryString: string, paramPrefix: string, settings: Record<string, Setting>) {
   if (!queryString
     || queryString.lastIndexOf("?", 0) < 0) { // identical to `!queryString.startsWith("?")`
     return;
@@ -215,7 +203,7 @@ function extractSettingFromQueryString(queryString: string, paramPrefix: string,
   }
 }
 
-function extractSettingFromQueryParam(key: string, value: string, paramPrefix: string, settings: SettingMap) {
+function extractSettingFromQueryParam(key: string, value: string, paramPrefix: string, settings: Record<string, Setting>) {
   if (!key
     || key.length <= paramPrefix.length
     || key.lastIndexOf(paramPrefix, 0) < 0) { // identical to `!key.startsWith(paramPrefix)`
@@ -233,7 +221,7 @@ function extractSettingFromQueryParam(key: string, value: string, paramPrefix: s
     value = parseSettingValue(value) as unknown as string;
   }
 
-  settings[key] = Setting.fromValue(value);
+  settings[key] = createSettingFromValue(value);
 }
 
 function parseSettingValue(value: string): NonNullable<SettingValue> {

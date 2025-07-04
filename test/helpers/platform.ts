@@ -57,17 +57,17 @@ export abstract class PlatformAbstractions<
 
   createClientWithAutoPoll = (sdkKey: string, options?: TAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
     const configCatKernel = this.createKernel(setupKernel, options);
-    return new ConfigCatClient(this.createAutoPollOptions(sdkKey, options, configCatKernel), configCatKernel);
+    return new ConfigCatClient(this.createAutoPollOptions(sdkKey, options, configCatKernel));
   };
 
   createClientWithManualPoll = (sdkKey: string, options?: TManualPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
     const configCatKernel = this.createKernel(setupKernel, options);
-    return new ConfigCatClient(this.createManualPollOptions(sdkKey, options, configCatKernel), configCatKernel);
+    return new ConfigCatClient(this.createManualPollOptions(sdkKey, options, configCatKernel));
   };
 
   createClientWithLazyLoad = (sdkKey: string, options?: TLazyLoadingOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
     const configCatKernel = this.createKernel(setupKernel, options);
-    return new ConfigCatClient(this.createLazyLoadOptions(sdkKey, options, configCatKernel), configCatKernel);
+    return new ConfigCatClient(this.createLazyLoadOptions(sdkKey, options, configCatKernel));
   };
 
   getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode,
