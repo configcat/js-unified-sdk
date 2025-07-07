@@ -239,11 +239,11 @@ export declare abstract class SegmentCondition implements Immutable<ConfigJson.S
 /* Config model helper functions & types */
 
 /**
- * Deserializes a config JSON into a config model that can be passed to feature flag evaluation.
+ * Deserializes the specified config JSON to a `Config` model that can be used for feature flag evaluation.
  *
- * @remarks Does superficial model validation only, meaning that the method makes sure that the specified `configJson`
- * matches the type definition of the `Config` data model, but doesn't check for semantic issues. E.g. doesn't validate
- * that a referenced segment or feature flag actually exists. (Such cases are handled by feature flag evaluation.)
+ * @remarks Does superficial model validation only, meaning that the method makes sure that the specified config JSON
+ * matches the type definition of the `Config` model, but doesn't check for semantic issues. E.g. doesn't validate
+ * whether referenced segments and feature flags actually exist. (Such issues are checked during feature flag evaluation.)
  */
 export function deserializeConfig(configJson: string): Config {
   const configJsonParsed: unknown = JSON.parse(configJson);
@@ -251,11 +251,12 @@ export function deserializeConfig(configJson: string): Config {
 }
 
 /**
- * Prepares a parsed config JSON so it can be passed to feature flag evaluation.
+ * Prepares the specified preparsed config JSON so it can be used for feature flag evaluation. Makes direct
+ * modifications to the specified object and returns the same reference cast as type `Config`.
  *
- * @remarks Does superficial model validation only, meaning that the method makes sure that the specified `config`
- * matches the type definition of the `Config` data model, but doesn't check for semantic issues. E.g. doesn't validate
- * that a referenced segment or feature flag actually exists. (Such cases are handled by feature flag evaluation.)
+ * @remarks Does superficial model validation only, meaning that the method makes sure that the specified config JSON
+ * matches the type definition of the `Config` model, but doesn't check for semantic issues. E.g. doesn't validate
+ * whether referenced segments and feature flags actually exist. (Such issues are checked during feature flag evaluation.)
  */
 export function prepareConfig(config: Partial<ConfigJson.Config>): Config {
   checkConfig(config, ["$"]);
@@ -278,7 +279,7 @@ export function prepareConfig(config: Partial<ConfigJson.Config>): Config {
 }
 
 /**
- * Creates a setting that can be passed to feature flag evaluation from the specified `value`.
+ * Creates a setting that can be used for feature flag evaluation from the specified value.
  */
 export function createSettingFromValue(value: NonNullable<SettingValue>): Setting {
   return {
