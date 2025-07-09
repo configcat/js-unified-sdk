@@ -1,13 +1,13 @@
 import * as http from "http";
 import * as https from "https";
-import * as tunnel from "tunnel";
-import { URL } from "url";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
+import { HttpProxyAgent } from "./HttpProxyAgent";
+import { HttpsProxyAgent } from "./HttpsProxyAgent";
 
 export interface INodeHttpConfigFetcherOptions {
   /** Proxy settings. */
@@ -72,23 +72,10 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         let agent: http.Agent | undefined;
         if (this.proxy) {
           try {
-            const proxy: URL = new URL(this.proxy);
-            let agentFactory: any;
-            if (proxy.protocol === "https:") {
-              agentFactory = isHttpsUrl ? tunnel.httpsOverHttps : tunnel.httpOverHttps;
-            } else {
-              agentFactory = isHttpsUrl ? tunnel.httpsOverHttp : tunnel.httpOverHttp;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-            agent = agentFactory({
-              proxy: {
-                host: proxy.hostname,
-                port: proxy.port,
-                proxyAuth: (proxy.username && proxy.password) ? `${proxy.username}:${proxy.password}` : null,
-              },
-            });
+            agent = isHttpsUrl ? new HttpsProxyAgent(this.proxy) : new HttpProxyAgent(this.proxy);
           } catch (err) {
-            this.logger?.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to parse \`options.proxy\`: '${this.proxy}'.`, err);
+            this.logger?.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to create proxy agent for \`options.proxy\`: '${this.proxy}'.`, err);
+            throw err;
           }
         }
 

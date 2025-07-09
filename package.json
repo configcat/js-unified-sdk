@@ -117,9 +117,6 @@
   "author": "ConfigCat",
   "license": "MIT",
   "homepage": "https://configcat.com",
-  "dependencies": {
-    "tunnel": "^0.0.6"
-  },
   "devDependencies": {
     "@babel/preset-env": "^7.20.2",
     "@cloudflare/workers-types": "^4.20241106.0",
@@ -130,7 +127,6 @@
     "@types/deno": "^2.0.0",
     "@types/mocha": "~10.0.1",
     "@types/node": "~18.19.7",
-    "@types/tunnel": "~0.0.7",
     "babel-loader": "^9.1.0",
     "chai": "^4.3.7",
     "concurrently": "^9.1.0",
