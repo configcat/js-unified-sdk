@@ -5,11 +5,10 @@ import { once } from 'events';
 import { Agent, AgentConnectOpts } from './AgentBase';
 import { URL } from 'url';
 import type { OutgoingHttpHeaders } from 'http';
+import type { LogMessage } from '../ConfigCatLogger';
+import { FormattableLogMessage } from '../ConfigCatLogger';
 
 // Based on: https://github.com/TooTallNate/proxy-agents/blob/agent-base%407.1.4/packages/http-proxy-agent/src/index.ts
-
-//const debug = createDebug('http-proxy-agent');
-const debug = (...args: any[]) => {};
 
 type Protocol<T> = T extends `${infer Protocol}:${infer _}` ? Protocol : never;
 
@@ -48,11 +47,15 @@ export class HttpProxyAgent<Uri extends string> extends Agent {
   proxyHeaders: OutgoingHttpHeaders | (() => OutgoingHttpHeaders);
   connectOpts: net.TcpNetConnectOpts & tls.ConnectionOptions;
 
-  constructor(proxy: Uri | URL, opts?: HttpProxyAgentOptions<Uri>) {
+  constructor(
+    proxy: Uri | URL,
+    opts?: HttpProxyAgentOptions<Uri>,
+    private debug?: (message: LogMessage, err?: any) => void
+  ) {
     super(opts);
     this.proxy = typeof proxy === 'string' ? new URL(proxy) : proxy;
     this.proxyHeaders = opts?.headers ?? {};
-    debug('Creating new HttpProxyAgent instance: %o', this.proxy.href);
+    this.debug?.(FormattableLogMessage.from("PROXY_HREF")`Creating new HttpProxyAgent instance: ${this.proxy.href}`);
 
     // Trim off the brackets from IPv6 addresses
     const host = (this.proxy.hostname || this.proxy.host).replace(
@@ -137,26 +140,26 @@ export class HttpProxyAgent<Uri extends string> extends Agent {
     // to re-generate the string since we just changed the `req.path`.
     let first: string;
     let endOfHeaders: number;
-    debug('Regenerating stored HTTP header string for request');
+    this.debug?.('Regenerating stored HTTP header string for request');
     req._implicitHeader();
     if (req.outputData && req.outputData.length > 0) {
-      debug(
+      this.debug?.(
         'Patching connection write() output buffer with updated header'
       );
       first = req.outputData[0].data;
       endOfHeaders = first.indexOf('\r\n\r\n') + 4;
       req.outputData[0].data =
         req._header + first.substring(endOfHeaders);
-      debug('Output buffer: %o', req.outputData[0].data);
+      this.debug?.(FormattableLogMessage.from("DATA")`Output buffer: ${req.outputData[0].data}`);
     }
 
     // Create a socket connection to the proxy server.
     let socket: net.Socket;
     if (this.proxy.protocol === 'https:') {
-      debug('Creating `tls.Socket`: %o', this.connectOpts);
+      this.debug?.(FormattableLogMessage.from("OPTIONS")`Creating \`tls.Socket\`: ${JSON.stringify(this.connectOpts)}`);
       socket = tls.connect(this.connectOpts);
     } else {
-      debug('Creating `net.Socket`: %o', this.connectOpts);
+      this.debug?.(FormattableLogMessage.from("OPTIONS")`Creating \`net.Socket\`: ${JSON.stringify(this.connectOpts)}`);
       socket = net.connect(this.connectOpts);
     }
 

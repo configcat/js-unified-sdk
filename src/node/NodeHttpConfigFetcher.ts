@@ -2,7 +2,7 @@ import * as http from "http";
 import * as https from "https";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
-import type { LoggerWrapper } from "../ConfigCatLogger";
+import type { LoggerWrapper, LogMessage } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
@@ -71,10 +71,16 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         let agent: http.Agent | undefined;
         if (this.proxy) {
+          const debug = this.logger?.isEnabled(LogLevel.Debug)
+            ? (message: LogMessage, ex: any) => this.logger!.debug(message, ex)
+            : void 0;
+
           try {
-            agent = isHttpsUrl ? new HttpsProxyAgent(this.proxy) : new HttpProxyAgent(this.proxy);
+            agent = isHttpsUrl
+              ? new HttpsProxyAgent(this.proxy, void 0, debug)
+              : new HttpProxyAgent(this.proxy, void 0, debug);
           } catch (err) {
-            this.logger?.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to create proxy agent for \`options.proxy\`: '${this.proxy}'.`, err);
+            this.logger?.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY_URL")`Failed to create proxy agent for \`options.proxy\`: '${this.proxy}'.`, err);
             throw err;
           }
         }
@@ -98,7 +104,8 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         if (this.logger?.isEnabled(LogLevel.Debug)) {
           // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          this.logger.debug("NodeHttpConfigFetcher.fetchAsync() requestOptions: " + JSON.stringify({ ...requestOptions, agent: agent?.toString() }));
+          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: agent?.toString() });
+          this.logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
         }
 
         const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))

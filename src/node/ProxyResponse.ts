@@ -1,10 +1,9 @@
 import { IncomingHttpHeaders } from 'http';
 import { Readable } from 'stream';
+import type { LogMessage } from '../ConfigCatLogger';
+import { FormattableLogMessage } from '../ConfigCatLogger';
 
 // Based on: https://github.com/TooTallNate/proxy-agents/blob/agent-base%407.1.4/packages/https-proxy-agent/src/parse-proxy-response.ts
-
-//const debug = createDebug('https-proxy-agent:parse-proxy-response');
-const debug = (...args: any[]) => {};
 
 export interface ConnectResponse {
   statusCode: number;
@@ -13,7 +12,7 @@ export interface ConnectResponse {
 }
 
 export function parseProxyResponse(
-  socket: Readable
+  socket: Readable, debug?: (message: LogMessage, err?: any) => void
 ): Promise<{ connect: ConnectResponse; buffered: Buffer }> {
   return new Promise((resolve, reject) => {
     // we need to buffer any HTTP traffic that happens with the proxy before we get
@@ -37,7 +36,7 @@ export function parseProxyResponse(
 
     function onend() {
       cleanup();
-      debug('onend');
+      debug?.('onend');
       reject(
         new Error(
           'Proxy connection ended before receiving CONNECT response'
@@ -47,7 +46,7 @@ export function parseProxyResponse(
 
     function onerror(err: Error) {
       cleanup();
-      debug('onerror %o', err);
+      debug?.('onerror', err);
       reject(err);
     }
 
@@ -60,7 +59,7 @@ export function parseProxyResponse(
 
       if (endOfHeaders === -1) {
         // keep buffering
-        debug('have not received end of HTTP headers yet...');
+        debug?.('have not received end of HTTP headers yet...');
         read();
         return;
       }
@@ -102,7 +101,7 @@ export function parseProxyResponse(
           headers[key] = value;
         }
       }
-      debug('got proxy server response: %o %o', firstLine, headers);
+      debug?.(FormattableLogMessage.from("FIRST_LINE", "HEADERS")`got proxy server response: ${firstLine} ${JSON.stringify(headers)}`);
       cleanup();
       resolve({
         connect: {

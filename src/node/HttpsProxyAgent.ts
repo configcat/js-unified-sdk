@@ -6,11 +6,10 @@ import { Agent, AgentConnectOpts } from './AgentBase';
 import { URL } from 'url';
 import { parseProxyResponse } from './ProxyResponse';
 import type { OutgoingHttpHeaders } from 'http';
+import type { LogMessage } from '../ConfigCatLogger';
+import { FormattableLogMessage } from '../ConfigCatLogger';
 
 // Based on: https://github.com/TooTallNate/proxy-agents/blob/agent-base%407.1.4/packages/https-proxy-agent/src/index.ts
-
-//const debug = createDebug('https-proxy-agent');
-const debug = (...args: any[]) => {};
 
 const setServernameFromNonIpHost = <
   T extends { host?: string; servername?: string }
@@ -68,12 +67,16 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
   proxyHeaders: OutgoingHttpHeaders | (() => OutgoingHttpHeaders);
   connectOpts: net.TcpNetConnectOpts & tls.ConnectionOptions;
 
-  constructor(proxy: Uri | URL, opts?: HttpsProxyAgentOptions<Uri>) {
+  constructor(
+    proxy: Uri | URL,
+    opts?: HttpsProxyAgentOptions<Uri>,
+    private debug?: (message: LogMessage, err?: any) => void
+  ) {
     super(opts);
     this.options = { path: undefined };
     this.proxy = typeof proxy === 'string' ? new URL(proxy) : proxy;
     this.proxyHeaders = opts?.headers ?? {};
-    debug('Creating new HttpsProxyAgent instance: %o', this.proxy.href);
+    this.debug?.(FormattableLogMessage.from("PROXY_HREF")`Creating new HttpsProxyAgent instance: ${this.proxy.href}`);
 
     // Trim off the brackets from IPv6 addresses
     const host = (this.proxy.hostname || this.proxy.host).replace(
@@ -111,10 +114,10 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
     // Create a socket connection to the proxy server.
     let socket: net.Socket;
     if (proxy.protocol === 'https:') {
-      debug('Creating `tls.Socket`: %o', this.connectOpts);
+      this.debug?.(FormattableLogMessage.from("OPTIONS")`Creating \`tls.Socket\`: ${JSON.stringify(this.connectOpts)}`);
       socket = tls.connect(setServernameFromNonIpHost(this.connectOpts));
     } else {
-      debug('Creating `net.Socket`: %o', this.connectOpts);
+      this.debug?.(FormattableLogMessage.from("OPTIONS")`Creating \`net.Socket\`: ${JSON.stringify(this.connectOpts)}`);
       socket = net.connect(this.connectOpts);
     }
 
@@ -146,7 +149,7 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
       payload += `${name}: ${headers[name]}\r\n`;
     }
 
-    const proxyResponsePromise = parseProxyResponse(socket);
+    const proxyResponsePromise = parseProxyResponse(socket, this.debug);
 
     socket.write(`${payload}\r\n`);
 
@@ -160,7 +163,7 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
       if (opts.secureEndpoint) {
         // The proxy is connecting to a TLS server, so upgrade
         // this socket connection to a TLS connection.
-        debug('Upgrading socket connection to TLS');
+        this.debug?.('Upgrading socket connection to TLS');
         return tls.connect({
           ...omit(
             setServernameFromNonIpHost(opts),
@@ -193,7 +196,7 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
 
     // Need to wait for the "socket" event to re-play the "data" events.
     req.once('socket', (s: net.Socket) => {
-      debug('Replaying proxy buffer for failed request');
+      this.debug?.('Replaying proxy buffer for failed request');
       assert(s.listenerCount('data') > 0);
 
       // Replay the "buffered" Buffer onto the fake `socket`, since at

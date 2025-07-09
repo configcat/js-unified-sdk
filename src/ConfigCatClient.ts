@@ -2,7 +2,7 @@ import { AutoPollConfigService } from "./AutoPollConfigService";
 import type { ConfigCatClientOptions, IConfigCatKernel, OptionsBase, OptionsForPollingMode } from "./ConfigCatClientOptions";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode, PROXY_SDKKEY_PREFIX } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
-import { LogLevel } from "./ConfigCatLogger";
+import { FormattableLogMessage, LogLevel } from "./ConfigCatLogger";
 import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 import type { FlagOverrides } from "./FlagOverrides";
@@ -296,7 +296,7 @@ export class ConfigCatClient implements IConfigCatClient {
     this.options = options;
 
     if (options.logger.isEnabled(LogLevel.Debug)) {
-      options.logger.debug("Initializing ConfigCatClient. Options: " + JSON.stringify(getSerializableOptions(options)));
+      options.logger.debug(FormattableLogMessage.from("OPTIONS")`Initializing ConfigCatClient. Options: ${JSON.stringify(getSerializableOptions(options))}`);
     }
 
     // To avoid possible memory leaks, the components of the client should not hold a strong reference to the hooks object (see also SafeHooksWrapper).
