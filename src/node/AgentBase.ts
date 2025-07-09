@@ -12,7 +12,7 @@ declare module 'http' {
     totalSocketCount: number;
     addRequest(req: http.ClientRequest, opts: AgentConnectOpts): void;
     createSocket(req: http.ClientRequest, options: AgentConnectOpts, cb: (err: Error | null, s?: Duplex) => void): void;
-    getName(options?: AgentConnectOpts): string;
+    getName(options?: Partial<AgentConnectOpts>): string;
   }
 }
 
@@ -132,8 +132,8 @@ export abstract class Agent extends http.Agent {
 
   // In order to properly update the socket pool, we need to call `getName()` on
   // the core `https.Agent` if it is a secureEndpoint.
-  getName(options?: AgentConnectOpts): string {
-    const secureEndpoint = this.isSecureEndpoint(options);
+  getName(options?: Partial<AgentConnectOpts>): string {
+    const secureEndpoint = this.isSecureEndpoint(options as AgentConnectOpts);
     if (secureEndpoint) {
       return HttpsAgent.prototype.getName.call(this, options);
     }
