@@ -1,6 +1,6 @@
 import type { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import * as ConfigJson from "./ConfigJson";
-import { ensurePrototype, isArray, isObject } from "./Utils";
+import { ensurePrototype, isArray, isBoolean, isInteger, isNumber, isObject, isString } from "./Utils";
 
 // NOTE: This is a hack which prevents the TS compiler from eliding the namespace import above.
 // TS wants to do this because it figures that the ConfigJson module contains types only.
@@ -482,19 +482,19 @@ function ensureObject(value: object, path: string[]) {
 }
 
 function ensureBoolean(value: boolean, path: string[]) {
-  typeof value === "boolean" || throwConfigJsonTypeMismatchError(path);
+  isBoolean(value) || throwConfigJsonTypeMismatchError(path);
 }
 
 function ensureString(value: string, path: string[]) {
-  typeof value === "string" || throwConfigJsonTypeMismatchError(path);
+  isString(value) || throwConfigJsonTypeMismatchError(path);
 }
 
 function ensureInteger(value: number, path: string[]) {
-  typeof value === "number" && Number.isSafeInteger(value) || throwConfigJsonTypeMismatchError(path);
+  isInteger(value) || throwConfigJsonTypeMismatchError(path);
 }
 
 function ensureNumber(value: number, path: string[]) {
-  typeof value === "number" || throwConfigJsonTypeMismatchError(path);
+  isNumber(value) || throwConfigJsonTypeMismatchError(path);
 }
 
 function throwConfigJsonMissingRequiredValue(path: string[]): never {

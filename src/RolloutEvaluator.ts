@@ -10,7 +10,7 @@ import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, isNumberInRange, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType?: SettingType | UnknownSettingType;
@@ -397,7 +397,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.SemVerIsOneOf:
       case UserComparator.SemVerIsNotOneOf:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof versionOrError !== "string"
+        return !isString(versionOrError)
           ? this.evaluateSemVerIsOneOf(versionOrError, ensureComparisonValue(condition.l), comparator === UserComparator.SemVerIsNotOneOf)
           : versionOrError;
 
@@ -406,7 +406,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.SemVerGreater:
       case UserComparator.SemVerGreaterOrEquals:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof versionOrError !== "string"
+        return !isString(versionOrError)
           ? this.evaluateSemVerRelation(versionOrError, comparator, ensureComparisonValue(condition.s))
           : versionOrError;
 
@@ -417,28 +417,28 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.NumberGreater:
       case UserComparator.NumberGreaterOrEquals:
         numberOrError = getUserAttributeValueAsNumber(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof numberOrError !== "string"
+        return !isString(numberOrError)
           ? this.evaluateNumberRelation(numberOrError, comparator, ensureComparisonValue(condition.d))
           : numberOrError;
 
       case UserComparator.DateTimeBefore:
       case UserComparator.DateTimeAfter:
         numberOrError = getUserAttributeValueAsUnixTimeSeconds(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof numberOrError !== "string"
+        return !isString(numberOrError)
           ? this.evaluateDateTimeRelation(numberOrError, ensureComparisonValue(condition.d), comparator === UserComparator.DateTimeBefore)
           : numberOrError;
 
       case UserComparator.ArrayContainsAnyOf:
       case UserComparator.ArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof arrayOrError !== "string"
+        return !isString(arrayOrError)
           ? this.evaluateArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l), comparator === UserComparator.ArrayNotContainsAnyOf)
           : arrayOrError;
 
       case UserComparator.SensitiveArrayContainsAnyOf:
       case UserComparator.SensitiveArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof arrayOrError !== "string"
+        return !isString(arrayOrError)
           ? this.evaluateSensitiveArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l),
             getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveArrayNotContainsAnyOf)
           : arrayOrError;
@@ -727,7 +727,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
 
     const segmentIndex = condition?.s;
-    if (!segments || !isNumberInRange(segmentIndex, 0, segments.length - 1)) {
+    if (!segments || !isIntegerInRange(segmentIndex, 0, segments.length - 1)) {
       throwInvalidConfigModelError("Segment reference is invalid.");
     }
 
@@ -782,7 +782,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 }
 
 function isEvaluationError(isMatchOrError: boolean | string): isMatchOrError is string {
-  return typeof isMatchOrError === "string";
+  return isString(isMatchOrError);
 }
 
 function hashComparisonValue(value: string, configJsonSalt: string, contextSalt: string): string {
@@ -794,7 +794,7 @@ function hashComparisonValueSlice(sliceUtf8: string, configJsonSalt: string, con
 }
 
 function userAttributeValueToString(userAttributeValue: UserAttributeValue): string {
-  return typeof userAttributeValue === "string" ? userAttributeValue
+  return isString(userAttributeValue) ? userAttributeValue
     : userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + ""
     : isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue)
     : userAttributeValue + "";
@@ -803,7 +803,7 @@ function userAttributeValueToString(userAttributeValue: UserAttributeValue): str
 function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): string {
-  if (typeof attributeValue === "string") {
+  if (isString(attributeValue)) {
     return attributeValue;
   }
 
@@ -817,7 +817,7 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): ISemVer | string {
   let version: ISemVer | null;
-  if (typeof attributeValue === "string" && (version = parseSemVer(attributeValue.trim()))) {
+  if (isString(attributeValue) && (version = parseSemVer(attributeValue.trim()))) {
     return version;
   }
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid semantic version`);
@@ -826,11 +826,11 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
 function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue,
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): number | string {
-  if (typeof attributeValue === "number") {
+  if (isNumber(attributeValue)) {
     return attributeValue;
   }
   let number: number;
-  if (typeof attributeValue === "string"
+  if (isString(attributeValue)
     && (!isNaN(number = parseFloatStrict(attributeValue.replace(",", "."))) || attributeValue.trim() === "NaN")) {
     return number;
   }
@@ -843,11 +843,11 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
   if (attributeValue instanceof Date) {
     return attributeValue.getTime() / 1000;
   }
-  if (typeof attributeValue === "number") {
+  if (isNumber(attributeValue)) {
     return attributeValue;
   }
   let number: number;
-  if (typeof attributeValue === "string"
+  if (isString(attributeValue)
     && (!isNaN(number = parseFloatStrict(attributeValue.replace(",", "."))) || attributeValue.trim() === "NaN")) {
     return number;
   }
@@ -858,7 +858,7 @@ function getUserAttributeValueAsStringArray(attributeName: string, attributeValu
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): ReadonlyArray<string> | string {
   let stringArray: unknown = attributeValue;
-  if (typeof stringArray === "string") {
+  if (isString(stringArray)) {
     try {
       stringArray = JSON.parse(stringArray);
     } catch { /* intentional no-op */ }
@@ -890,17 +890,17 @@ function inferSettingType(value: unknown): SettingType | undefined {
 
 function isCompatibleValue(value: SettingValue, settingType: SettingType): boolean {
   switch (settingType) {
-    case SettingType.Boolean: return typeof value === "boolean";
-    case SettingType.String: return typeof value === "string";
+    case SettingType.Boolean: return isBoolean(value);
+    case SettingType.String: return isString(value);
     case SettingType.Int:
-    case SettingType.Double: return typeof value === "number";
+    case SettingType.Double: return isNumber(value);
     default: return false;
   }
 }
 
 function getSettingType(setting: Setting): SettingType | UnknownSettingType {
   const settingType = setting.t;
-  if (isNumberInRange(settingType, SettingType.Boolean, SettingType.Double)
+  if (isIntegerInRange(settingType, SettingType.Boolean, SettingType.Double)
     || settingType === (-1 satisfies UnknownSettingType) && isSettingWithSimpleValue(setting)) {
     return settingType;
   }
