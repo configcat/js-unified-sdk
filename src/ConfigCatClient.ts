@@ -566,10 +566,10 @@ export class ConfigCatClient implements IConfigCatClient {
             return new Snapshot(localSettings, null, this);
           case OverrideBehaviour.LocalOverRemote:
             [remoteSettings, remoteConfig] = getRemoteConfig();
-            return new Snapshot({ ...(remoteSettings ?? {}), ...localSettings }, remoteConfig, this);
+            return new Snapshot({ ...remoteSettings, ...localSettings }, remoteConfig, this);
           case OverrideBehaviour.RemoteOverLocal:
             [remoteSettings, remoteConfig] = getRemoteConfig();
-            return new Snapshot({ ...localSettings, ...(remoteSettings ?? {}) }, remoteConfig, this);
+            return new Snapshot({ ...localSettings, ...remoteSettings }, remoteConfig, this);
         }
       }
 
@@ -600,10 +600,10 @@ export class ConfigCatClient implements IConfigCatClient {
           return [localSettings, null];
         case OverrideBehaviour.LocalOverRemote:
           [remoteSettings, remoteConfig] = await getRemoteConfigAsync();
-          return [{ ...(remoteSettings ?? {}), ...localSettings }, remoteConfig];
+          return [{ ...remoteSettings, ...localSettings }, remoteConfig];
         case OverrideBehaviour.RemoteOverLocal:
           [remoteSettings, remoteConfig] = await getRemoteConfigAsync();
-          return [{ ...localSettings, ...(remoteSettings ?? {}) }, remoteConfig];
+          return [{ ...localSettings, ...remoteSettings }, remoteConfig];
       }
     }
 
