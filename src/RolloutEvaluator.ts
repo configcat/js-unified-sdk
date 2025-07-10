@@ -147,7 +147,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       const targetingRule = targetingRules[i];
       const conditions = targetingRule.c;
 
-      const isMatchOrError = this.evaluateConditions(conditions ?? [], void 0, targetingRule, context.key, context);
+      const isMatchOrError = this.evaluateConditions(conditions, void 0, targetingRule, context.key, context);
 
       if (isMatchOrError !== true) {
         if (isString(isMatchOrError)) {
@@ -246,7 +246,8 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     throwInvalidConfigModelError("Sum of percentage option percentages is less than 100.");
   }
 
-  private evaluateConditions(conditions: ReadonlyArray<ConditionContainer | Condition>, conditionType: (keyof ConditionContainer) | undefined,
+  private evaluateConditions(conditions: ReadonlyArray<ConditionContainer | Condition> | null | undefined,
+    conditionType: (keyof ConditionContainer) | undefined,
     targetingRule: TargetingRule | undefined, contextSalt: string, context: EvaluateContext
   ): boolean | string {
     // The result of a condition evaluation is either match (true) / no match (false) or an error (string).
@@ -258,14 +259,14 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     logBuilder?.newLine("- ");
 
     const unwrapCondition = !conditionType;
-    for (let i = 0; i < conditions.length; i++) {
+    for (let i = 0, conditionCount = conditions?.length ?? 0; i < conditionCount; i++) {
       let condition: Condition;
       if (unwrapCondition) {
-        const container = conditions[i] as ConditionContainer;
+        const container = conditions![i] as ConditionContainer;
         conditionType = getConditionType(container)!;
         condition = container[conditionType]!;
       } else {
-        condition = conditions[i] as Condition;
+        condition = conditions![i] as Condition;
       }
 
       if (logBuilder) {
@@ -281,7 +282,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       switch (conditionType!) {
         case "u" satisfies keyof ConditionContainer:
           result = this.evaluateUserCondition(condition as UserCondition, contextSalt, context);
-          newLineBeforeThen = conditions.length > 1;
+          newLineBeforeThen = conditionCount > 1;
           break;
 
         case "p" satisfies keyof ConditionContainer:
@@ -291,7 +292,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
         case "s" satisfies keyof ConditionContainer:
           result = this.evaluateSegmentCondition(condition as SegmentCondition, context);
-          newLineBeforeThen = !isString(result) || result !== missingUserObjectError || conditions.length > 1;
+          newLineBeforeThen = !isString(result) || result !== missingUserObjectError || conditionCount > 1;
           break;
 
         default:
@@ -301,7 +302,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       const success = result === true;
 
       if (logBuilder) {
-        if (!targetingRule || conditions.length > 1) {
+        if (!targetingRule || conditionCount > 1) {
           logBuilder.appendConditionConsequence(success);
         }
 
@@ -744,7 +745,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     const conditions = segment?.r;
 
-    const segmentResult = this.evaluateConditions(conditions ?? [], "u", void 0, segmentName, context);
+    const segmentResult = this.evaluateConditions(conditions, "u", void 0, segmentName, context);
     let result = segmentResult;
 
     if (!isString(result)) {
