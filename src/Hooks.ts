@@ -1,3 +1,4 @@
+import type { IConfigCatClient } from "./ConfigCatClient";
 import type { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter, IEventProvider } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
@@ -35,15 +36,31 @@ export type HookEvents = {
 };
 
 /** Defines hooks (events) for providing notifications of `ConfigCatClient`'s actions. */
-export interface IProvidesHooks extends IEventProvider<HookEvents> { }
+export interface IProvidesHooks extends IEventProvider<HookEvents, IProvidesConfigCatClient> {
+}
+
+export interface IProvidesConfigCatClient {
+  /** The `IConfigCatClient` instance that emitted the event. */
+  readonly configCatClient: IConfigCatClient;
+}
 
 const disconnectedEventEmitter = new NullEventEmitter();
 
-export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
+export class Hooks implements IProvidesConfigCatClient, IEventEmitter<HookEvents, IProvidesConfigCatClient> {
   private eventEmitter: IEventEmitter;
+
+  configCatClient!: IConfigCatClient; // initialized by ConfigCatClient.constructor
 
   constructor(eventEmitter: IEventEmitter) {
     this.eventEmitter = eventEmitter;
+
+    // NOTE: Listeners are actually called by eventEmitter, that is, in listeners, `this` will be set to reference the
+    // IEventEmitter instance instead of the Hooks one. Thus, we need to augment eventEmitter with a configCatClient
+    // property to provide the promised interface for consumers.
+    Object.defineProperty(eventEmitter, "configCatClient" satisfies keyof IProvidesConfigCatClient, {
+      get: () => this.configCatClient satisfies IProvidesConfigCatClient["configCatClient"],
+      enumerable: true,
+    });
   }
 
   tryDisconnect(): boolean {
@@ -58,30 +75,30 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
+  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
     this.on;
 
   /** @inheritdoc */
-  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.on(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.once(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.removeListener(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
+  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
     this.removeListener;
 

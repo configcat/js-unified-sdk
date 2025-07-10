@@ -9,7 +9,7 @@ import { LogLevel } from "#lib/ConfigCatLogger";
 import { FetchResponse } from "#lib/ConfigFetcher";
 import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshErrorCode, RefreshResult } from "#lib/ConfigServiceBase";
 import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
-import { IProvidesHooks } from "#lib/Hooks";
+import { IProvidesConfigCatClient, IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { setupPolyfills } from "#lib/Polyfills";
 import { Config, deserializeConfig, ProjectConfig, SettingValue } from "#lib/ProjectConfig";
@@ -1406,17 +1406,27 @@ describe("ConfigCatClient", () => {
 
   for (const addListenersViaOptions of [false, true]) {
     it(`ConfigCatClient should emit events, which listeners added ${addListenersViaOptions ? "via options" : "directly on the client"} should get notified of`, async () => {
-      let clientReadyEventCount = 0;
-      const configFetchedEvents: [RefreshResult, boolean][] = [];
-      const configChangedEvents: Config[] = [];
-      const flagEvaluatedEvents: IEvaluationDetails[] = [];
-      const errorEvents: [string, any][] = [];
+      const clientReadyEvents: [IConfigCatClient, ClientCacheState][] = [];
+      const configFetchedEvents: [IConfigCatClient, RefreshResult, boolean][] = [];
+      const configChangedEvents: [IConfigCatClient, Config][] = [];
+      const flagEvaluatedEvents: [IConfigCatClient, IEvaluationDetails][] = [];
+      const errorEvents: [IConfigCatClient, string, any][] = [];
 
-      const handleClientReady = () => clientReadyEventCount++;
-      const handleConfigFetched = (result: RefreshResult, isInitiatedByUser: boolean) => configFetchedEvents.push([result, isInitiatedByUser]);
-      const handleConfigChanged = (pc: Config) => configChangedEvents.push(pc);
-      const handleFlagEvaluated = (ed: IEvaluationDetails) => flagEvaluatedEvents.push(ed);
-      const handleClientError = (msg: Message, err: any) => errorEvents.push([msg.toString(), err]);
+      const handleClientReady = function(this: IProvidesConfigCatClient, cacheState: ClientCacheState) {
+        clientReadyEvents.push([this.configCatClient, cacheState]);
+      };
+      const handleConfigFetched = function(this: IProvidesConfigCatClient, result: RefreshResult, isInitiatedByUser: boolean) {
+        configFetchedEvents.push([this.configCatClient, result, isInitiatedByUser]);
+      };
+      const handleConfigChanged = function(this: IProvidesConfigCatClient, pc: Config) {
+        configChangedEvents.push([this.configCatClient, pc]);
+      };
+      const handleFlagEvaluated = function(this: IProvidesConfigCatClient, ed: IEvaluationDetails) {
+        flagEvaluatedEvents.push([this.configCatClient, ed]);
+      };
+      const handleClientError = function(this: IProvidesConfigCatClient, msg: Message, err: any) {
+        errorEvents.push([this.configCatClient, msg.toString(), err]);
+      };
 
       function setupHooks(hooks: IProvidesHooks) {
         hooks.on("clientReady", handleClientReady);
@@ -1442,10 +1452,15 @@ describe("ConfigCatClient", () => {
         setupHooks(client);
       }
 
-      const state = await client.waitForReady();
+      let state = await client.waitForReady();
 
       assert.equal(state, ClientCacheState.NoFlagData);
-      assert.equal(clientReadyEventCount, 1);
+
+      assert.equal(clientReadyEvents.length, 1);
+      let emitter: IConfigCatClient;
+      [emitter, state] = clientReadyEvents[0];
+      assert.strictEqual(emitter, client);
+
       assert.equal(configFetchedEvents.length, 0);
       assert.equal(configChangedEvents.length, 0);
       assert.equal(flagEvaluatedEvents.length, 0);
@@ -1468,8 +1483,11 @@ describe("ConfigCatClient", () => {
 
       assert.equal(configFetchedEvents.length, 0);
       assert.equal(configChangedEvents.length, 0);
+
       assert.equal(errorEvents.length, 1);
-      const [actualErrorMessage, actualErrorException] = errorEvents[0];
+      [emitter] = errorEvents[0];
+      assert.strictEqual(emitter, client);
+      const [, actualErrorMessage, actualErrorException] = errorEvents[0];
       expect(actualErrorMessage).to.includes(expectedErrorMessage);
       assert.strictEqual(actualErrorException, expectedErrorException);
 
@@ -1480,11 +1498,17 @@ describe("ConfigCatClient", () => {
       const cachedPc = await configCache.get("");
 
       assert.equal(configFetchedEvents.length, 1);
-      const [refreshResult, isInitiatedByUser] = configFetchedEvents[0];
+      [emitter] = configFetchedEvents[0];
+      assert.strictEqual(emitter, client);
+      const [, refreshResult, isInitiatedByUser] = configFetchedEvents[0];
       assert.isTrue(isInitiatedByUser);
       assert.isTrue(refreshResult.isSuccess);
+
       assert.equal(configChangedEvents.length, 1);
-      assert.strictEqual(configChangedEvents[0], cachedPc.config);
+      [emitter] = configChangedEvents[0];
+      assert.strictEqual(emitter, client);
+      const [, newConfig] = configChangedEvents[0];
+      assert.strictEqual(newConfig, cachedPc.config);
 
       // 4. All flags are evaluated
       const keys = await client.getAllKeysAsync();
@@ -1494,13 +1518,14 @@ describe("ConfigCatClient", () => {
       }
 
       assert.equal(evaluationDetails.length, flagEvaluatedEvents.length);
-      assert.deepEqual(evaluationDetails, flagEvaluatedEvents);
+      const actualEvaluationDetails = flagEvaluatedEvents.map(([, evaluationDetails]) => evaluationDetails);
+      assert.deepEqual(evaluationDetails, actualEvaluationDetails);
 
       // 5. Client gets disposed
       client.dispose();
 
       assert.equal(configFetchedEvents.length, 1);
-      assert.equal(clientReadyEventCount, 1);
+      assert.equal(clientReadyEvents.length, 1);
       assert.equal(configChangedEvents.length, 1);
       assert.equal(evaluationDetails.length, flagEvaluatedEvents.length);
       assert.equal(errorEvents.length, 1);

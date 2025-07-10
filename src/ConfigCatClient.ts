@@ -7,7 +7,7 @@ import type { IConfigService } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 import type { FlagOverrides } from "./FlagOverrides";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
-import type { HookEvents, Hooks, IProvidesHooks } from "./Hooks";
+import type { HookEvents, Hooks, IProvidesConfigCatClient, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
 import type { Config, ProjectConfig, SettingMap, SettingValue } from "./ProjectConfig";
@@ -301,6 +301,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     // To avoid possible memory leaks, the components of the client should not hold a strong reference to the hooks object (see also SafeHooksWrapper).
     this.hooks = options.yieldHooks();
+    this.hooks.configCatClient = this;
 
     if (options.defaultUser) {
       this.setDefaultUser(options.defaultUser);
@@ -610,30 +611,30 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
+  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
     this.on;
 
   /** @inheritdoc */
-  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.hooks.on(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.hooks.once(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.hooks.removeListener(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
+  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
     this.removeListener;
 

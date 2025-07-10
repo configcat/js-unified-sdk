@@ -44,6 +44,6 @@ export type { IUser, UserAttributeValue } from "./User";
 
 export { User } from "./User";
 
-export type { HookEvents, IProvidesHooks } from "./Hooks";
+export type { HookEvents, IProvidesConfigCatClient, IProvidesHooks } from "./Hooks";
 
 export type { Message } from "./Utils";
