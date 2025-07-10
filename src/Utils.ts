@@ -128,8 +128,29 @@ export function ensurePrototype<T>(obj: T, ctor: new (...args: any[]) => T): voi
   }
 }
 
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
+export function isNumber(value: unknown): value is number {
+  return typeof value === "number";
+}
+
 export function isNumberInRange(value: unknown, minValue: number, maxValue: number): value is number {
-  return typeof value === "number" && minValue <= value && value <= maxValue;
+  return isNumber(value) && minValue <= value && value <= maxValue;
+}
+
+export const isInteger = (typeof Number.isSafeInteger === "function"
+  ? Number.isSafeInteger
+  : (value: unknown) => isNumber(value) && isFinite(value) && Math.floor(value) === value && Math.abs(value) <= 9007199254740991
+) as (value: unknown) => value is number;
+
+export function isIntegerInRange(value: unknown, minValue: number, maxValue: number): value is number {
+  return isInteger(value) && minValue <= value && value <= maxValue;
+}
+
+export function isString(value: unknown): value is string {
+  return typeof value === "string";
 }
 
 export function isObject(value: unknown): value is Record<string, unknown> {
@@ -141,8 +162,18 @@ export function isArray(value: unknown): value is ReadonlyArray<unknown> {
   return Array.isArray(value);
 }
 
-export function isStringArray(value: unknown): value is string[] {
-  return isArray(value) && !value.some(item => typeof item !== "string");
+export function isStringArray(value: unknown): value is Readonly<string> {
+  return isArray(value) && !value.some(item => !isString(item));
+}
+
+export function isFunction(value: unknown): value is ReadonlyArray<unknown> {
+  return typeof value === "function";
+}
+
+export function isPromiseLike<T>(obj: unknown): obj is PromiseLike<T> {
+  // See also: https://stackoverflow.com/a/27746324/8656352
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  return isFunction((obj as PromiseLike<T> | undefined)?.then);
 }
 
 export function formatStringList(items: ReadonlyArray<string>, maxLength = 0, getOmittedItemsText?: (count: number) => string, separator = ", "): string {
@@ -161,11 +192,6 @@ export function formatStringList(items: ReadonlyArray<string>, maxLength = 0, ge
   }
 
   return "'" + items.join("'" + separator + "'") + "'" + appendix;
-}
-
-export function isPromiseLike<T>(obj: unknown): obj is PromiseLike<T> {
-  // See also: https://stackoverflow.com/a/27746324/8656352
-  return typeof (obj as PromiseLike<T> | undefined)?.then === "function";
 }
 
 export function utf8Encode(text: string): string {
@@ -221,7 +247,7 @@ export function parseIntStrict(value: string): number {
   }
 
   const number = +value;
-  return Number.isSafeInteger(number) ? number : NaN;
+  return isInteger(number) ? number : NaN;
 }
 
 export function parseFloatStrict(value: string): number {
@@ -254,7 +280,7 @@ export class LazyString<TState = any> {
 
   toString(): string {
     let { factoryOrValue } = this;
-    if (typeof factoryOrValue !== "string") {
+    if (!isString(factoryOrValue)) {
       this.factoryOrValue = factoryOrValue = factoryOrValue(this.state);
       this.state = (void 0)!;
     }

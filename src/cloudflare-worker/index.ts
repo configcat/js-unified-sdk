@@ -9,6 +9,7 @@ import { setupPolyfills } from "../Polyfills";
 import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { CloudflareConfigCache } from "./CloudflareConfigCache";
+import { isBoolean } from "../Utils";
 
 /* Package public API for Cloudflare Workers */
 
@@ -72,7 +73,7 @@ export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
 export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
   requestOrWatchChanges?: boolean | cloudflare.Request, paramPrefix?: string, queryStringProvider?: IQueryStringProvider
 ): FlagOverrides {
-  if (!requestOrWatchChanges || typeof requestOrWatchChanges === "boolean") {
+  if (!requestOrWatchChanges || isBoolean(requestOrWatchChanges)) {
     return createFlagOverridesFromQueryParamsCommon(behaviour, requestOrWatchChanges, paramPrefix, queryStringProvider);
   }
 

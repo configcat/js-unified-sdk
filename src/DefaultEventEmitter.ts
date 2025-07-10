@@ -1,4 +1,5 @@
 import type { IEventEmitter } from "./EventEmitter";
+import { isFunction } from "./Utils";
 
 type Listener = { fn: (...args: any[]) => void; once?: boolean };
 type Listeners = Listener | Listener[] & { fn?: never };
@@ -18,7 +19,7 @@ export class DefaultEventEmitter implements IEventEmitter {
   private eventCount = 0;
 
   private addListenerCore(eventName: string | symbol, fn: (...args: any[]) => void, once: boolean) {
-    if (typeof fn !== "function") {
+    if (!isFunction(fn)) {
       throw TypeError("Listener must be a function");
     }
 
@@ -84,7 +85,7 @@ export class DefaultEventEmitter implements IEventEmitter {
   }
 
   removeListener(eventName: string | symbol, listener: (...args: any[]) => void): this {
-    if (typeof listener !== "function") {
+    if (!isFunction(listener)) {
       throw TypeError("Listener must be a function");
     }
 

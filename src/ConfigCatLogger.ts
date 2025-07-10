@@ -1,6 +1,6 @@
 import type { SafeHooksWrapper } from "./Hooks";
 import type { Message } from "./Utils";
-import { errorToString, LazyString } from "./Utils";
+import { errorToString, isString, LazyString } from "./Utils";
 
 /**
  * Specifies event severity levels for the `IConfigCatLogger` interface.
@@ -44,7 +44,7 @@ export class FormattableLogMessage {
   get defaultFormattedMessage(): string {
     let cachedMessage = this.cachedDefaultFormattedMessage;
 
-    if (cachedMessage === void 0) {
+    if (!isString(cachedMessage)) {
       // This logic should give exactly the same result as string interpolation.
       cachedMessage = "";
       const { strings, argValues } = this;
@@ -66,7 +66,7 @@ export class FormattableLogMessage {
 export type LogMessage = string | FormattableLogMessage;
 
 export function toMessage(logMessage: LogMessage): Message {
-  if (typeof logMessage === "string") {
+  if (isString(logMessage)) {
     return logMessage;
   }
   return logMessage["cachedDefaultFormattedMessage"]

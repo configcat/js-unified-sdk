@@ -1,6 +1,6 @@
 import type { Setting, SettingValue } from "./ProjectConfig";
 import { createSettingFromValue } from "./ProjectConfig";
-import { isArray, parseFloatStrict } from "./Utils";
+import { isArray, isString, parseFloatStrict } from "./Utils";
 
 export type FlagOverrides = {
   dataSource: IOverrideDataSource;
@@ -127,7 +127,7 @@ function getQueryString(queryStringOrParams: string | Record<string, string | Re
     return "";
   }
 
-  if (typeof queryStringOrParams === "string") {
+  if (isString(queryStringOrParams)) {
     return queryStringOrParams;
   }
 
@@ -157,7 +157,7 @@ function getQueryString(queryStringOrParams: string | Record<string, string | Re
 function getSettingsFromQueryString(queryStringOrParams: string | Record<string, string | ReadonlyArray<string>> | undefined, paramPrefix: string) {
   const settings: Record<string, Setting> = {};
 
-  if (typeof queryStringOrParams === "string") {
+  if (isString(queryStringOrParams)) {
     extractSettingFromQueryString(queryStringOrParams, paramPrefix, settings);
   } else if (queryStringOrParams != null) {
     extractSettingsFromQueryParams(queryStringOrParams, paramPrefix, settings);

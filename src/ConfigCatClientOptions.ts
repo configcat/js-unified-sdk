@@ -11,7 +11,7 @@ import type { HookEvents, IProvidesHooks, SafeHooksWrapper } from "./Hooks";
 import { Hooks } from "./Hooks";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
-import { createWeakRef } from "./Utils";
+import { createWeakRef, isNumberInRange } from "./Utils";
 
 export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
@@ -330,11 +330,11 @@ export class AutoPollOptions extends OptionsBase {
     // https://stackoverflow.com/a/3468650/8656352
     const maxSetTimeoutIntervalSecs = 2147483;
 
-    if (!(typeof this.pollIntervalSeconds === "number" && 1 <= this.pollIntervalSeconds && this.pollIntervalSeconds <= maxSetTimeoutIntervalSecs)) {
+    if (!isNumberInRange(this.pollIntervalSeconds, 1, maxSetTimeoutIntervalSecs)) {
       throw Error("Invalid 'pollIntervalSeconds' value");
     }
 
-    if (!(typeof this.maxInitWaitTimeSeconds === "number" && this.maxInitWaitTimeSeconds <= maxSetTimeoutIntervalSecs)) {
+    if (!isNumberInRange(this.maxInitWaitTimeSeconds, -Infinity, maxSetTimeoutIntervalSecs)) {
       throw Error("Invalid 'maxInitWaitTimeSeconds' value");
     }
   }
@@ -361,7 +361,7 @@ export class LazyLoadOptions extends OptionsBase {
       }
     }
 
-    if (!(typeof this.cacheTimeToLiveSeconds === "number" && 1 <= this.cacheTimeToLiveSeconds && this.cacheTimeToLiveSeconds <= 2147483647)) {
+    if (!isNumberInRange(this.cacheTimeToLiveSeconds, 1, 2147483647)) {
       throw Error("Invalid 'cacheTimeToLiveSeconds' value");
     }
   }
