@@ -1,4 +1,5 @@
 import { assert } from "chai";
+import type { ClientRequestArgs } from "http";
 import * as https from "https";
 import * as mockttp from "mockttp";
 import type { Duplex } from "stream";
@@ -151,7 +152,7 @@ describe("HTTP tests", () => {
 // NOTE: We need to augment the https.Agent type as some necessary methods are not defined in `@types/node`.
 declare module "https" {
   interface Agent {
-    createConnection(options: https.RequestOptions, callback: Function): Duplex;
+    createConnection(options: ClientRequestArgs, callback?: Function): Duplex;
   }
 }
 
@@ -163,7 +164,7 @@ class MockttpProxyAgent extends https.Agent {
     this.proxyUrl = new URL(proxyUrl);
   }
 
-  createConnection(options: https.RequestOptions, callback: Function) {
+  createConnection(options: ClientRequestArgs, callback: Function): Duplex {
     const proxyOptions = {
       ...options,
       host: this.proxyUrl.hostname,
