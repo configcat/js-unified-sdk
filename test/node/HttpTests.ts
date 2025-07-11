@@ -126,14 +126,10 @@ describe("HTTP tests", () => {
     });
 
     const client = platform.createClientWithManualPoll(sdkKey, {
-      httpAgentProvider: url => {
-        agentProviderCallCount++;
-        return url.startsWith("https:") ? new MockttpProxyAgent(server.url) : throwError(Error("Not implemented"));
-      },
+      httpsAgent: new MockttpProxyAgent(server.url)
     });
 
     const refreshResult = await client.forceRefreshAsync();
-    assert.strictEqual(agentProviderCallCount, 1);
     assert.strictEqual(proxyCallCount, 1);
 
     const defaultValue = "NOT_CAT";
@@ -142,7 +138,6 @@ describe("HTTP tests", () => {
     assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.None);
 
     await client.forceRefreshAsync();
-    assert.strictEqual(agentProviderCallCount, 1);
     assert.strictEqual(proxyCallCount, 2);
 
     client.dispose();

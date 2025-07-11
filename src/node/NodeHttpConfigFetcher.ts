@@ -9,17 +9,24 @@ import { FetchError, FetchResponse } from "../ConfigFetcher";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
-   * An optional callback that can be used to provide a custom
-   * {@link https://nodejs.org/api/http.html#class-httpagent | http.Agent} / {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent}
-   * to manage connections for the SDK's HTTP communication (e.g. to send HTTP requests through an HTTP or SOCKS proxy server).
+   * The {@link https://nodejs.org/api/http.html#class-httpagent | http.Agent} instance to use for non-secure HTTP communication.
+   * For example, this option allows you to configure the SDK to route `http://...` requests through an HTTP, HTTPS or SOCKS proxy.
    *
-   * The callback must return a `http.Agent` or `https.Agent` according to the protocol of `requestUrl`.
+   * If not set, the default agent, {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent} will be used.
    *
-   * If not set, the default agent specified by
-   * {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent} / {@link https://nodejs.org/api/https.html#httpsglobalagent | https.globalAgent}
-   * will be used.
+   * This option applies when the SDK connects to a custom `http://...` URL you specified via `baseUrl`.
    */
-  httpAgentProvider?: (requestUrl: string) => http.Agent | https.Agent;
+  httpAgent?: http.Agent;
+
+  /**
+   * The {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent} instance to use for secure HTTP communication.
+   * For example, this option allows you to configure the SDK to route `https://...` requests through an HTTP, HTTPS or SOCKS proxy.
+   *
+   * If not set, the default agent, {@link https://nodejs.org/api/https.html#httpsglobalagent | https.globalAgent} will be used.
+   *
+   * This option applies when the SDK connects to the ConfigCat CDN or a custom `https://...` URL you specified via `baseUrl`.
+   */
+  httpsAgent?: https.Agent;
 }
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
@@ -33,12 +40,12 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   private logger?: LoggerWrapper;
 
-  private readonly agentProvider?: (requestUrl: string) => http.Agent | https.Agent;
-  private agent?: http.Agent | https.Agent;
-  private lastUrl?: string;
+  private readonly httpAgent?: http.Agent;
+  private readonly httpsAgent?: https.Agent;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
-    this.agentProvider = options?.httpAgentProvider;
+    this.httpAgent = options?.httpAgent;
+    this.httpsAgent = options?.httpsAgent;
   }
 
   private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
@@ -79,20 +86,10 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         const isCustomUrl = !isCdnUrl(url);
         const isHttpsUrl = url.startsWith("https:");
 
-        if (this.agentProvider && this.lastUrl !== url) {
-          this.lastUrl = url;
-          try {
-            this.agent = this.agentProvider(url);
-          } catch (err) {
-            this.logger?.log(LogLevel.Error, 0, `Failed to obtain a custom \`${isHttpsUrl ? "https" : "http"}.Agent\` for fetching config data.`, err);
-            throw err;
-          }
-        }
-
         const { lastETag, timeoutMs } = request;
 
         const requestOptions: (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> } = {
-          agent: this.agent,
+          agent: isHttpsUrl ? this.httpsAgent : this.httpAgent,
           timeout: timeoutMs,
         };
 
