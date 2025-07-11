@@ -165,7 +165,7 @@ async function runMatrixTest(configLocation: ConfigLocation, key: string, user: 
   const setting = settings[key];
 
   const actual = evaluate(evaluator, settings, key, null, user, null, evaluator["logger"]).value;
-  assert.strictEqual(actual, getTypedValue(expected, setting.t));
+  assert.strictEqual(actual, getTypedValue(expected, setting.t as SettingType));
 }
 
 async function runVariationIdMatrixTest(configLocation: ConfigLocation, key: string, user: User | undefined, expected: string, evaluator: RolloutEvaluator) {
