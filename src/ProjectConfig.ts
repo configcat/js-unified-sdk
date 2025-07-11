@@ -114,7 +114,11 @@ export type VariationIdValue = string | null | undefined;
 
 type AdjustedConfigJsonConfig = PartialWithNull<ChangePropType<
   ConfigJson.Config,
-  { "p": PartialWithNull<ConfigJson.Preferences> }
+  {
+    "p": PartialWithNull<ConfigJson.Preferences>;
+    "s": AdjustedConfigJsonSegment[];
+    "f": { [key: string]: AdjustedConfigJsonSetting };
+  }
 >>;
 
 /** Describes a ConfigCat config's data model used for feature flag evaluation. */
@@ -123,16 +127,19 @@ export declare abstract class Config implements Immutable<AdjustedConfigJsonConf
   declare private readonly _guard: unknown;
 
   declare readonly p?: Immutable<PartialWithNull<ConfigJson.Preferences>> | null;
-  declare readonly s?: ReadonlyArray<Segment & ConfigJson.Segment> | null;
-  declare readonly f?: { readonly [key: string]: Setting & ConfigJson.SettingUnion } | null;
+  declare readonly s?: ReadonlyArray<Segment> | null;
+  declare readonly f?: { readonly [key: string]: Setting } | null;
 }
 
-type AdjustedConfigJsonSegment = OptionalWithNull<ConfigJson.Segment, "r">;
+type AdjustedConfigJsonSegment = OptionalWithNull<ChangePropType<
+  ConfigJson.Segment,
+  { "r": AdjustedConfigJsonUserCondition[] }
+>, "r">;
 
 /** Describes a segment. */
 export declare abstract class Segment implements Immutable<AdjustedConfigJsonSegment> {
   declare readonly n: string;
-  declare readonly r?: ReadonlyArray<UserCondition & ConfigJson.UserConditionUnion> | null;
+  declare readonly r?: ReadonlyArray<UserCondition> | null;
 }
 
 type FlattenedConfigJsonSettingValue = PartialWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.SettingValue>>>;
@@ -145,15 +152,15 @@ export declare abstract class SettingValueModel implements Immutable<FlattenedCo
   declare readonly d?: number | null;
 }
 
-type AdjustedConfigJsonServedValue = ChangePropType<
-  OptionalWithNull<ConfigJson.ServedValue, "i">,
-  { "v": ConfigJson.SettingValue | NonNullable<SettingValue> }
->;
+type AdjustedConfigJsonServedValue = OptionalWithNull<ChangePropType<
+  ConfigJson.ServedValue,
+  { "v": FlattenedConfigJsonSettingValue | NonNullable<SettingValue> }
+>, "i">;
 
 /** Contains a setting value along with related data. */
 export declare abstract class SettingValueContainer<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  TValue extends ConfigJson.SettingValue | NonNullable<SettingValue> = SettingValueModel & ConfigJson.SettingValue
+  TValue extends SettingValueModel | NonNullable<SettingValue> = SettingValueModel
 > implements Immutable<AdjustedConfigJsonServedValue> {
 
   declare readonly v: TValue;
@@ -161,61 +168,82 @@ export declare abstract class SettingValueContainer<
   declare readonly i?: string | null;
 }
 
-type AdjustedConfigJsonSetting = ChangePropType<
-  OptionalWithNull<ConfigJson.Setting, "i" | "a" | "r" | "p">,
-  { "t": SettingType | UnknownSettingType; "v": ConfigJson.SettingValue | NonNullable<SettingValue> }
->;
+type AdjustedConfigJsonSetting = OptionalWithNull<ChangePropType<
+  ConfigJson.Setting,
+  {
+    "t": SettingType | UnknownSettingType;
+    "r": AdjustedConfigJsonTargetingRule[];
+    "p": AdjustedConfigJsonPercentageOption[];
+    "v": FlattenedConfigJsonSettingValue | NonNullable<SettingValue>;
+  }
+>, "i" | "a" | "r" | "p">;
 
 /** Describes a feature flag or setting. */
 export declare abstract class Setting extends SettingValueContainer<
-  ConfigJson.SettingValue & SettingValueModel | NonNullable<SettingValue>
+  SettingValueModel | NonNullable<SettingValue>
 > implements Immutable<AdjustedConfigJsonSetting> {
 
   /** @remarks Can also be `-1` when the setting comes from a simple flag override. */
   declare readonly t: SettingType | UnknownSettingType;
   declare readonly a?: string | null;
-  declare readonly r?: ReadonlyArray<TargetingRule & ConfigJson.TargetingRule> | null;
-  declare readonly p?: ReadonlyArray<PercentageOption & ConfigJson.PercentageOption> | null;
+  declare readonly r?: ReadonlyArray<TargetingRule> | null;
+  declare readonly p?: ReadonlyArray<PercentageOption> | null;
   /** @remarks Can be a plain `boolean`, `string` or `number` value in the case of a a simple flag override. */
-  declare readonly v: ConfigJson.SettingValue & SettingValueModel | NonNullable<SettingValue>;
+  declare readonly v: SettingValueModel | NonNullable<SettingValue>;
 
-  /* eslint-disable @typescript-eslint/naming-convention */
-  declare protected _configJsonSalt: string | undefined;
-  declare protected _configSegments: ReadonlyArray<Segment> | undefined;
-  /* eslint-enable @typescript-eslint/naming-convention */
+  declare private ["_configJsonSalt"]: string | undefined;
+  declare private ["_configSegments"]: ReadonlyArray<Segment> | undefined;
 }
 
-type FlattenedConfigJsonTargetingRule = OptionalWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.TargetingRule>>, "c" | "s" | "p">;
+type AdjustedConfigJsonTargetingRule = OptionalWithNull<ChangePropType<
+  UnionToIntersection<OmitNeverProps<ConfigJson.TargetingRule>>,
+  {
+    "c": FlattenedConfigJsonCondition[];
+    "s": AdjustedConfigJsonServedValue;
+    "p": AdjustedConfigJsonPercentageOption[];
+  }
+>, "c" | "s" | "p">;
 
 /** Describes a targeting rule. */
-export declare abstract class TargetingRule implements Immutable<FlattenedConfigJsonTargetingRule> {
-  declare readonly c?: ReadonlyArray<ConditionContainer & ConfigJson.ConditionUnion>;
-  declare readonly s?: SettingValueContainer & ConfigJson.ServedValue;
-  declare readonly p?: ReadonlyArray<PercentageOption & ConfigJson.PercentageOption>;
+export declare abstract class TargetingRule implements Immutable<AdjustedConfigJsonTargetingRule> {
+  declare readonly c?: ReadonlyArray<ConditionContainer> | null;
+  declare readonly s?: SettingValueContainer | null;
+  declare readonly p?: ReadonlyArray<PercentageOption> | null;
 }
 
-type AdjustedConfigJsonPercentageOption = OptionalWithNull<ConfigJson.PercentageOption, "i">;
+type AdjustedConfigJsonPercentageOption = OptionalWithNull<ChangePropType<
+  ConfigJson.ServedValue,
+  { "v": FlattenedConfigJsonSettingValue }
+>, "i">;
 
 /** Describes a percentage option. */
 export declare abstract class PercentageOption extends SettingValueContainer implements Immutable<AdjustedConfigJsonPercentageOption> {
   declare readonly p: number;
 }
 
-type FlattenedConfigJsonCondition = PartialWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.ConditionUnion>>>;
+type FlattenedConfigJsonCondition = PartialWithNull<ChangePropType<
+  UnionToIntersection<OmitNeverProps<ConfigJson.ConditionUnion>>,
+  {
+    "u": AdjustedConfigJsonUserCondition;
+    "p": AdjustedConfigJsonPrerequisiteFlagCondition;
+  }
+>>;
 
 /** Contains one of the possible conditions. */
 export declare abstract class ConditionContainer implements Immutable<FlattenedConfigJsonCondition> {
-  declare readonly u?: UserCondition & ConfigJson.UserConditionUnion | null;
+  declare readonly u?: UserCondition | null;
   declare readonly p?: PrerequisiteFlagCondition | null;
   declare readonly s?: SegmentCondition | null;
 }
 
 export type Condition = UserCondition | PrerequisiteFlagCondition | SegmentCondition;
 
-type FlattenedConfigJsonUserCondition = OptionalWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.UserCondition>>, "s" | "d" | "l">;
+type AdjustedConfigJsonUserCondition = OptionalWithNull<
+  UnionToIntersection<OmitNeverProps<ConfigJson.UserCondition>>,
+  "s" | "d" | "l">;
 
 /** Describes a condition that is based on a User Object attribute. */
-export declare abstract class UserCondition implements Immutable<FlattenedConfigJsonUserCondition> {
+export declare abstract class UserCondition implements Immutable<AdjustedConfigJsonUserCondition> {
   declare readonly a: string;
   declare readonly c: UserComparator;
   declare readonly s?: string | null;
@@ -223,11 +251,16 @@ export declare abstract class UserCondition implements Immutable<FlattenedConfig
   declare readonly l?: ReadonlyArray<string> | null;
 }
 
+type AdjustedConfigJsonPrerequisiteFlagCondition = ChangePropType<
+  ConfigJson.PrerequisiteFlagCondition,
+  { "v": FlattenedConfigJsonSettingValue }
+>;
+
 /** Describes a condition that is based on a prerequisite flag. */
-export declare abstract class PrerequisiteFlagCondition implements Immutable<ConfigJson.PrerequisiteFlagCondition> {
+export declare abstract class PrerequisiteFlagCondition implements Immutable<AdjustedConfigJsonPrerequisiteFlagCondition> {
   declare readonly f: string;
   declare readonly c: PrerequisiteFlagComparator;
-  declare readonly v: SettingValueModel & ConfigJson.SettingValue;
+  declare readonly v: SettingValueModel;
 }
 
 /** Describes a condition that is based on a segment. */
