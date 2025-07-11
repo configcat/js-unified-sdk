@@ -1,20 +1,23 @@
 import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
 import { LogLevel, toMessage } from "./ConfigCatLogger";
 import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
-import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, valueToString } from "./EvaluateLogBuilder";
+import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, inferValue, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
-import type { ConditionUnion, IPercentageOption, ITargetingRule, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingValue, SettingValueContainer, TargetingRule, UserConditionUnion, VariationIdValue } from "./ProjectConfig";
+import type { Condition, ConditionContainer, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingMap, SettingValue, SettingValueContainer, SettingValueModel, TargetingRule, UnknownSettingType, UserCondition, VariationIdValue } from "./ProjectConfig";
 import { InvalidConfigModelError, nameOfSettingType } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
-import type { IUser, UserAttributeValue } from "./User";
-import { getUserAttribute, getUserAttributes } from "./User";
+import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
+import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, isArray, isStringArray, LazyString, parseFloatStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, isNumberInRange, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
-  private $visitedFlags?: string[];
-  get visitedFlags(): string[] { return this.$visitedFlags ??= []; }
+  private _settingType?: SettingType | UnknownSettingType;
+  get settingType(): SettingType | UnknownSettingType { return this._settingType ??= getSettingType(this.setting); }
+
+  private _visitedFlags?: string[];
+  get visitedFlags(): string[] { return this._visitedFlags ??= []; }
 
   isMissingUserObjectLogged?: boolean;
   isMissingUserObjectAttributeLogged?: boolean;
@@ -25,23 +28,26 @@ export class EvaluateContext {
     readonly key: string,
     readonly setting: Setting,
     readonly user: IUser | undefined,
-    readonly settings: Readonly<{ [key: string]: Setting }>
+    readonly settings: SettingMap
   ) {
   }
 
   static forPrerequisiteFlag(key: string, setting: Setting, dependentFlagContext: EvaluateContext): EvaluateContext {
     const context = new EvaluateContext(key, setting, dependentFlagContext.user, dependentFlagContext.settings);
-    context.$visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the list is created!
+    context._visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the list is created!
     context.logBuilder = dependentFlagContext.logBuilder;
     return context;
   }
 }
 
 export interface IEvaluateResult {
+  returnValue: NonNullable<SettingValue>;
   selectedValue: SettingValueContainer;
   matchedTargetingRule?: TargetingRule;
   matchedPercentageOption?: PercentageOption;
 }
+
+type IntermediateEvaluateResult = Omit<IEvaluateResult, "returnValue">;
 
 export interface IRolloutEvaluator {
   evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult;
@@ -77,45 +83,30 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     let returnValue: SettingValue;
     try {
-      let result: IEvaluateResult, isValidReturnValue: boolean;
+      // NOTE: We've already checked earlier in the call chain that the defaultValue is of an allowed type (see also ensureAllowedDefaultValue).
 
-      if (defaultValue != null) {
-        // NOTE: We've already checked earlier in the call chain that the defaultValue is of an allowed type (see also ensureAllowedDefaultValue).
+      // Setting type -1 indicates a setting which comes from a simple flag override (see also createSettingFromValue and getSettingType).
+      const settingType = context.settingType;
+      const inferredSettingType = settingType !== (-1 satisfies UnknownSettingType)
+        ? settingType
+        : inferSettingType(context.setting.v);
 
-        let settingType = context.setting.type as SettingType | -1;
-        // Setting type -1 indicates a setting which comes from a flag override (see also Setting.fromValue).
-        if (settingType === -1) {
-          settingType = inferSettingType(context.setting.value);
-        }
-        // At this point, setting type -1 indicates a setting which comes from a flag override AND has an unsupported value.
-        // This case will be handled by handleInvalidReturnValue below.
-        if (settingType !== -1 && !isCompatibleValue(defaultValue, settingType)) {
-          const settingTypeName = nameOfSettingType(settingType);
-          throw new EvaluationError(EvaluationErrorCode.SettingValueTypeMismatch,
-            "The type of a setting must match the type of the specified default value. "
-            + `Setting's type was ${settingTypeName} but the default value's type was ${typeof defaultValue}. `
-            + `Please use a default value which corresponds to the setting type ${settingTypeName}. `
-            + "Learn more: https://configcat.com/docs/sdk-reference/js/#setting-type-mapping");
-        }
-
-        result = this.evaluateSetting(context);
-        returnValue = result.selectedValue.value;
-
-        // When a default value other than null or undefined is specified, the return value must have the same type as the default value
-        // so that the consistency between TS (compile-time) and JS (run-time) return value types is maintained.
-        isValidReturnValue = typeof returnValue === typeof defaultValue;
-      } else {
-        result = this.evaluateSetting(context);
-        returnValue = result.selectedValue.value;
-
-        // When the specified default value is null or undefined, the return value can be of whatever allowed type (boolean, string, number).
-        isValidReturnValue = isAllowedValue(returnValue);
+      // When a default value other than null or undefined is specified, the return value must have the same type as the default value
+      // so that the consistency between TS (compile-time) and JS (run-time) return value types is maintained.
+      if (defaultValue != null
+        && inferredSettingType !== void 0 // the case of unsupported flag override values is handled by the unwrapValue call below
+        && !isCompatibleValue(defaultValue, inferredSettingType)
+      ) {
+        const settingTypeName = nameOfSettingType(inferredSettingType);
+        throw new EvaluationError(EvaluationErrorCode.SettingValueTypeMismatch,
+          "The type of a setting must match the type of the specified default value. "
+          + `Setting's type was ${settingTypeName} but the default value's type was ${typeof defaultValue}. `
+          + `Please use a default value which corresponds to the setting type ${settingTypeName}. `
+          + "Learn more: https://configcat.com/docs/sdk-reference/js/#setting-type-mapping");
       }
 
-      if (!isValidReturnValue) {
-        handleInvalidReturnValue(returnValue);
-      }
-
+      const result = this.evaluateSetting(context) as IEvaluateResult;
+      result.returnValue = returnValue = unwrapValue(result.selectedValue.v, settingType);
       return result;
     } catch (err) {
       logBuilder?.resetIndent().increaseIndent();
@@ -131,32 +122,32 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
   }
 
-  private evaluateSetting(context: EvaluateContext): IEvaluateResult {
-    let evaluateResult: IEvaluateResult | undefined;
+  private evaluateSetting(context: EvaluateContext): IntermediateEvaluateResult {
+    let evaluateResult: IntermediateEvaluateResult | undefined;
 
-    const targetingRules = context.setting.targetingRules;
-    if (targetingRules.length > 0 && (evaluateResult = this.evaluateTargetingRules(targetingRules, context))) {
+    const targetingRules = context.setting.r;
+    if (targetingRules?.length && (evaluateResult = this.evaluateTargetingRules(targetingRules, context))) {
       return evaluateResult;
     }
 
-    const percentageOptions = context.setting.percentageOptions;
-    if (percentageOptions.length > 0 && (evaluateResult = this.evaluatePercentageOptions(percentageOptions, void 0, context))) {
+    const percentageOptions = context.setting.p;
+    if (percentageOptions?.length && (evaluateResult = this.evaluatePercentageOptions(percentageOptions, void 0, context))) {
       return evaluateResult;
     }
 
-    return { selectedValue: context.setting };
+    return { selectedValue: context.setting as SettingValueContainer };
   }
 
-  private evaluateTargetingRules(targetingRules: ReadonlyArray<TargetingRule>, context: EvaluateContext): IEvaluateResult | undefined {
+  private evaluateTargetingRules(targetingRules: ReadonlyArray<TargetingRule>, context: EvaluateContext): IntermediateEvaluateResult | undefined {
     const logBuilder = context.logBuilder;
 
     logBuilder?.newLine("Evaluating targeting rules and applying the first match if any:");
 
     for (let i = 0; i < targetingRules.length; i++) {
       const targetingRule = targetingRules[i];
-      const conditions = targetingRule.conditions;
+      const conditions = targetingRule.c;
 
-      const isMatchOrError = this.evaluateConditions(conditions, targetingRule, context.key, context);
+      const isMatchOrError = this.evaluateConditions(conditions ?? [], void 0, targetingRule, context.key, context);
 
       if (isMatchOrError !== true) {
         if (isEvaluationError(isMatchOrError)) {
@@ -167,11 +158,11 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         continue;
       }
 
-      if (!isArray(targetingRule.then)) {
-        return { selectedValue: targetingRule.then, matchedTargetingRule: targetingRule };
+      if (!hasPercentageOptions(targetingRule)) {
+        return { selectedValue: targetingRule.s!, matchedTargetingRule: targetingRule };
       }
 
-      const percentageOptions = targetingRule.then;
+      const percentageOptions = targetingRule.p!;
 
       logBuilder?.increaseIndent();
 
@@ -188,7 +179,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
   private evaluatePercentageOptions(percentageOptions: ReadonlyArray<PercentageOption>,
     matchedTargetingRule: TargetingRule | undefined, context: EvaluateContext
-  ): IEvaluateResult | undefined {
+  ): IntermediateEvaluateResult | undefined {
     const logBuilder = context.logBuilder;
 
     if (!context.user) {
@@ -202,8 +193,14 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return;
     }
 
-    const percentageOptionsAttributeName = context.setting.percentageOptionsAttribute;
-    const percentageOptionsAttributeValue = getUserAttribute(context.user, percentageOptionsAttributeName);
+    let percentageOptionsAttributeName = context.setting.a;
+    let percentageOptionsAttributeValue: UserAttributeValue | null | undefined;
+    if (percentageOptionsAttributeName == null) {
+      percentageOptionsAttributeName = "Identifier" satisfies WellKnownUserObjectAttribute;
+      percentageOptionsAttributeValue = getUserIdentifier(context.user);
+    } else {
+      percentageOptionsAttributeValue = getUserAttribute(context.user, percentageOptionsAttributeName);
+    }
 
     if (percentageOptionsAttributeValue == null) {
       logBuilder?.newLine(`Skipping % options because the User.${percentageOptionsAttributeName} attribute is missing.`);
@@ -227,21 +224,31 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     for (let i = 0; i < percentageOptions.length; i++) {
       const percentageOption = percentageOptions[i];
 
-      bucket += percentageOption.percentage;
+      const percentage = percentageOption.p;
+      if (percentage < 0) {
+        throwInvalidConfigModelError("Percentage option percentage is invalid.");
+      }
+
+      bucket += percentage;
 
       if (hashValue >= bucket) {
         continue;
       }
 
-      logBuilder?.newLine(`- Hash value ${hashValue} selects % option ${i + 1} (${percentageOption.percentage}%), '${valueToString(percentageOption.value)}'.`);
+      if (logBuilder) {
+        const percentageOptionValue = unwrapValue(percentageOption.v, context.settingType, true);
+        logBuilder.newLine(`- Hash value ${hashValue} selects % option ${i + 1} (${percentage}%), '${valueToString(percentageOptionValue)}'.`);
+      }
 
       return { selectedValue: percentageOption, matchedTargetingRule, matchedPercentageOption: percentageOption };
     }
 
-    throw new InvalidConfigModelError("Sum of percentage option percentages is less than 100.");
+    throwInvalidConfigModelError("Sum of percentage option percentages is less than 100.");
   }
 
-  private evaluateConditions(conditions: ReadonlyArray<ConditionUnion>, targetingRule: TargetingRule | undefined, contextSalt: string, context: EvaluateContext): boolean | string {
+  private evaluateConditions(conditions: ReadonlyArray<ConditionContainer | Condition>, conditionType: (keyof ConditionContainer) | undefined,
+    targetingRule: TargetingRule | undefined, contextSalt: string, context: EvaluateContext
+  ): boolean | string {
     // The result of a condition evaluation is either match (true) / no match (false) or an error (string).
     let result: boolean | string = true;
 
@@ -250,8 +257,16 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     logBuilder?.newLine("- ");
 
+    const unwrapCondition = !conditionType;
     for (let i = 0; i < conditions.length; i++) {
-      const condition = conditions[i];
+      let condition: Condition;
+      if (unwrapCondition) {
+        const container = conditions[i] as ConditionContainer;
+        conditionType = getConditionType(container)!;
+        condition = container[conditionType]!;
+      } else {
+        condition = conditions[i] as Condition;
+      }
 
       if (logBuilder) {
         if (!i) {
@@ -263,19 +278,19 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         }
       }
 
-      switch (condition.type) {
-        case "UserCondition":
-          result = this.evaluateUserCondition(condition, contextSalt, context);
+      switch (conditionType!) {
+        case "u" satisfies keyof ConditionContainer:
+          result = this.evaluateUserCondition(condition as UserCondition, contextSalt, context);
           newLineBeforeThen = conditions.length > 1;
           break;
 
-        case "PrerequisiteFlagCondition":
-          result = this.evaluatePrerequisiteFlagCondition(condition, context);
+        case "p" satisfies keyof ConditionContainer:
+          result = this.evaluatePrerequisiteFlagCondition(condition as PrerequisiteFlagCondition, context);
           newLineBeforeThen = true;
           break;
 
-        case "SegmentCondition":
-          result = this.evaluateSegmentCondition(condition, context);
+        case "s" satisfies keyof ConditionContainer:
+          result = this.evaluateSegmentCondition(condition as SegmentCondition, context);
           newLineBeforeThen = !isEvaluationError(result) || result !== missingUserObjectError || conditions.length > 1;
           break;
 
@@ -299,13 +314,13 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
 
     if (targetingRule) {
-      logBuilder?.appendTargetingRuleConsequence(targetingRule, result, newLineBeforeThen);
+      logBuilder?.appendTargetingRuleConsequence(targetingRule, context.settingType as SettingType, result, newLineBeforeThen);
     }
 
     return result;
   }
 
-  private evaluateUserCondition(condition: UserConditionUnion, contextSalt: string, context: EvaluateContext): boolean | string {
+  private evaluateUserCondition(condition: UserCondition, contextSalt: string, context: EvaluateContext): boolean | string {
     const logBuilder = context.logBuilder;
     logBuilder?.appendUserCondition(condition);
 
@@ -318,7 +333,8 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return missingUserObjectError;
     }
 
-    const userAttributeName = condition.comparisonAttribute;
+    const userAttributeName = condition.a;
+
     const userAttributeValue = getUserAttribute(context.user, userAttributeName);
     if (userAttributeValue == null || userAttributeValue === "") { // besides null and undefined, empty string is considered missing value as well
       const conditionString = new LazyString(condition, condition => formatUserCondition(condition));
@@ -327,61 +343,62 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
 
     let text: string, versionOrError: ISemVer | string, numberOrError: number | string, arrayOrError: ReadonlyArray<string> | string;
-    switch (condition.comparator) {
+    const comparator = condition.c;
+    switch (comparator) {
       case UserComparator.TextEquals:
       case UserComparator.TextNotEquals:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextEquals(text, condition.comparisonValue, condition.comparator === UserComparator.TextNotEquals);
+        return this.evaluateTextEquals(text, ensureComparisonValue(condition.s), comparator === UserComparator.TextNotEquals);
 
       case UserComparator.SensitiveTextEquals:
       case UserComparator.SensitiveTextNotEquals:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextEquals(text, condition.comparisonValue,
-          context.setting.configJsonSalt, contextSalt, condition.comparator === UserComparator.SensitiveTextNotEquals);
+        return this.evaluateSensitiveTextEquals(text, ensureComparisonValue(condition.s),
+          getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveTextNotEquals);
 
       case UserComparator.TextIsOneOf:
       case UserComparator.TextIsNotOneOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextIsOneOf(text, condition.comparisonValue, condition.comparator === UserComparator.TextIsNotOneOf);
+        return this.evaluateTextIsOneOf(text, ensureComparisonValue(condition.l), comparator === UserComparator.TextIsNotOneOf);
 
       case UserComparator.SensitiveTextIsOneOf:
       case UserComparator.SensitiveTextIsNotOneOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextIsOneOf(text, condition.comparisonValue,
-          context.setting.configJsonSalt, contextSalt, condition.comparator === UserComparator.SensitiveTextIsNotOneOf);
+        return this.evaluateSensitiveTextIsOneOf(text, ensureComparisonValue(condition.l),
+          getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveTextIsNotOneOf);
 
       case UserComparator.TextStartsWithAnyOf:
       case UserComparator.TextNotStartsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextSliceEqualsAnyOf(text, condition.comparisonValue, true, condition.comparator === UserComparator.TextNotStartsWithAnyOf);
+        return this.evaluateTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l), true, comparator === UserComparator.TextNotStartsWithAnyOf);
 
       case UserComparator.SensitiveTextStartsWithAnyOf:
       case UserComparator.SensitiveTextNotStartsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, condition.comparisonValue,
-          context.setting.configJsonSalt, contextSalt, true, condition.comparator === UserComparator.SensitiveTextNotStartsWithAnyOf);
+        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l),
+          getConfigJsonSalt(context.setting), contextSalt, true, comparator === UserComparator.SensitiveTextNotStartsWithAnyOf);
 
       case UserComparator.TextEndsWithAnyOf:
       case UserComparator.TextNotEndsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextSliceEqualsAnyOf(text, condition.comparisonValue, false, condition.comparator === UserComparator.TextNotEndsWithAnyOf);
+        return this.evaluateTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l), false, comparator === UserComparator.TextNotEndsWithAnyOf);
 
       case UserComparator.SensitiveTextEndsWithAnyOf:
       case UserComparator.SensitiveTextNotEndsWithAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, condition.comparisonValue,
-          context.setting.configJsonSalt, contextSalt, false, condition.comparator === UserComparator.SensitiveTextNotEndsWithAnyOf);
+        return this.evaluateSensitiveTextSliceEqualsAnyOf(text, ensureComparisonValue(condition.l),
+          getConfigJsonSalt(context.setting), contextSalt, false, comparator === UserComparator.SensitiveTextNotEndsWithAnyOf);
 
       case UserComparator.TextContainsAnyOf:
       case UserComparator.TextNotContainsAnyOf:
         text = getUserAttributeValueAsText(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return this.evaluateTextContainsAnyOf(text, condition.comparisonValue, condition.comparator === UserComparator.TextNotContainsAnyOf);
+        return this.evaluateTextContainsAnyOf(text, ensureComparisonValue(condition.l), comparator === UserComparator.TextNotContainsAnyOf);
 
       case UserComparator.SemVerIsOneOf:
       case UserComparator.SemVerIsNotOneOf:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof versionOrError !== "string"
-          ? this.evaluateSemVerIsOneOf(versionOrError, condition.comparisonValue, condition.comparator === UserComparator.SemVerIsNotOneOf)
+          ? this.evaluateSemVerIsOneOf(versionOrError, ensureComparisonValue(condition.l), comparator === UserComparator.SemVerIsNotOneOf)
           : versionOrError;
 
       case UserComparator.SemVerLess:
@@ -390,7 +407,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.SemVerGreaterOrEquals:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof versionOrError !== "string"
-          ? this.evaluateSemVerRelation(versionOrError, condition.comparator, condition.comparisonValue)
+          ? this.evaluateSemVerRelation(versionOrError, comparator, ensureComparisonValue(condition.s))
           : versionOrError;
 
       case UserComparator.NumberEquals:
@@ -401,33 +418,33 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.NumberGreaterOrEquals:
         numberOrError = getUserAttributeValueAsNumber(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof numberOrError !== "string"
-          ? this.evaluateNumberRelation(numberOrError, condition.comparator, condition.comparisonValue)
+          ? this.evaluateNumberRelation(numberOrError, comparator, ensureComparisonValue(condition.d))
           : numberOrError;
 
       case UserComparator.DateTimeBefore:
       case UserComparator.DateTimeAfter:
         numberOrError = getUserAttributeValueAsUnixTimeSeconds(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof numberOrError !== "string"
-          ? this.evaluateDateTimeRelation(numberOrError, condition.comparisonValue, condition.comparator === UserComparator.DateTimeBefore)
+          ? this.evaluateDateTimeRelation(numberOrError, ensureComparisonValue(condition.d), comparator === UserComparator.DateTimeBefore)
           : numberOrError;
 
       case UserComparator.ArrayContainsAnyOf:
       case UserComparator.ArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof arrayOrError !== "string"
-          ? this.evaluateArrayContainsAnyOf(arrayOrError, condition.comparisonValue, condition.comparator === UserComparator.ArrayNotContainsAnyOf)
+          ? this.evaluateArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l), comparator === UserComparator.ArrayNotContainsAnyOf)
           : arrayOrError;
 
       case UserComparator.SensitiveArrayContainsAnyOf:
       case UserComparator.SensitiveArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
         return typeof arrayOrError !== "string"
-          ? this.evaluateSensitiveArrayContainsAnyOf(arrayOrError, condition.comparisonValue,
-            context.setting.configJsonSalt, contextSalt, condition.comparator === UserComparator.SensitiveArrayNotContainsAnyOf)
+          ? this.evaluateSensitiveArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l),
+            getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveArrayNotContainsAnyOf)
           : arrayOrError;
 
       default:
-        throw Error(); // execution should never get here (unless there is an error in the config JSON)
+        throwInvalidConfigModelError("Comparison operator is invalid.");
     }
   }
 
@@ -479,8 +496,15 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     for (let i = 0; i < comparisonValues.length; i++) {
       const item = comparisonValues[i];
 
+      let sliceLength: number, hash2: string;
       const index = item.indexOf("_");
-      const sliceLength = parseInt(item.slice(0, index));
+      if (index < 0
+        || isNaN(sliceLength = parseIntStrict(item.slice(0, index)))
+        || sliceLength < 0
+        || !(hash2 = item.slice(index + 1))
+      ) {
+        throwInvalidConfigModelError("Comparison value is invalid.");
+      }
 
       if (textUtf8.length < sliceLength) {
         continue;
@@ -489,7 +513,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       const sliceUtf8 = startsWith ? textUtf8.slice(0, sliceLength) : textUtf8.slice(textUtf8.length - sliceLength);
       const hash = hashComparisonValueSlice(sliceUtf8, configJsonSalt, contextSalt);
 
-      const result = hash === item.slice(index + 1);
+      const result = hash === hash2;
       if (result) {
         return !negate;
       }
@@ -607,15 +631,49 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     const logBuilder = context.logBuilder;
     logBuilder?.appendPrerequisiteFlagCondition(condition, context.settings);
 
-    const prerequisiteFlagKey = condition.prerequisiteFlagKey;
-    const prerequisiteFlag = context.settings[prerequisiteFlagKey];
+    const prerequisiteFlagKey = condition.f;
 
-    context.visitedFlags.push(context.key);
+    const prerequisiteFlag = Object.prototype.hasOwnProperty.call(context.settings, prerequisiteFlagKey)
+      ? context.settings[prerequisiteFlagKey]
+      : throwInvalidConfigModelError("Prerequisite flag is missing.");
 
-    if (context.visitedFlags.indexOf(prerequisiteFlagKey) >= 0) {
-      context.visitedFlags.push(prerequisiteFlagKey);
-      const dependencyCycle = formatStringList(context.visitedFlags, void 0, void 0, " -> ");
-      throw new InvalidConfigModelError(`Circular dependency detected between the following depending flags: ${dependencyCycle}.`);
+    const prerequisiteFlagType = getSettingType(prerequisiteFlag);
+    let inferredPrerequisiteFlagType: SettingType | undefined;
+    let comparisonValue: NonNullable<SettingValue> | undefined;
+
+    if (prerequisiteFlagType !== (-1 satisfies UnknownSettingType)) {
+      inferredPrerequisiteFlagType = prerequisiteFlagType;
+      comparisonValue = unwrapValue(condition.v, prerequisiteFlagType, true);
+    } else {
+      inferredPrerequisiteFlagType = inferSettingType(prerequisiteFlag.v);
+      if (inferredPrerequisiteFlagType !== void 0) {
+        comparisonValue = unwrapValue(condition.v, inferredPrerequisiteFlagType, true);
+        if (inferredPrerequisiteFlagType === SettingType.Double) {
+          // In the case of a simple flag override with a number value, we need to accept int and double comparison values.
+          const intComparisonValue = unwrapValue(condition.v, SettingType.Int, true);
+          if (comparisonValue === void 0) {
+            comparisonValue = intComparisonValue;
+          } else if (intComparisonValue !== void 0) {
+            comparisonValue = void 0; // ambiguous case (both int and double values are present), we consider it a type mismatch
+          }
+        }
+      }
+    }
+
+    if (comparisonValue === void 0
+      && inferredPrerequisiteFlagType !== void 0 // the case of unsupported flag override values is handled by the unwrapValue call below
+    ) {
+      comparisonValue = inferValue(condition.v);
+      throwInvalidConfigModelError(`Type mismatch between comparison value '${valueToString(comparisonValue)}' and prerequisite flag '${prerequisiteFlagKey}'.`);
+    }
+
+    const visitedFlags = context.visitedFlags;
+    visitedFlags.push(context.key);
+
+    if (visitedFlags.indexOf(prerequisiteFlagKey) >= 0) {
+      visitedFlags.push(prerequisiteFlagKey);
+      const dependencyCycle = formatStringList(visitedFlags, void 0, void 0, " -> ");
+      throwInvalidConfigModelError(`Circular dependency detected between the following depending flags: ${dependencyCycle}.`);
     }
 
     const prerequisiteFlagContext = EvaluateContext.forPrerequisiteFlag(prerequisiteFlagKey, prerequisiteFlag, context);
@@ -626,28 +684,21 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     const prerequisiteFlagEvaluateResult = this.evaluateSetting(prerequisiteFlagContext);
 
-    context.visitedFlags.pop();
+    visitedFlags.pop();
 
-    const prerequisiteFlagValue = prerequisiteFlagEvaluateResult.selectedValue.value;
-    if (typeof prerequisiteFlagValue !== typeof condition.comparisonValue) {
-      if (isAllowedValue(prerequisiteFlagValue)) {
-        throw new InvalidConfigModelError(`Type mismatch between comparison value '${condition.comparisonValue}' and prerequisite flag '${prerequisiteFlagKey}'.`);
-      } else {
-        handleInvalidReturnValue(prerequisiteFlagValue);
-      }
-    }
+    const prerequisiteFlagValue = unwrapValue(prerequisiteFlagEvaluateResult.selectedValue.v, prerequisiteFlagType);
 
     let result: boolean;
 
-    switch (condition.comparator) {
+    switch (condition.c) {
       case PrerequisiteFlagComparator.Equals:
-        result = prerequisiteFlagValue === condition.comparisonValue;
+        result = prerequisiteFlagValue === comparisonValue;
         break;
       case PrerequisiteFlagComparator.NotEquals:
-        result = prerequisiteFlagValue !== condition.comparisonValue;
+        result = prerequisiteFlagValue !== comparisonValue;
         break;
       default:
-        throw Error(); // execution should never get here (unless there is an error in the config JSON)
+        throwInvalidConfigModelError("Comparison operator is invalid.");
     }
 
     logBuilder?.newLine(`Prerequisite flag evaluation result: '${valueToString(prerequisiteFlagValue)}'.`)
@@ -661,8 +712,10 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   }
 
   private evaluateSegmentCondition(condition: SegmentCondition, context: EvaluateContext): boolean | string {
+    const segments = context.setting["_configSegments"];
+
     const logBuilder = context.logBuilder;
-    logBuilder?.appendSegmentCondition(condition);
+    logBuilder?.appendSegmentCondition(condition, segments);
 
     if (!context.user) {
       if (!context.isMissingUserObjectLogged) {
@@ -673,24 +726,36 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return missingUserObjectError;
     }
 
-    const segment = condition.segment;
+    const segmentIndex = condition?.s;
+    if (!segments || !isNumberInRange(segmentIndex, 0, segments.length - 1)) {
+      throwInvalidConfigModelError("Segment reference is invalid.");
+    }
+
+    const segment = segments[segmentIndex];
+
+    const segmentName = segment?.n;
+    if (!segmentName.length) {
+      throwInvalidConfigModelError("Segment name is missing.");
+    }
 
     logBuilder?.newLine("(")
       .increaseIndent()
-      .newLine(`Evaluating segment '${segment.name}':`);
+      .newLine(`Evaluating segment '${segmentName}':`);
 
-    const segmentResult = this.evaluateConditions(segment.conditions, void 0, segment.name, context);
+    const conditions = segment?.r;
+
+    const segmentResult = this.evaluateConditions(conditions ?? [], "u", void 0, segmentName, context);
     let result = segmentResult;
 
     if (!isEvaluationError(result)) {
-      switch (condition.comparator) {
+      switch (condition.c) {
         case SegmentComparator.IsIn:
           break;
         case SegmentComparator.IsNotIn:
           result = !result;
           break;
         default:
-          throw Error(); // execution should never get here (unless there is an error in the config JSON)
+          throwInvalidConfigModelError("Comparison operator is invalid.");
       }
     }
 
@@ -701,7 +766,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         : logBuilder.append(result))
         .append(".");
 
-      logBuilder.newLine("Condition (").appendSegmentCondition(condition).append(")");
+      logBuilder.newLine("Condition (").appendSegmentCondition(condition, segments).append(")");
       (!isEvaluationError(result)
         ? logBuilder.append(" evaluates to ").appendConditionResult(result)
         : logBuilder.append(" failed to evaluate"))
@@ -720,15 +785,15 @@ function isEvaluationError(isMatchOrError: boolean | string): isMatchOrError is 
   return typeof isMatchOrError === "string";
 }
 
-function hashComparisonValue(value: string, configJsonSalt: string, contextSalt: string) {
+function hashComparisonValue(value: string, configJsonSalt: string, contextSalt: string): string {
   return hashComparisonValueSlice(utf8Encode(value), configJsonSalt, contextSalt);
 }
 
-function hashComparisonValueSlice(sliceUtf8: string, configJsonSalt: string, contextSalt: string) {
+function hashComparisonValueSlice(sliceUtf8: string, configJsonSalt: string, contextSalt: string): string {
   return sha256(sliceUtf8 + utf8Encode(configJsonSalt) + utf8Encode(contextSalt));
 }
 
-function userAttributeValueToString(userAttributeValue: UserAttributeValue) {
+function userAttributeValueToString(userAttributeValue: UserAttributeValue): string {
   return typeof userAttributeValue === "string" ? userAttributeValue
     : userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + ""
     : isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue)
@@ -736,7 +801,7 @@ function userAttributeValueToString(userAttributeValue: UserAttributeValue) {
 }
 
 function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
-  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): string {
   if (typeof attributeValue === "string") {
     return attributeValue;
@@ -749,7 +814,7 @@ function getUserAttributeValueAsText(attributeName: string, attributeValue: User
 }
 
 function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: UserAttributeValue,
-  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): ISemVer | string {
   let version: ISemVer | null;
   if (typeof attributeValue === "string" && (version = parseSemVer(attributeValue.trim()))) {
@@ -759,7 +824,7 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
 }
 
 function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue,
-  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): number | string {
   if (typeof attributeValue === "number") {
     return attributeValue;
@@ -773,7 +838,7 @@ function getUserAttributeValueAsNumber(attributeName: string, attributeValue: Us
 }
 
 function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue,
-  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): number | string {
   if (attributeValue instanceof Date) {
     return attributeValue.getTime() / 1000;
@@ -790,7 +855,7 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
 }
 
 function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue,
-  condition: UserConditionUnion, key: string, logger: LoggerWrapper
+  condition: UserCondition, key: string, logger: LoggerWrapper
 ): ReadonlyArray<string> | string {
   let stringArray: unknown = attributeValue;
   if (typeof stringArray === "string") {
@@ -804,10 +869,154 @@ function getUserAttributeValueAsStringArray(attributeName: string, attributeValu
   return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid string array`);
 }
 
-function handleInvalidUserAttribute(logger: LoggerWrapper, condition: UserConditionUnion, key: string, attributeName: string, reason: string) {
+function handleInvalidUserAttribute(logger: LoggerWrapper, condition: UserCondition, key: string, attributeName: string, reason: string): string {
   const conditionString = new LazyString(condition, condition => formatUserCondition(condition));
   logger.userObjectAttributeIsInvalid(conditionString, key, reason, attributeName);
   return invalidUserAttributeError(attributeName, reason);
+}
+
+export function isAllowedValue(value: unknown): value is NonNullable<SettingValue> {
+  return inferSettingType(value) !== void 0;
+}
+
+function inferSettingType(value: unknown): SettingType | undefined {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (typeof value) {
+    case "boolean": return SettingType.Boolean;
+    case "string": return SettingType.String;
+    case "number": return SettingType.Double;
+  }
+}
+
+function isCompatibleValue(value: SettingValue, settingType: SettingType): boolean {
+  switch (settingType) {
+    case SettingType.Boolean: return typeof value === "boolean";
+    case SettingType.String: return typeof value === "string";
+    case SettingType.Int:
+    case SettingType.Double: return typeof value === "number";
+    default: return false;
+  }
+}
+
+function getSettingType(setting: Setting): SettingType | UnknownSettingType {
+  const settingType = setting.t;
+  if (isNumberInRange(settingType, SettingType.Boolean, SettingType.Double)
+    || settingType === (-1 satisfies UnknownSettingType) && isSettingWithSimpleValue(setting)) {
+    return settingType;
+  }
+
+  throwInvalidConfigModelError("Setting type is invalid.");
+}
+
+function isSettingWithSimpleValue(setting: Setting): boolean {
+  return !setting.r?.length && !setting.p?.length;
+}
+
+export function hasPercentageOptions(targetingRule: TargetingRule): boolean;
+export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid: true): boolean | undefined;
+export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid?: boolean): boolean | undefined {
+  const simpleValue = targetingRule.s;
+  const percentageOptions = targetingRule.p;
+  if (simpleValue != null) {
+    if (percentageOptions == null) {
+      return false;
+    }
+  } else if (percentageOptions?.length) {
+    return true;
+  }
+
+  if (!ignoreIfInvalid) {
+    throwInvalidConfigModelError("Targeting rule THEN part is missing or invalid.");
+  }
+}
+
+function getConditionType(container: ConditionContainer): keyof ConditionContainer {
+  let type: keyof ConditionContainer | undefined | false, condition: Condition | null | undefined;
+
+  condition = container.u;
+  if (condition != null) {
+    type = "u";
+  }
+
+  condition = container.p;
+  if (condition != null) {
+    type = !type ? "p" : false;
+  }
+
+  condition = container.s;
+  if (condition != null) {
+    type = !type ? "s" : false;
+  }
+
+  if (!type) {
+    throwInvalidConfigModelError("Condition is missing or invalid.");
+  }
+
+  return type;
+}
+
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
+  ignoreIfInvalid?: false
+): NonNullable<SettingValue>;
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
+  ignoreIfInvalid: true
+): NonNullable<SettingValue> | undefined;
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
+  ignoreIfInvalid?: boolean
+): NonNullable<SettingValue> | undefined {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (settingType) {
+    case SettingType.Boolean: {
+      const value = (settingValue as SettingValueModel).b;
+      if (value != null) return value;
+      break;
+    }
+    case SettingType.String: {
+      const value = (settingValue as SettingValueModel).s;
+      if (value != null) return value;
+      break;
+    }
+    case SettingType.Int: {
+      const value = (settingValue as SettingValueModel).i;
+      if (value != null) return value;
+      break;
+    }
+    case SettingType.Double: {
+      const value = (settingValue as SettingValueModel).d;
+      if (value != null) return value;
+      break;
+    }
+    case (-1 satisfies UnknownSettingType):
+      if (isAllowedValue(settingValue)) {
+        return settingValue;
+      }
+    // eslint-disable-next-line no-fallthrough
+    default: // unsupported value
+      if (!ignoreIfInvalid) {
+        throwInvalidConfigModelError(
+          settingValue === null ? "Setting value is null."
+          : settingValue === void 0 ? "Setting value is undefined."
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          : `Setting value '${settingValue}' is of an unsupported type (${typeof settingValue}).`);
+      }
+      return;
+  }
+
+  if (!ignoreIfInvalid) {
+    throwInvalidConfigModelError("Setting value is missing or invalid.");
+  }
+}
+
+function getConfigJsonSalt(setting: Setting): string {
+  return setting["_configJsonSalt"] ?? throwInvalidConfigModelError("Config JSON salt is missing.");
+}
+
+function ensureComparisonValue<T>(comparisonValue: T | null | undefined): T {
+  return comparisonValue ?? throwInvalidConfigModelError("Comparison value is missing.");
+}
+
+function throwInvalidConfigModelError(message: string): never {
+  throw new InvalidConfigModelError(message);
 }
 
 /* Evaluation details */
@@ -869,10 +1078,10 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
   errorException?: any;
 
   /** The targeting rule (if any) that matched during the evaluation and was used to return the evaluated value. */
-  matchedTargetingRule?: ITargetingRule;
+  matchedTargetingRule?: TargetingRule;
 
   /** The percentage option (if any) that was used to select the evaluated value. */
-  matchedPercentageOption?: IPercentageOption;
+  matchedPercentageOption?: PercentageOption;
 }
 
 /* Helper functions */
@@ -882,8 +1091,8 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
 ): IEvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
-    value: evaluateResult.selectedValue.value as SettingTypeOf<T>,
-    variationId: evaluateResult.selectedValue.variationId,
+    value: evaluateResult.returnValue as SettingTypeOf<T>,
+    variationId: evaluateResult.selectedValue.i,
     fetchTime,
     user,
     isDefaultValue: false,
@@ -896,25 +1105,27 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
 export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
   fetchTime?: Date, user?: IUser, errorMessage?: Message, errorException?: any, errorCode = EvaluationErrorCode.UnexpectedError
 ): IEvaluationDetails<SettingTypeOf<T>> {
-  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { $errorMessage?: Message } = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { _errorMessage?: Message } = {
     key,
     value: defaultValue as SettingTypeOf<T>,
     fetchTime,
     user,
     isDefaultValue: true,
     errorCode,
-    get errorMessage() { return this.$errorMessage?.toString(); },
+    get errorMessage() { return this._errorMessage?.toString(); },
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     errorException,
   };
   if (errorMessage != null) {
-    evaluationDetails.$errorMessage = errorMessage;
+    evaluationDetails._errorMessage = errorMessage;
   }
   return evaluationDetails;
 }
 
-export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: Readonly<{ [key: string]: Setting }> | null, key: string, defaultValue: T,
-  user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper): IEvaluationDetails<SettingTypeOf<T>> {
+export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: SettingMap | null,
+  key: string, defaultValue: T, user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper
+): IEvaluationDetails<SettingTypeOf<T>> {
 
   let errorMessage: LogMessage;
   if (!settings) {
@@ -923,21 +1134,21 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
       toMessage(errorMessage), void 0, EvaluationErrorCode.ConfigJsonNotAvailable);
   }
 
-  const setting = settings[key];
-  if (!setting) {
+  if (!Object.prototype.hasOwnProperty.call(settings, key)) {
     const availableKeys = new LazyString(settings, settings => formatStringList(Object.keys(settings)));
     errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, availableKeys);
     return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
       toMessage(errorMessage), void 0, EvaluationErrorCode.SettingKeyMissing);
   }
 
-  const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, setting, user, settings));
+  const evaluateResult = evaluator.evaluate(defaultValue, new EvaluateContext(key, settings[key], user, settings));
 
   return evaluationDetailsFromEvaluateResult<T>(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
 }
 
-export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [key: string]: Setting }> | null,
-  user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string): [IEvaluationDetails[], any[] | undefined] {
+export function evaluateAll(evaluator: IRolloutEvaluator, settings: SettingMap | null,
+  user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string
+): [IEvaluationDetails[], any[] | undefined] {
 
   let errors: any[] | undefined;
 
@@ -965,9 +1176,9 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: Readonly<{ [
   return [evaluationDetailsArray, errors];
 }
 
-export function checkSettingsAvailable(settings: Readonly<{ [key: string]: Setting }> | null, logger: LoggerWrapper,
+export function checkSettingsAvailable(settings: SettingMap | null, logger: LoggerWrapper,
   defaultReturnValue: string
-): settings is Readonly<{ [key: string]: Setting }> {
+): settings is SettingMap {
   if (!settings) {
     logger.configJsonIsNotPresent(defaultReturnValue);
     return false;
@@ -982,7 +1193,7 @@ export type SettingKeyValue<TValue extends SettingValue = SettingValue> = {
   settingValue: TValue;
 };
 
-export function findKeyAndValue(settings: Readonly<{ [key: string]: Setting }> | null,
+export function findKeyAndValue(settings: SettingMap | null,
   variationId: string, logger: LoggerWrapper, defaultReturnValue: string
 ): SettingKeyValue | null {
   if (!checkSettingsAvailable(settings, logger, defaultReturnValue)) {
@@ -990,33 +1201,39 @@ export function findKeyAndValue(settings: Readonly<{ [key: string]: Setting }> |
   }
 
   for (const [settingKey, setting] of Object.entries(settings)) {
-    if (variationId === setting.variationId) {
-      return { settingKey, settingValue: ensureAllowedValue(setting.value) };
+    const settingType = getSettingType(setting);
+
+    if (variationId === setting.i) {
+      return { settingKey, settingValue: unwrapValue(setting.v, settingType) };
     }
 
-    const { targetingRules } = setting;
-    if (targetingRules.length > 0) {
+    const targetingRules = setting.r;
+    if (targetingRules?.length) {
       for (let i = 0; i < targetingRules.length; i++) {
-        const then = targetingRules[i].then;
-        if (isArray(then)) {
-          for (let j = 0; j < then.length; j++) {
-            const percentageOption = then[j];
-            if (variationId === percentageOption.variationId) {
-              return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
+        const targetingRule = targetingRules[i];
+        if (hasPercentageOptions(targetingRule)) {
+          const percentageOptions = targetingRule.p;
+          for (let j = 0; j < percentageOptions!.length; j++) {
+            const percentageOption = percentageOptions![j];
+            if (variationId === percentageOption.i) {
+              return { settingKey, settingValue: unwrapValue(percentageOption.v, settingType) };
             }
           }
-        } else if (variationId === then.variationId) {
-          return { settingKey, settingValue: ensureAllowedValue(then.value) };
+        } else {
+          const simpleValue = targetingRule.s!;
+          if (variationId === simpleValue.i) {
+            return { settingKey, settingValue: unwrapValue(simpleValue.v, settingType) };
+          }
         }
       }
     }
 
-    const { percentageOptions } = setting;
-    if (percentageOptions.length > 0) {
+    const percentageOptions = setting.p;
+    if (percentageOptions?.length) {
       for (let i = 0; i < percentageOptions.length; i++) {
         const percentageOption = percentageOptions[i];
-        if (variationId === percentageOption.variationId) {
-          return { settingKey, settingValue: ensureAllowedValue(percentageOption.value) };
+        if (variationId === percentageOption.i) {
+          return { settingKey, settingValue: unwrapValue(percentageOption.v, settingType) };
         }
       }
     }
@@ -1024,42 +1241,6 @@ export function findKeyAndValue(settings: Readonly<{ [key: string]: Setting }> |
 
   logger.settingForVariationIdIsNotPresent(variationId);
   return null;
-}
-
-function ensureAllowedValue(value: NonNullable<SettingValue>): NonNullable<SettingValue> {
-  return isAllowedValue(value) ? value : handleInvalidReturnValue(value);
-}
-
-export function isAllowedValue(value: unknown): value is NonNullable<SettingValue> {
-  return inferSettingType(value) !== -1;
-}
-
-function inferSettingType(value: unknown): SettingType | -1 {
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (typeof value) {
-    case "boolean": return SettingType.Boolean;
-    case "string": return SettingType.String;
-    case "number": return SettingType.Double;
-    default: return -1;
-  }
-}
-
-function isCompatibleValue(value: SettingValue, settingType: SettingType): boolean {
-  switch (settingType) {
-    case SettingType.Boolean: return typeof value === "boolean";
-    case SettingType.String: return typeof value === "string";
-    case SettingType.Int:
-    case SettingType.Double: return typeof value === "number";
-    default: return false;
-  }
-}
-
-function handleInvalidReturnValue(value: unknown): never {
-  throw new InvalidConfigModelError(
-    value === null ? "Setting value is null."
-    : value === void 0 ? "Setting value is undefined."
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    : `Setting value '${value}' is of an unsupported type (${typeof value}).`);
 }
 
 export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | undefined {
@@ -1084,4 +1265,3 @@ export function getEvaluationErrorCode(err: any): EvaluationErrorCode {
     : err instanceof InvalidConfigModelError ? EvaluationErrorCode.InvalidConfigModel
     : EvaluationErrorCode.UnexpectedError;
 }
-

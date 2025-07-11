@@ -400,6 +400,22 @@ export default [
             ],
           },
           {
+            "selector": [
+              "classProperty",
+              "objectLiteralProperty",
+              "typeProperty",
+              "accessor",
+            ],
+            "format": [
+              "camelCase",
+              "UPPER_CASE",
+            ],
+            "modifiers": [
+              "private",
+            ],
+            "leadingUnderscore": "allow",
+          },
+          {
             "selector": "memberLike",
             "format": [
               "camelCase",

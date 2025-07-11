@@ -1,7 +1,6 @@
+import type { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import * as ConfigJson from "./ConfigJson";
-import type { PrerequisiteFlagComparator, RedirectMode, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
-import type { WellKnownUserObjectAttribute } from "./User";
-import { ensurePrototype } from "./Utils";
+import { ensurePrototype, isArray, isObject } from "./Utils";
 
 // NOTE: This is a hack which prevents the TS compiler from eliding the namespace import above.
 // TS wants to do this because it figures that the ConfigJson module contains types only.
@@ -79,7 +78,7 @@ export class ProjectConfig {
     let config: Config | undefined;
     let configJson: string | undefined;
     if (slice.length > 0) {
-      config = Config.deserialize(slice);
+      config = deserializeConfig(slice);
       configJson = slice;
     }
 
@@ -87,310 +86,423 @@ export class ProjectConfig {
   }
 }
 
-/** Details of a ConfigCat config. */
-export interface IConfig {
-  /** The salt that was used to hash sensitive comparison values. */
-  readonly salt: string | undefined;
-  /** The array of segments. */
-  readonly segments: ReadonlyArray<ISegment>;
-  /** The key-value map of settings. */
-  readonly settings: Readonly<{ [key: string]: ISettingUnion }>;
-}
+/* Config model type definition */
 
-export class Config implements IConfig {
-  static deserialize(configJson: string): Config {
-    const configJsonParsed: unknown = JSON.parse(configJson);
-    if (typeof configJsonParsed !== "object" || !configJsonParsed) {
-      throw Error("Invalid config JSON content:" + configJson);
-    }
-    return new Config(configJsonParsed);
-  }
+export type UnknownSettingType = -1;
 
-  readonly preferences: Preferences | undefined;
-  readonly segments: ReadonlyArray<Segment>;
-  readonly settings: Readonly<{ [key: string]: SettingUnion }>;
+export type SettingMap = { readonly [key: string]: Setting };
 
-  constructor(json: Partial<ConfigJson.Config>) {
-    this.preferences = json.p != null ? new Preferences(json.p) : void 0;
-    this.segments = json.s?.map(item => new Segment(item)) ?? [];
-    this.settings = json.f != null
-      ? Object.entries(json.f)
-        .reduce<{ [key: string]: SettingUnion }>((acc, [key, value]) =>
-          (acc[key] = new Setting(value, this) as SettingUnion, acc), {})
-      : {};
-  }
-
-  get salt(): string | undefined { return this.preferences?.salt; }
-}
-
-export class Preferences {
-  readonly baseUrl: string | undefined;
-  readonly redirectMode: RedirectMode | undefined;
-  readonly salt: string | undefined;
-
-  constructor(json: ConfigJson.Preferences) {
-    this.baseUrl = json.u;
-    this.redirectMode = json.r;
-    this.salt = json.s;
-  }
-}
-
-/** Describes a segment. */
-export interface ISegment {
-  /** The name of the segment. */
-  readonly name: string;
-  /** The array of segment rule conditions (where there is a logical AND relation between the items). */
-  readonly conditions: ReadonlyArray<IUserConditionUnion>;
-}
-
-export class Segment implements ISegment {
-  readonly name: string;
-  readonly conditions: ReadonlyArray<UserConditionUnion>;
-
-  constructor(json: ConfigJson.Segment) {
-    this.name = json.n;
-    this.conditions = json.r?.map(item => new UserCondition(item) as UserConditionUnion) ?? [];
-  }
-}
-
-export type SettingTypeMap = {
-  [SettingType.Boolean]: boolean;
-  [SettingType.String]: string;
-  [SettingType.Int]: number;
-  [SettingType.Double]: number;
-};
-
-export type SettingValue = SettingTypeMap[SettingType] | null | undefined;
+export type SettingValue = boolean | string | number | null | undefined;
 
 export type VariationIdValue = string | null | undefined;
 
-/** A model object which contains a setting value along with related data. */
-export interface ISettingValueContainer<TSetting extends SettingType = SettingType> {
-  /** Setting value. */
-  readonly value: SettingTypeMap[TSetting];
-  /** Variation ID. */
-  readonly variationId?: NonNullable<VariationIdValue>;
+// NOTE: Although the ConfigJson.ts module already describes the config JSON schema, we need to define a separate
+// config model for the following reasons:
+// * We want feature flag evaluation to be more tolerant than what the config JSON schema requires (e.g. allow missing
+//   values in some cases, consider explicit null values as missing values, etc.) to make flag overrides more convenient
+//   to use.
+// * We need to do some post-processing to prepare the data structure for feature flag evaluation, i.e. to store a few
+//   references into Setting (see also prepareConfig).
+// * We need a model that can safely be exposed to consumers, i.e. we want an immutable model to prevent consumers from
+//   accidentally changing and messing it up, and a model that is guaranteed to be prepared for feature flag evaluation,
+//   so it can be used e.g. to implement a custom flag override data source. (This is why we use class declarations
+//   instead of plain interfaces: required private/protected properties prevent assignments like `const x: Config = {}`,
+//   which in turn points consumers towards obtaining a config model using deserializeConfig.)
+// By means of some helper types like Immutable, we can derive the config model from the config JSON schema definition,
+// which, by leveraging TS type checking, prevents the two model from getting out of sync, plus automatically inherits
+// JSDoc comments for properties from the config JSON schema definition.
+
+type AdjustedConfigJsonConfig = PartialWithNull<ChangePropType<
+  ConfigJson.Config,
+  { "p": PartialWithNull<ConfigJson.Preferences> }
+>>;
+
+/** Describes a ConfigCat config's data model used for feature flag evaluation. */
+export declare abstract class Config implements Immutable<AdjustedConfigJsonConfig> {
+  // NOTE: Prevents structural compatibility with arbitrary objects (see the explanation above).
+  declare private readonly _guard: unknown;
+
+  declare readonly p?: Immutable<PartialWithNull<ConfigJson.Preferences>> | null;
+  declare readonly s?: ReadonlyArray<Segment & ConfigJson.Segment> | null;
+  declare readonly f?: { readonly [key: string]: Setting & ConfigJson.SettingUnion } | null;
 }
 
-export class SettingValueContainer<TSetting extends SettingType = SettingType> implements ISettingValueContainer<TSetting> {
-  readonly value: SettingTypeMap[TSetting]; // can also store an unsupported value of any type for internal use, however such values should never be exposed to the user!
-  readonly variationId?: NonNullable<VariationIdValue>;
+type AdjustedConfigJsonSegment = OptionalWithNull<ConfigJson.Segment, "r">;
 
-  constructor(json: ConfigJson.ServedValue, hasUnwrappedValue = false) {
-    this.value = (!hasUnwrappedValue ? unwrapSettingValue(json.v) : json.v) as SettingTypeMap[TSetting];
-    this.variationId = json.i;
-  }
+/** Describes a segment. */
+export declare abstract class Segment implements Immutable<AdjustedConfigJsonSegment> {
+  declare readonly n: string;
+  declare readonly r?: ReadonlyArray<UserCondition & ConfigJson.UserConditionUnion> | null;
 }
 
-// NOTE: The TS compiler can't do type narrowing on constrained generic type parameters (see https://stackoverflow.com/a/68898908/8656352).
-// So, to make type narrowing work, we derive a discriminated union type containing all the possible substitutions of the type parameter
-// (see also https://github.com/Microsoft/TypeScript/issues/27272#issuecomment-423630799).
-export type ISettingUnion = { [K in SettingType]: ISetting<K> }[SettingType];
+type FlattenedConfigJsonSettingValue = PartialWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.SettingValue>>>;
 
-/** Feature flag or setting. */
-export interface ISetting<TSetting extends SettingType = SettingType> extends ISettingValueContainer<TSetting> {
-  /** Setting type. */
-  readonly type: TSetting;
-  /** The User Object attribute which serves as the basis of percentage options evaluation. */
-  readonly percentageOptionsAttribute: string;
-  /** The array of targeting rules (where there is a logical OR relation between the items). */
-  readonly targetingRules: ReadonlyArray<ITargetingRule<TSetting>>;
-  /** The array of percentage options. */
-  readonly percentageOptions: ReadonlyArray<IPercentageOption<TSetting>>;
+/** Contains a value of one of the possible types. */
+export declare abstract class SettingValueModel implements Immutable<FlattenedConfigJsonSettingValue> {
+  declare readonly b?: boolean | null;
+  declare readonly s?: string | null;
+  declare readonly i?: number | null;
+  declare readonly d?: number | null;
 }
 
-export type SettingUnion = { [K in SettingType]: Setting<K> }[SettingType];
+type AdjustedConfigJsonServedValue = ChangePropType<
+  OptionalWithNull<ConfigJson.ServedValue, "i">,
+  { "v": ConfigJson.SettingValue | NonNullable<SettingValue> }
+>;
 
-export class Setting<TSetting extends SettingType = SettingType> extends SettingValueContainer<TSetting> implements ISetting<TSetting> {
-  /** @remarks Can also be -1 when the setting comes from a flag override. */
-  readonly type: TSetting;
-  readonly percentageOptionsAttribute: string;
-  readonly targetingRules: ReadonlyArray<TargetingRule<TSetting>>;
-  readonly percentageOptions: ReadonlyArray<PercentageOption<TSetting>>;
-  readonly configJsonSalt: string;
+/** Contains a setting value along with related data. */
+export declare abstract class SettingValueContainer<
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  TValue extends ConfigJson.SettingValue | NonNullable<SettingValue> = SettingValueModel & ConfigJson.SettingValue
+> implements Immutable<AdjustedConfigJsonServedValue> {
 
-  constructor(json: ConfigJson.Setting<TSetting>, config?: Config) {
-    super(json, json.t < 0);
-    this.type = json.t;
-    this.percentageOptionsAttribute = json.a ?? ("Identifier" satisfies WellKnownUserObjectAttribute);
-    this.targetingRules = json.r?.map(item => new TargetingRule<TSetting>(item, config!)) ?? [];
-    this.percentageOptions = json.p?.map(item => new PercentageOption<TSetting>(item)) ?? [];
-    this.configJsonSalt = config?.salt ?? "";
-  }
-
-  static fromValue(value: NonNullable<SettingValue>): Setting {
-    return new Setting({
-      t: -1, // this is not a defined SettingType value, we only use it internally (will never expose it to the consumer)
-      v: value,
-    } as unknown as ConfigJson.Setting);
-  }
+  declare readonly v: TValue;
+  /** @remarks May be missing in the case of flag overrides. */
+  declare readonly i?: string | null;
 }
+
+type AdjustedConfigJsonSetting = ChangePropType<
+  OptionalWithNull<ConfigJson.Setting, "i" | "a" | "r" | "p">,
+  { "t": SettingType | UnknownSettingType; "v": ConfigJson.SettingValue | NonNullable<SettingValue> }
+>;
+
+/** Describes a feature flag or setting. */
+export declare abstract class Setting extends SettingValueContainer<
+  ConfigJson.SettingValue & SettingValueModel | NonNullable<SettingValue>
+> implements Immutable<AdjustedConfigJsonSetting> {
+
+  /** @remarks Can also be `-1` when the setting comes from a simple flag override. */
+  declare readonly t: SettingType | UnknownSettingType;
+  declare readonly a?: string | null;
+  declare readonly r?: ReadonlyArray<TargetingRule & ConfigJson.TargetingRule> | null;
+  declare readonly p?: ReadonlyArray<PercentageOption & ConfigJson.PercentageOption> | null;
+  /** @remarks Can be a plain `boolean`, `string` or `number` value in the case of a a simple flag override. */
+  declare readonly v: ConfigJson.SettingValue & SettingValueModel | NonNullable<SettingValue>;
+
+  /* eslint-disable @typescript-eslint/naming-convention */
+  declare protected _configJsonSalt: string | undefined;
+  declare protected _configSegments: ReadonlyArray<Segment> | undefined;
+  /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+type FlattenedConfigJsonTargetingRule = OptionalWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.TargetingRule>>, "c" | "s" | "p">;
 
 /** Describes a targeting rule. */
-export interface ITargetingRule<TSetting extends SettingType = SettingType> {
-  /** The array of conditions that are combined with the AND logical operator. (The IF part of the targeting rule.) */
-  readonly conditions: ReadonlyArray<IConditionUnion>;
-  /** The simple value or the array of percentage options associated with the targeting rule. (The THEN part of the targeting rule.) */
-  readonly then: ISettingValueContainer<TSetting> | ReadonlyArray<IPercentageOption<TSetting>>;
+export declare abstract class TargetingRule implements Immutable<FlattenedConfigJsonTargetingRule> {
+  declare readonly c?: ReadonlyArray<ConditionContainer & ConfigJson.ConditionUnion>;
+  declare readonly s?: SettingValueContainer & ConfigJson.ServedValue;
+  declare readonly p?: ReadonlyArray<PercentageOption & ConfigJson.PercentageOption>;
 }
 
-export class TargetingRule<TSetting extends SettingType = SettingType> implements ITargetingRule<TSetting> {
-  readonly conditions: ReadonlyArray<ConditionUnion>;
-  readonly then: SettingValueContainer<TSetting> | ReadonlyArray<PercentageOption<TSetting>>;
+type AdjustedConfigJsonPercentageOption = OptionalWithNull<ConfigJson.PercentageOption, "i">;
 
-  constructor(json: ConfigJson.TargetingRule<TSetting>, config: Config) {
-    this.conditions = json.c?.map(item =>
-      item.u != null ? new UserCondition(item.u) as UserConditionUnion
-      : item.p != null ? new PrerequisiteFlagCondition(item.p)
-      : item.s != null ? new SegmentCondition(item.s, config)
-      : void 0 as unknown as ConditionUnion) ?? [];
-    this.then = json.p != null
-      ? json.p.map(item => new PercentageOption<TSetting>(item))
-      : new SettingValueContainer<TSetting>(json.s);
-  }
+/** Describes a percentage option. */
+export declare abstract class PercentageOption extends SettingValueContainer implements Immutable<AdjustedConfigJsonPercentageOption> {
+  declare readonly p: number;
 }
 
-/** Represents a percentage option. */
-export interface IPercentageOption<TSetting extends SettingType = SettingType> extends ISettingValueContainer<TSetting> {
-  /** A number between 0 and 100 that represents a randomly allocated fraction of the users. */
-  readonly percentage: number;
+type FlattenedConfigJsonCondition = PartialWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.ConditionUnion>>>;
+
+/** Contains one of the possible conditions. */
+export declare abstract class ConditionContainer implements Immutable<FlattenedConfigJsonCondition> {
+  declare readonly u?: UserCondition & ConfigJson.UserConditionUnion | null;
+  declare readonly p?: PrerequisiteFlagCondition | null;
+  declare readonly s?: SegmentCondition | null;
 }
 
-export class PercentageOption<TSetting extends SettingType = SettingType> extends SettingValueContainer<TSetting> implements IPercentageOption<TSetting> {
-  readonly percentage: number;
+export type Condition = UserCondition | PrerequisiteFlagCondition | SegmentCondition;
 
-  constructor(json: ConfigJson.PercentageOption<TSetting>) {
-    super(json);
-    this.percentage = json.p;
-  }
-}
-
-export type ConditionTypeMap = {
-  ["UserCondition"]: IUserConditionUnion;
-  ["PrerequisiteFlagCondition"]: IPrerequisiteFlagCondition;
-  ["SegmentCondition"]: ISegmentCondition;
-};
-
-export type IConditionUnion = ConditionTypeMap[keyof ConditionTypeMap];
-
-/** Represents a condition. */
-export interface ICondition<TCondition extends keyof ConditionTypeMap = keyof ConditionTypeMap> {
-  /** The type of the condition. */
-  readonly type: TCondition;
-}
-
-export type ConditionUnion = UserConditionUnion | PrerequisiteFlagCondition | SegmentCondition;
-
-export type UserConditionComparisonValueTypeMap = {
-  [UserComparator.TextIsOneOf]: Readonly<string[]>;
-  [UserComparator.TextIsNotOneOf]: Readonly<string[]>;
-  [UserComparator.TextContainsAnyOf]: Readonly<string[]>;
-  [UserComparator.TextNotContainsAnyOf]: Readonly<string[]>;
-  [UserComparator.SemVerIsOneOf]: Readonly<string[]>;
-  [UserComparator.SemVerIsNotOneOf]: Readonly<string[]>;
-  [UserComparator.SemVerLess]: string;
-  [UserComparator.SemVerLessOrEquals]: string;
-  [UserComparator.SemVerGreater]: string;
-  [UserComparator.SemVerGreaterOrEquals]: string;
-  [UserComparator.NumberEquals]: number;
-  [UserComparator.NumberNotEquals]: number;
-  [UserComparator.NumberLess]: number;
-  [UserComparator.NumberLessOrEquals]: number;
-  [UserComparator.NumberGreater]: number;
-  [UserComparator.NumberGreaterOrEquals]: number;
-  [UserComparator.SensitiveTextIsOneOf]: Readonly<string[]>;
-  [UserComparator.SensitiveTextIsNotOneOf]: Readonly<string[]>;
-  [UserComparator.DateTimeBefore]: number;
-  [UserComparator.DateTimeAfter]: number;
-  [UserComparator.SensitiveTextEquals]: string;
-  [UserComparator.SensitiveTextNotEquals]: string;
-  [UserComparator.SensitiveTextStartsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.SensitiveTextNotStartsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.SensitiveTextEndsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.SensitiveTextNotEndsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.SensitiveArrayContainsAnyOf]: Readonly<string[]>;
-  [UserComparator.SensitiveArrayNotContainsAnyOf]: Readonly<string[]>;
-  [UserComparator.TextEquals]: string;
-  [UserComparator.TextNotEquals]: string;
-  [UserComparator.TextStartsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.TextNotStartsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.TextEndsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.TextNotEndsWithAnyOf]: Readonly<string[]>;
-  [UserComparator.ArrayContainsAnyOf]: Readonly<string[]>;
-  [UserComparator.ArrayNotContainsAnyOf]: Readonly<string[]>;
-};
-
-export type IUserConditionUnion = { [K in UserComparator]: IUserCondition<K> }[UserComparator];
+type FlattenedConfigJsonUserCondition = OptionalWithNull<UnionToIntersection<OmitNeverProps<ConfigJson.UserCondition>>, "s" | "d" | "l">;
 
 /** Describes a condition that is based on a User Object attribute. */
-export interface IUserCondition<TComparator extends UserComparator = UserComparator> extends ICondition<"UserCondition"> {
-  /** The User Object attribute that the condition is based on. Can be "Identifier", "Email", "Country" or any custom attribute. */
-  readonly comparisonAttribute: string;
-  /** The operator which defines the relation between the comparison attribute and the comparison value. */
-  readonly comparator: TComparator;
-  /** The value that the User Object attribute is compared to. */
-  readonly comparisonValue: UserConditionComparisonValueTypeMap[TComparator];
-}
-
-export type UserConditionUnion = { [K in UserComparator]: UserCondition<K> }[UserComparator];
-
-export class UserCondition<TComparator extends UserComparator = UserComparator> implements IUserCondition<TComparator> {
-  readonly type = "UserCondition";
-  readonly comparisonAttribute: string;
-  readonly comparator: TComparator;
-  readonly comparisonValue: UserConditionComparisonValueTypeMap[TComparator];
-
-  constructor(json: ConfigJson.UserCondition<TComparator>) {
-    this.comparisonAttribute = json.a;
-    this.comparator = json.c;
-    this.comparisonValue = (json.s ?? json.d ?? json.l) as UserConditionComparisonValueTypeMap[TComparator];
-  }
+export declare abstract class UserCondition implements Immutable<FlattenedConfigJsonUserCondition> {
+  declare readonly a: string;
+  declare readonly c: UserComparator;
+  declare readonly s?: string | null;
+  declare readonly d?: number | null;
+  declare readonly l?: ReadonlyArray<string> | null;
 }
 
 /** Describes a condition that is based on a prerequisite flag. */
-export interface IPrerequisiteFlagCondition extends ICondition<"PrerequisiteFlagCondition"> {
-  /** The key of the prerequisite flag that the condition is based on. */
-  readonly prerequisiteFlagKey: string;
-  /** The operator which defines the relation between the evaluated value of the prerequisite flag and the comparison value. */
-  readonly comparator: PrerequisiteFlagComparator;
-  /** The value that the evaluated value of the prerequisite flag is compared to. */
-  readonly comparisonValue: NonNullable<SettingValue>;
-}
-
-export class PrerequisiteFlagCondition implements IPrerequisiteFlagCondition {
-  readonly type = "PrerequisiteFlagCondition";
-  readonly prerequisiteFlagKey: string;
-  readonly comparator: PrerequisiteFlagComparator;
-  readonly comparisonValue: NonNullable<SettingValue>;
-
-  constructor(json: ConfigJson.PrerequisiteFlagCondition) {
-    this.prerequisiteFlagKey = json.f;
-    this.comparator = json.c;
-    this.comparisonValue = unwrapSettingValue(json.v);
-  }
+export declare abstract class PrerequisiteFlagCondition implements Immutable<ConfigJson.PrerequisiteFlagCondition> {
+  declare readonly f: string;
+  declare readonly c: PrerequisiteFlagComparator;
+  declare readonly v: SettingValueModel & ConfigJson.SettingValue;
 }
 
 /** Describes a condition that is based on a segment. */
-export interface ISegmentCondition extends ICondition<"SegmentCondition"> {
-  /** The segment that the condition is based on. */
-  readonly segment: ISegment;
-  /** The operator which defines the expected result of the evaluation of the segment. */
-  readonly comparator: SegmentComparator;
+export declare abstract class SegmentCondition implements Immutable<ConfigJson.SegmentCondition> {
+  declare readonly s: number;
+  declare readonly c: SegmentComparator;
 }
 
-export class SegmentCondition implements ISegmentCondition {
-  readonly type = "SegmentCondition";
-  readonly segment: Segment;
-  readonly comparator: SegmentComparator;
+/* Config model helper functions & types */
 
-  constructor(json: ConfigJson.SegmentCondition, config: Config) {
-    this.segment = config.segments[json.s];
-    this.comparator = json.c;
+/**
+ * Deserializes the specified config JSON to a `Config` model that can be used for feature flag evaluation.
+ *
+ * @remarks Does superficial model validation only, meaning that the method makes sure that the specified config JSON
+ * matches the type definition of the `Config` model, but doesn't check for semantic issues. E.g. doesn't validate
+ * whether referenced segments and feature flags actually exist. (Such issues are checked during feature flag evaluation.)
+ */
+export function deserializeConfig(configJson: string): Config {
+  const configJsonParsed: unknown = JSON.parse(configJson);
+  return prepareConfig(configJsonParsed as ConfigJson.Config);
+}
+
+/**
+ * Prepares the specified preparsed config JSON so it can be used for feature flag evaluation. Makes direct
+ * modifications to the specified object and returns the same reference cast as type `Config`.
+ *
+ * @remarks Does superficial model validation only, meaning that the method makes sure that the specified config JSON
+ * matches the type definition of the `Config` model, but doesn't check for semantic issues. E.g. doesn't validate
+ * whether referenced segments and feature flags actually exist. (Such issues are checked during feature flag evaluation.)
+ */
+export function prepareConfig(config: Partial<ConfigJson.Config>): Config {
+  checkConfig(config, ["$"]);
+
+  const settings = config.f;
+  if (settings) {
+    const salt = config.p?.s;
+    const segments = config.s;
+
+    for (const key in settings) {
+      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+        const setting = settings[key];
+        setting["_configJsonSalt"] = salt;
+        setting["_configSegments"] = segments;
+      }
+    }
+  }
+
+  return config;
+}
+
+/**
+ * Creates a setting that can be used for feature flag evaluation from the specified value.
+ */
+export function createSettingFromValue(value: NonNullable<SettingValue>): Setting {
+  return {
+    t: -1 satisfies UnknownSettingType,
+    v: value,
+  } satisfies Partial<Setting> as Setting;
+}
+
+function checkConfig(config: Partial<ConfigJson.Config>, path: string[]): asserts config is Config & Partial<ConfigJson.Config> {
+  if (config == null) {
+    throwConfigJsonMissingRequiredValue(path);
+  }
+  ensureObject(config, path);
+
+  checkObjectProperty(config, "p", path, checkPreferences);
+  checkObjectProperty(config, "s", path, checkSegments);
+  checkObjectProperty(config, "f", path, checkSettings);
+}
+
+function checkPreferences(preferences: ConfigJson.Preferences, path: string[]) {
+  ensureObject(preferences, path);
+
+  checkObjectProperty(preferences, "r", path, ensureInteger);
+  checkObjectProperty(preferences, "u", path, ensureString);
+  checkObjectProperty(preferences, "s", path, ensureString);
+}
+
+function checkSegments(segments: ConfigJson.Segment[], path: string[]) {
+  ensureArray(segments, path);
+
+  for (let i = 0; i < segments.length; i++) {
+    checkArrayElement(segments, i, path, checkSegment);
   }
 }
 
-function unwrapSettingValue(json: ConfigJson.SettingValue): NonNullable<SettingValue> {
-  return (json.b ?? json.s ?? json.i ?? json.d)!;
+function checkSegment(segment: ConfigJson.Segment, path: string[]) {
+  ensureObject(segment, path);
+
+  checkObjectProperty(segment, "n", path, ensureString, true);
+  checkObjectProperty(segment, "r", path, checkSegmentConditions);
+}
+
+function checkSettings(settings: { [key: string]: ConfigJson.SettingUnion }, path: string[]) {
+  ensureObject(settings, path);
+
+  for (const key in settings) {
+    if (Object.prototype.hasOwnProperty.call(settings, key)) {
+      checkObjectProperty(settings, key, path, checkSetting, true);
+    }
+  }
+}
+
+function checkSetting(setting: ConfigJson.SettingUnion, path: string[]) {
+  ensureObject(setting, path);
+
+  checkObjectProperty(setting, "t", path, ensureInteger, true);
+  checkObjectProperty(setting, "a", path, ensureString);
+  checkObjectProperty(setting, "r", path, checkTargetingRules);
+  checkObjectProperty(setting, "p", path, checkPercentageOptions);
+  checkServedValue(setting, path);
+}
+
+function checkTargetingRules(targetingRules: ConfigJson.TargetingRule[], path: string[]) {
+  ensureArray(targetingRules, path);
+
+  for (let i = 0; i < targetingRules.length; i++) {
+    checkArrayElement(targetingRules, i, path, checkTargetingRule);
+  }
+}
+
+function checkTargetingRule(targetingRule: ConfigJson.TargetingRule, path: string[]) {
+  ensureObject(targetingRule, path);
+
+  checkObjectProperty(targetingRule, "c", path, checkConditions);
+  checkObjectProperty(targetingRule, "s", path, checkServedValue);
+  checkObjectProperty(targetingRule, "p", path, checkPercentageOptions);
+}
+
+function checkConditions(conditions: ConfigJson.ConditionUnion[], path: string[]) {
+  ensureArray(conditions, path);
+
+  for (let i = 0; i < conditions.length; i++) {
+    checkArrayElement(conditions, i, path, checkCondition);
+  }
+}
+
+function checkSegmentConditions(conditions: ConfigJson.UserCondition[], path: string[]) {
+  ensureArray(conditions, path);
+
+  for (let i = 0; i < conditions.length; i++) {
+    checkArrayElement(conditions, i, path, checkUserCondition);
+  }
+}
+
+function checkCondition(condition: ConfigJson.ConditionUnion, path: string[]) {
+  ensureObject(condition, path);
+
+  checkObjectProperty(condition, "u", path, checkUserCondition);
+  checkObjectProperty(condition, "p", path, checkPrerequisiteFlagCondition);
+  checkObjectProperty(condition, "s", path, checkSegmentCondition);
+}
+
+function checkUserCondition(condition: ConfigJson.UserCondition, path: string[]) {
+  ensureObject(condition, path);
+
+  checkObjectProperty(condition, "a", path, ensureString, true);
+  checkObjectProperty(condition, "c", path, ensureInteger, true);
+  checkObjectProperty(condition, "s", path, ensureString);
+  checkObjectProperty(condition, "d", path, ensureNumber);
+  checkObjectProperty(condition, "l", path, checkComparisonValues);
+}
+
+function checkComparisonValues(comparisonValues: string[], path: string[]) {
+  ensureArray(comparisonValues, path);
+
+  for (let i = 0; i < comparisonValues.length; i++) {
+    checkArrayElement(comparisonValues, i, path, ensureString);
+  }
+}
+
+function checkPrerequisiteFlagCondition(condition: ConfigJson.PrerequisiteFlagCondition, path: string[]) {
+  ensureObject(condition, path);
+
+  checkObjectProperty(condition, "f", path, ensureString, true);
+  checkObjectProperty(condition, "c", path, ensureInteger, true);
+  checkObjectProperty(condition, "v", path, checkSettingValue, true);
+}
+
+function checkSegmentCondition(condition: ConfigJson.SegmentCondition, path: string[]) {
+  ensureObject(condition, path);
+
+  checkObjectProperty(condition, "s", path, ensureInteger, true);
+  checkObjectProperty(condition, "c", path, ensureInteger, true);
+}
+
+function checkPercentageOptions(percentageOptions: ConfigJson.PercentageOption[], path: string[]) {
+  ensureArray(percentageOptions, path);
+
+  for (let i = 0; i < percentageOptions.length; i++) {
+    checkArrayElement(percentageOptions, i, path, checkPercentageOption);
+  }
+}
+
+function checkPercentageOption(percentageOption: ConfigJson.PercentageOption, path: string[]) {
+  ensureObject(percentageOption, path);
+
+  checkObjectProperty(percentageOption, "p", path, ensureInteger, true);
+  checkServedValue(percentageOption, path);
+}
+
+function checkServedValue(servedValue: ConfigJson.ServedValue, path: string[]) {
+  ensureObject(servedValue, path);
+
+  checkObjectProperty(servedValue, "v", path, checkSettingValue, true);
+  checkObjectProperty(servedValue, "i", path, ensureString);
+}
+
+function checkSettingValue(settingValue: ConfigJson.SettingValue, path: string[]) {
+  ensureObject(settingValue, path);
+
+  checkObjectProperty(settingValue, "b", path, ensureBoolean);
+  checkObjectProperty(settingValue, "s", path, ensureString);
+  checkObjectProperty(settingValue, "i", path, ensureInteger);
+  checkObjectProperty(settingValue, "d", path, ensureNumber);
+}
+
+function checkArrayElement<T>(obj: T[], index: number, path: string[],
+  callback: (item: T, path: string[]) => void
+): void {
+  const item = obj[index];
+  path.push(`[${index}]`);
+  if (item == null) {
+    throwConfigJsonMissingRequiredValue(path);
+  }
+  callback(item, path);
+  path.pop();
+}
+
+function checkObjectProperty<T, K extends string & keyof T>(obj: T, property: K, path: string[],
+  callback: (propertyValue: NonNullable<T[K]>, path: string[]) => void, isRequired?: boolean
+): void {
+  const propertyValue = obj[property];
+  path.push(`.${property}`);
+  if (propertyValue == null) {
+    if (isRequired) {
+      throwConfigJsonMissingRequiredValue(path);
+    }
+  } else {
+    callback(propertyValue, path);
+  }
+  path.pop();
+}
+
+function ensureArray(value: unknown[], path: string[]) {
+  isArray(value) || throwConfigJsonTypeMismatchError(path);
+}
+
+function ensureObject(value: object, path: string[]) {
+  isObject(value) || throwConfigJsonTypeMismatchError(path);
+}
+
+function ensureBoolean(value: boolean, path: string[]) {
+  typeof value === "boolean" || throwConfigJsonTypeMismatchError(path);
+}
+
+function ensureString(value: string, path: string[]) {
+  typeof value === "string" || throwConfigJsonTypeMismatchError(path);
+}
+
+function ensureInteger(value: number, path: string[]) {
+  typeof value === "number" && Number.isSafeInteger(value) || throwConfigJsonTypeMismatchError(path);
+}
+
+function ensureNumber(value: number, path: string[]) {
+  typeof value === "number" || throwConfigJsonTypeMismatchError(path);
+}
+
+function throwConfigJsonMissingRequiredValue(path: string[]): never {
+  throw TypeError(`Invalid config JSON content. Missing required value at ${path.join("")}`);
+}
+
+function throwConfigJsonTypeMismatchError(path: string[]): never {
+  throw TypeError(`Invalid config JSON content. Type mismatch at ${path.join("")}`);
 }
 
 export function nameOfSettingType(value: SettingType): string {
@@ -408,3 +520,31 @@ export class InvalidConfigModelError extends Error {
     ensurePrototype(this, InvalidConfigModelError);
   }
 }
+
+/* Utility types */
+
+/** Recursively makes object `T` immutable by making arrays and object properties read-only. */
+type Immutable<T> = { readonly [K in keyof T]:
+  NonNullable<T[K]> extends ReadonlyArray<infer U> ? ReadonlyArray<Immutable<U>> | (T[K] & (null | undefined))
+  : NonNullable<T[K]> extends object ? Immutable<T[K]>
+  : T[K]
+};
+
+/** Makes all properties optional in object `T` while also allowing `null`. */
+type PartialWithNull<T> = { [P in keyof T]?: T[P] | null };
+
+/** Makes properties specified by `K` optional in object `T` while also allowing `null`. */
+// https://stackoverflow.com/a/61108377/8656352
+type OptionalWithNull<T, K extends keyof T> = Pick<PartialWithNull<T>, K> & Omit<T, K>;
+
+/** Changes the type of properties specified by `TPropMap` in object `T`. */
+type ChangePropType<T, TPropMap extends { [K in keyof T]?: unknown }> = {
+  [K in keyof T]: K extends keyof TPropMap ? TPropMap[K] : T[K];
+};
+
+/** Removes properties of type `never` from object `T`. */
+type OmitNeverProps<T> = Pick<T, { [K in keyof T]: T[K] extends never ? never : K }[keyof T]>;
+
+/** Converts union type `U` to an intersection type. */
+// See also: https://stackoverflow.com/a/50375286/8656352
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;

@@ -48,20 +48,20 @@ export function createConsoleLogger(logLevel: LogLevel, eol?: string): IConfigCa
  * Creates an instance of `FlagOverrides` that uses a map data source.
  * @param map The map that contains the overrides.
  * @param behaviour The override behaviour.
- * Specifies whether the local values should override the remote values
- * or local values should only be used when a remote value doesn't exist
+ * Specifies whether the local values should override the remote values,
+ * or local values should only be used when a remote value doesn't exist,
  * or the local values should be used only.
  * @param watchChanges If set to `true`, the input map will be tracked for changes.
  */
-export function createFlagOverridesFromMap(map: { [key: string]: NonNullable<SettingValue> }, behaviour: OverrideBehaviour, watchChanges?: boolean): FlagOverrides {
+export function createFlagOverridesFromMap(map: Record<string, NonNullable<SettingValue>>, behaviour: OverrideBehaviour, watchChanges?: boolean): FlagOverrides {
   return { dataSource: new MapOverrideDataSource(map, watchChanges), behaviour };
 }
 
 /**
  * Creates an instance of `FlagOverrides` that uses query string parameters as data source.
  * @param behaviour The override behaviour.
- * Specifies whether the local values should override the remote values
- * or local values should only be used when a remote value doesn't exist
+ * Specifies whether the local values should override the remote values,
+ * or local values should only be used when a remote value doesn't exist,
  * or the local values should be used only.
  * @param watchChanges If set to `true`, the query string will be tracked for changes.
  * @param paramPrefix The parameter name prefix used to indicate which query string parameters

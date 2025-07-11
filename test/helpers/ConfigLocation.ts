@@ -2,7 +2,7 @@ import { createManualPollOptions } from "./fakes";
 import { AugmentedOptions, platform } from "./platform";
 import { DataGovernance, IOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { ManualPollConfigService } from "#lib/ManualPollConfigService";
-import { Config } from "#lib/ProjectConfig";
+import { Config, deserializeConfig } from "#lib/ProjectConfig";
 
 const configCache: { [location: string]: Promise<Config> } = {};
 
@@ -81,8 +81,7 @@ export class LocalFileConfigLocation extends ConfigLocation {
 
   async fetchConfigAsync(): Promise<Config> {
     const configJson = await platform().readFileUtf8(this.filePath);
-    const parsedObject = JSON.parse(configJson);
-    return new Config(parsedObject);
+    return deserializeConfig(configJson);
   }
 
   toString(): string {
