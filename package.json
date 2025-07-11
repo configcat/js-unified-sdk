@@ -2,25 +2,25 @@
   "name": "@configcat/sdk",
   "version": "0.1.1",
   "description": "ConfigCat is a configuration as a service that lets you manage your features and configurations without actually deploying new code.",
-  "main": "lib/cjs/node/index.root.js",
-  "types": "lib/cjs/node/index.root.d.ts",
-  "browser": "lib/cjs/browser/index.root.js",
+  "main": "lib/cjs/node/index.main.js",
+  "types": "lib/cjs/node/index.main.d.ts",
+  "browser": "lib/cjs/browser/index.main.js",
   "exports": {
     ".": {
       "types": {
         "bun": "./lib/esm/bun/index.d.ts",
         "deno": "./lib/esm/deno/index.d.ts",
         "workerd": "./lib/esm/cloudflare-worker/index.d.ts",
-        "browser": "./lib/esm/browser/index.root.d.ts",
-        "import": "./lib/esm/node/index.root.d.ts",
-        "require": "./lib/cjs/node/index.root.d.ts"
+        "browser": "./lib/esm/browser/index.main.d.ts",
+        "import": "./lib/esm/node/index.main.d.ts",
+        "require": "./lib/cjs/node/index.main.d.ts"
       },
       "bun": "./lib/esm/bun/index.js",
       "deno": "./lib/esm/deno/index.js",
       "workerd": "./lib/esm/cloudflare-worker/index.js",
-      "browser": "./lib/esm/browser/index.root.js",
-      "import": "./lib/esm/node/index.root.js",
-      "require": "./lib/cjs/node/index.root.js"
+      "browser": "./lib/esm/browser/index.main.js",
+      "import": "./lib/esm/node/index.main.js",
+      "require": "./lib/cjs/node/index.main.js"
     },
     "./browser": {
       "types": "./lib/esm/browser/index.d.ts",

@@ -10,11 +10,11 @@
     "declaration": false
   },
   "files": [
-    "src/browser/index.root.ts",
+    "src/browser/index.main.ts",
     "src/bun/index.ts",
     "src/chromium-extension/index.ts",
     "src/cloudflare-worker/index.ts",
     "src/deno/index.ts",
-    "src/node/index.root.ts"
+    "src/node/index.main.ts"
   ]
 }
