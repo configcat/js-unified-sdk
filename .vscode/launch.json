@@ -75,6 +75,7 @@
       "name": "Run tests (Node.js)",
       "cwd": "${workspaceRoot}",
       "env": {
+        "NODE_EXTRA_CA_CERTS": "${workspaceRoot}/test/node/cert/testCA.pem",
         "TS_NODE_PROJECT": "./tsconfig.mocha.node.json"
       },
       "runtimeArgs": [

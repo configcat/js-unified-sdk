@@ -137,8 +137,8 @@ export class LoggerWrapper implements IConfigCatLogger {
   /**
    * Shorthand method for `logger.logEvent(LogLevel.Debug, 0, message);`
    */
-  debug(message: string): void {
-    this.log(LogLevel.Debug, 0, message);
+  debug(message: LogMessage, exception?: any): void {
+    this.log(LogLevel.Debug, 0, message, exception);
   }
 
   /* Common error messages (1000-1999) */

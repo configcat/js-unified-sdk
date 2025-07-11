@@ -1,7 +1,5 @@
 import * as http from "http";
 import * as https from "https";
-import * as tunnel from "tunnel";
-import { URL } from "url";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
@@ -10,8 +8,25 @@ import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
 
 export interface INodeHttpConfigFetcherOptions {
-  /** Proxy settings. */
-  proxy?: string | null;
+  /**
+   * The {@link https://nodejs.org/api/http.html#class-httpagent | http.Agent} instance to use for non-secure HTTP communication.
+   * For example, this option allows you to configure the SDK to route `http://...` requests through an HTTP, HTTPS or SOCKS proxy.
+   *
+   * If not set, the default agent, {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent} will be used.
+   *
+   * This option applies when the SDK connects to a custom `http://...` URL you specified via `baseUrl`.
+   */
+  httpAgent?: http.Agent;
+
+  /**
+   * The {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent} instance to use for secure HTTP communication.
+   * For example, this option allows you to configure the SDK to route `https://...` requests through an HTTP, HTTPS or SOCKS proxy.
+   *
+   * If not set, the default agent, {@link https://nodejs.org/api/https.html#httpsglobalagent | https.globalAgent} will be used.
+   *
+   * This option applies when the SDK connects to the ConfigCat CDN or a custom `https://...` URL you specified via `baseUrl`.
+   */
+  httpsAgent?: https.Agent;
 }
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
@@ -25,10 +40,12 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   private logger?: LoggerWrapper;
 
-  private readonly proxy?: string | null;
+  private readonly httpAgent?: http.Agent;
+  private readonly httpsAgent?: https.Agent;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
-    this.proxy = options?.proxy;
+    this.httpAgent = options?.httpAgent;
+    this.httpsAgent = options?.httpsAgent;
   }
 
   private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
@@ -67,35 +84,12 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         const { url } = request;
         const isCustomUrl = !isCdnUrl(url);
-        const isHttpsUrl = url.startsWith("https");
-
-        let agent: http.Agent | undefined;
-        if (this.proxy) {
-          try {
-            const proxy: URL = new URL(this.proxy);
-            let agentFactory: any;
-            if (proxy.protocol === "https:") {
-              agentFactory = isHttpsUrl ? tunnel.httpsOverHttps : tunnel.httpOverHttps;
-            } else {
-              agentFactory = isHttpsUrl ? tunnel.httpsOverHttp : tunnel.httpOverHttp;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-            agent = agentFactory({
-              proxy: {
-                host: proxy.hostname,
-                port: proxy.port,
-                proxyAuth: (proxy.username && proxy.password) ? `${proxy.username}:${proxy.password}` : null,
-              },
-            });
-          } catch (err) {
-            this.logger?.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY")`Failed to parse \`options.proxy\`: '${this.proxy}'.`, err);
-          }
-        }
+        const isHttpsUrl = url.startsWith("https:");
 
         const { lastETag, timeoutMs } = request;
 
         const requestOptions: (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> } = {
-          agent,
+          agent: isHttpsUrl ? this.httpsAgent : this.httpAgent,
           timeout: timeoutMs,
         };
 
@@ -111,7 +105,8 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         if (this.logger?.isEnabled(LogLevel.Debug)) {
           // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          this.logger.debug("NodeHttpConfigFetcher.fetchAsync() requestOptions: " + JSON.stringify({ ...requestOptions, agent: agent?.toString() }));
+          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: requestOptions.agent?.toString() });
+          this.logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
         }
 
         const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))

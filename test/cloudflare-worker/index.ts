@@ -73,7 +73,7 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
     options = { ...options } as TOptions;
     options.baseUrl ??= CdnConfigLocation.getDefaultCdnUrl(options);
     // HACK: There are issues with HTTPS in workerd (see e.g. https://github.com/cloudflare/workers-sdk/issues/4257),
-    // so, as a workaround, we make requests to the ConfigCat CDN thorugh a Node.js proxy server for now.
+    // so, as a workaround, we make requests to the ConfigCat CDN through a Node.js proxy server for now.
     // See also: see also: test-run-helper/server.mjs
     options.baseUrl = "http://localhost:9060/" + encodeURIComponent(options.baseUrl);
     return options;

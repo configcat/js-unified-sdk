@@ -1,9 +1,12 @@
 import { assert } from "chai";
+import type { ClientRequestArgs } from "http";
+import * as https from "https";
 import * as mockttp from "mockttp";
+import type { Duplex } from "stream";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel, RefreshErrorCode } from "#lib";
-import { getMonotonicTimeMs } from "#lib/Utils";
+import { getMonotonicTimeMs, throwError } from "#lib/Utils";
 
 // If the tests are failing with strange https or proxy errors, it is most likely that the local .key and .pem files are expired.
 // You can regenerate them anytime (./test/cert/regenerate.md).
@@ -113,24 +116,60 @@ describe("HTTP tests", () => {
   });
 
   it("HTTP proxy", async () => {
-    let proxyCalled = false;
-    server.forAnyRequest().forHost("cdn-global.configcat.com").thenPassThrough({
+    let agentProviderCallCount = 0;
+    let proxyCallCount = 0;
+
+    server.forAnyRequest().forHost("cdn-global.configcat.com:443").thenPassThrough({
       beforeRequest: (_: any) => {
-        proxyCalled = true;
+        proxyCallCount++;
       },
     });
 
     const client = platform.createClientWithManualPoll(sdkKey, {
-      proxy: server.url,
+      httpsAgent: new MockttpProxyAgent(server.url)
     });
+
     const refreshResult = await client.forceRefreshAsync();
-    assert.isTrue(proxyCalled);
+    assert.strictEqual(proxyCallCount, 1);
 
     const defaultValue = "NOT_CAT";
     assert.strictEqual("Cat", await client.getValueAsync("stringDefaultCat", defaultValue));
 
     assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.None);
 
+    await client.forceRefreshAsync();
+    assert.strictEqual(proxyCallCount, 2);
+
     client.dispose();
   });
 });
+
+// NOTE: We need to augment the https.Agent type as some necessary methods are not defined in `@types/node`.
+declare module "https" {
+  interface Agent {
+    createConnection(options: ClientRequestArgs, callback?: Function): Duplex;
+  }
+}
+
+class MockttpProxyAgent extends https.Agent {
+  private readonly proxyUrl: URL;
+
+  constructor(proxyUrl: string) {
+    super();
+    this.proxyUrl = new URL(proxyUrl);
+  }
+
+  createConnection(options: ClientRequestArgs, callback: Function): Duplex {
+    const proxyOptions = {
+      ...options,
+      host: this.proxyUrl.hostname,
+      port: this.proxyUrl.port || 443,
+      headers: {
+        ...options?.headers,
+        ["Host"]: `${options.host}:${options.port}`,
+      },
+    };
+
+    return super.createConnection(proxyOptions, callback);
+  }
+}

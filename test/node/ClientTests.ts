@@ -17,11 +17,13 @@ describe("ConfigCatClient tests", () => {
       client.dispose();
     });
 
-    it(`getClient() should set proxy - ${PollingMode[pollingMode]}`, () => {
-      const proxy = "http://fake-proxy.com:8080";
+    it(`getClient() should set httpAgent and httpsAgent - ${PollingMode[pollingMode]}`, () => {
+      const httpAgent = {} as configcatClient.INodeAutoPollOptions["httpAgent"];
+      const httpsAgent = {} as configcatClient.INodeAutoPollOptions["httpsAgent"];
 
       const client: IConfigCatClient = configcatClient.getClient("SDKKEY-890123456789012/1234567890123456789012", pollingMode, {
-        proxy,
+        httpAgent,
+        httpsAgent,
       });
 
       assert.isDefined(client);
@@ -32,7 +34,8 @@ describe("ConfigCatClient tests", () => {
       const configFetcher = configService["configFetcher"];
       assert.instanceOf(configFetcher, NodeHttpConfigFetcher);
 
-      assert.strictEqual(configFetcher["proxy"], proxy);
+      assert.strictEqual(configFetcher["httpAgent"], httpAgent);
+      assert.strictEqual(configFetcher["httpsAgent"], httpsAgent);
 
       client.dispose();
     });

@@ -25,7 +25,7 @@
     // Prevent typings for tests (mocha, chai, etc.) from bleeding into build source files.
     // (Wish we had more fine-grained control over what typings are included in what part of
     // the project... Something like this: https://github.com/microsoft/TypeScript/issues/33407)
-    "types": ["chrome", "node", "tunnel"],
+    "types": ["chrome", "node"],
     // We only use const enums internally (to reduce build output size) but we want to provide
     // normal enums for consumers, so we strip const from enums during build (see gulpfile.js).
     "preserveConstEnums": true,
