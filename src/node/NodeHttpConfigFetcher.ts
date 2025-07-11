@@ -2,16 +2,24 @@ import * as http from "http";
 import * as https from "https";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
-import type { LoggerWrapper, LogMessage } from "../ConfigCatLogger";
+import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
-import { HttpProxyAgent } from "./HttpProxyAgent";
-import { HttpsProxyAgent } from "./HttpsProxyAgent";
 
 export interface INodeHttpConfigFetcherOptions {
-  /** Proxy settings. */
-  proxy?: string | null;
+  /**
+   * An optional callback that can be used to provide a custom
+   * {@link https://nodejs.org/api/http.html#class-httpagent | http.Agent} / {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent}
+   * to manage connections for the SDK's HTTP communication (e.g. to send HTTP requests through an HTTP or SOCKS proxy server).
+   *
+   * The callback must return a `http.Agent` or `https.Agent` according to the protocol of `requestUrl`.
+   *
+   * If not set, the default agent specified by
+   * {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent} / {@link https://nodejs.org/api/https.html#httpsglobalagent | https.globalAgent}
+   * will be used.
+   */
+  httpAgentProvider?: (requestUrl: string) => http.Agent | https.Agent;
 }
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
@@ -25,10 +33,12 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   private logger?: LoggerWrapper;
 
-  private readonly proxy?: string | null;
+  private readonly agentProvider?: (requestUrl: string) => http.Agent | https.Agent;
+  private agent?: http.Agent | https.Agent;
+  private lastUrl?: string;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
-    this.proxy = options?.proxy;
+    this.agentProvider = options?.httpAgentProvider;
   }
 
   private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
@@ -67,20 +77,14 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         const { url } = request;
         const isCustomUrl = !isCdnUrl(url);
-        const isHttpsUrl = url.startsWith("https");
+        const isHttpsUrl = url.startsWith("https:");
 
-        let agent: http.Agent | undefined;
-        if (this.proxy) {
-          const debug = this.logger?.isEnabled(LogLevel.Debug)
-            ? (message: LogMessage, ex: any) => this.logger!.debug(message, ex)
-            : void 0;
-
+        if (this.agentProvider && this.lastUrl !== url) {
+          this.lastUrl = url;
           try {
-            agent = isHttpsUrl
-              ? new HttpsProxyAgent(this.proxy, void 0, debug)
-              : new HttpProxyAgent(this.proxy, void 0, debug);
+            this.agent = this.agentProvider(url);
           } catch (err) {
-            this.logger?.log(LogLevel.Error, 0, FormattableLogMessage.from("PROXY_URL")`Failed to create proxy agent for \`options.proxy\`: '${this.proxy}'.`, err);
+            this.logger?.log(LogLevel.Error, 0, `Failed to obtain a custom \`${isHttpsUrl ? "https" : "http"}.Agent\` for fetching config data.`, err);
             throw err;
           }
         }
@@ -88,7 +92,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         const { lastETag, timeoutMs } = request;
 
         const requestOptions: (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> } = {
-          agent,
+          agent: this.agent,
           timeout: timeoutMs,
         };
 
@@ -104,7 +108,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         if (this.logger?.isEnabled(LogLevel.Debug)) {
           // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: agent?.toString() });
+          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: requestOptions.agent?.toString() });
           this.logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
         }
 
