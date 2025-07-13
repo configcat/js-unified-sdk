@@ -4,17 +4,12 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
 
-export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
-  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
-    return options => {
-      const configFetcher = new FetchApiConfigFetcher();
-      configFetcher.logger = options.logger;
-      return configFetcher;
-    };
-  }
-
+export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
   private logger?: LoggerWrapper;
-  protected readonly runsOnServerSide?: boolean;
+
+  protected constructor(private readonly runsOnServerSide?: boolean) {
+  }
 
   async fetchAsync(request: FetchRequest): Promise<FetchResponse> {
     this.logger?.debug("FetchApiConfigFetcher.fetchAsync() called.");
@@ -97,5 +92,29 @@ function getResponseHeadersDefault(httpResponse: Response): [string, string][] {
     if (value != null) {
       headers.push([name, value]);
     }
+  }
+}
+
+export class ClientSideFetchApiConfigFetcher extends FetchApiConfigFetcherBase {
+  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
+    return options => {
+      const configFetcher = new ClientSideFetchApiConfigFetcher();
+      configFetcher["logger"] = options.logger;
+      return configFetcher;
+    };
+  }
+}
+
+export class ServerSideFetchApiConfigFetcher extends FetchApiConfigFetcherBase {
+  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
+    return options => {
+      const configFetcher = new ServerSideFetchApiConfigFetcher();
+      configFetcher["logger"] = options.logger;
+      return configFetcher;
+    };
+  }
+
+  constructor() {
+    super(true);
   }
 }

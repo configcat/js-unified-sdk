@@ -7,7 +7,7 @@ import { getClient } from "#lib/cloudflare-worker";
 import { CloudflareConfigCache } from "#lib/cloudflare-worker/CloudflareConfigCache";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
-import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
+import { ServerSideFetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
 import sdkVersion from "#lib/Version";
 
 const sdkType = "ConfigCat-UnifiedJS-CloudflareWorker";
@@ -51,7 +51,7 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
     }
   }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return FetchApiConfigFetcher["getFactory"]()(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return ServerSideFetchApiConfigFetcher["getFactory"]()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
     const kernel: IConfigCatKernel = {

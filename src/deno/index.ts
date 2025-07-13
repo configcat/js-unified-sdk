@@ -3,8 +3,8 @@ import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "
 import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientInternal } from "../index.pubternals.core";
+import { ServerSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
-import { DenoHttpConfigFetcher } from "./DenoHttpConfigFetcher";
 
 /* Package public API for Deno */
 
@@ -24,7 +24,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       sdkType: "ConfigCat-UnifiedJS-Deno",
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new DefaultEventEmitter(),
-      configFetcherFactory: DenoHttpConfigFetcher["getFactory"](),
+      configFetcherFactory: ServerSideFetchApiConfigFetcher["getFactory"](),
     });
 }
 
@@ -49,6 +49,6 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends undefined ? IDenoAutoPollOptions :
   never;
 
-export { DenoHttpConfigFetcher };
+export { ServerSideFetchApiConfigFetcher as FetchApiConfigFetcher };
 
 export * from "..";

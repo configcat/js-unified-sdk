@@ -12,21 +12,32 @@ The TARGETS array below specifies the build outputs (or "builds" for short). We 
 The build process is very simple, consisting of the following tasks:
 1. clean - removes previous build artifacts if any
 2. compile - runs tsc for an item of TARGETS with the specified tsconfig
-3. postProcess - makes adjustments to the output of compile if necessary
+3. postProcess - makes adjustments to the output of compile
 
 The following post-processing steps are performed:
 - Adjust .d.ts files of the CJS build - According to our tests, the best compatibility with various build tools can
   be achieved when each source file has the corresponding .d.ts file in the same directory. However, we don't want to
-  duplicate the type definitions because that could lead to other subtle issues, so we replace the content of the CJS
-  build's .d.ts files so they just reexport the type definitions from the corresponding files of the ESM build.
+  duplicate the type declarations because that could lead to other subtle issues, so we replace the content of the CJS
+  build's .d.ts files so they just re-export the type declarations from the corresponding files of the ESM build.
+
+- Ensure declaration of platform-specific types used in the public API - Platform-specific types are problematic when
+  they appear in the public API (e.g. http.Agent in INodeHttpConfigFetcherOptions) because they cause compile errors in
+  the consumer project unless they are available there - which, in some cases, requires external typing packages like
+  @types/node to be installed. However, since this is a multi-platform package, we don't want to add dependencies to
+  platform-specific typing packages. So, as a workaround, we declare shims for the necessary types and reference it in
+  the relevant .d.ts files using a triple-slash directive. (See also: https://github.com/microsoft/TypeScript/issues/31894)
+
 - Fix extensions of referenced files in export/import statements - Most runtimes require explicit file extensions in
-  import statements, so we add the .js extension to the import paths.
+  import statements, so we adjust the import paths to include the .js extension.
+
 - Strip const from enums to provide normal enums to consumers - We use const enums internally to reduce bundle size but
   also want to preserve enum mappings for consumers. Therefore, we enable "preserveConstEnums" in tsconfig, but that's
-  not enough in itself: we also need to strip const from enum declarations in .d.ts files.
+  not enough on its own: we also need to strip const from enum declarations in .d.ts files.
+
 - Add package.json to the ESM build - Since the package type is commonjs, we need to create another package.json file
   with "type": "module" in the lib/esm directory, otherwise modules with .js extension won't be recognized as ES modules
   by Node.js.
+
 - Inject package version - We need to replace the "CONFIGCAT_SDK_VERSION" magic string with the actual version string
   specified in the package.json.
 
@@ -43,6 +54,7 @@ process.chdir(__dirname);
 
 /* Build properties */
 
+const SRC_PATH = "src";
 const LIB_PATH = "lib";
 const DIST_PATH = "dist";
 
@@ -83,9 +95,9 @@ function compile(targetId, { useWebpack, config }) {
 async function postProcess(targetId, targetFile, targetDir, { importExtension, reexportTypesFrom, skipTypes, addModulePackageJson, skipVersionUpdate }, version) {
   console.log(`* Post-processing target '${targetId}'...`);
 
-  if (targetDir != null // no need to post-process bundles at the moment
-    && (importExtension || reexportTypesFrom != null)
-  ) {
+  let filesToCopy = {};
+
+  if (targetDir != null && (importExtension || reexportTypesFrom != null)) {
     const importDir = reexportTypesFrom != null ? path.resolve(targetDir, reexportTypesFrom) : null;
     for await (const file of glob.globIterate(normalizePathSeparator(targetDir) + "/**", { absolute: true })) {
       const isDts = file.endsWith(".d.ts");
@@ -106,6 +118,18 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
           fileContent = fileContent.replace(/declare\s+const\s+enum/g, () => {
             return "declare enum";
           });
+
+          // Ensure declaration of platform-specific types used in the public API
+          const relativeFilePath = normalizePathSeparator(path.relative(targetDir, file));
+          switch (relativeFilePath) {
+            case "browser/index.main.d.ts":
+            case "bun/index.d.ts":
+            case "node/index.d.ts":
+              filesToCopy[path.join(SRC_PATH, "node", "shims.d.ts")] = path.join(targetDir, "node", "shims.d.ts");
+              fileContent = '/// <reference path="../node/shims.d.ts" />\n' + fileContent;
+              break;
+          }
+
           await fsp.writeFile(file, fileContent, "utf8", { flush: true });
 
           if (importExtension == null) {
@@ -125,6 +149,11 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
   }
 
   const outputPath = targetFile ?? targetDir;
+
+  for (const [src, dest] of Object.entries(filesToCopy)) {
+    const fileContent = await fsp.readFile(src, "utf8");
+    await fsp.writeFile(dest, normalizeLineEndings(fileContent), "utf8", { flush: true });
+  }
 
   // Add package.json to the ESM build
   if (addModulePackageJson) {
@@ -147,6 +176,8 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
   }
 
   /* Helper functions */
+
+  function normalizeLineEndings(text) { return text.replace(/\r?\n|\r/g, "\n"); }
 
   function normalizePathSeparator(path) { return path.replace(/\\/g, "/"); }
 

@@ -32,7 +32,7 @@ export { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 
 export { XmlHttpRequestConfigFetcher } from "./XmlHttpRequestConfigFetcher";
 
-export { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+export { ClientSideFetchApiConfigFetcher as FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export type { NodeHttpConfigFetcher } from "../node/NodeHttpConfigFetcher";
 
