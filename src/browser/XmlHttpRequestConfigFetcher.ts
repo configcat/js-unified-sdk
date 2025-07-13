@@ -4,6 +4,10 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
 
+interface IHttpRequest {
+  setRequestHeader(name: string, value: string): void;
+}
+
 export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
     return options => {
@@ -69,7 +73,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  protected setRequestHeaders(httpRequest: XMLHttpRequest, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(httpRequest: IHttpRequest, headers: ReadonlyArray<[string, string]>): void {
   }
 }
 

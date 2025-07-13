@@ -5,6 +5,15 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 
 const CACHE_NAME = "@configcat/sdk";
 
+interface ICloudflareCache {
+  put(request: string, response: ICloudflareResponse): Promise<void>;
+  match(request: string): Promise<ICloudflareResponse | undefined>;
+}
+
+interface ICloudflareResponse {
+  text(): Promise<string>;
+}
+
 declare const caches: typeof cloudflare.caches;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -18,9 +27,9 @@ export class CloudflareConfigCache implements IConfigCatCache {
     }
   }
 
-  private cache: Promise<cloudflare.Cache> | undefined;
+  private cache: Promise<ICloudflareCache> | undefined;
 
-  constructor(cache: Promise<cloudflare.Cache>) {
+  constructor(cache: Promise<ICloudflareCache>) {
     this.cache = cache;
   }
 
@@ -48,7 +57,7 @@ export class CloudflareConfigCache implements IConfigCatCache {
   }
 }
 
-export function getCloudflareCache(): Promise<cloudflare.Cache> | undefined {
+export function getCloudflareCache(): Promise<ICloudflareCache> | undefined {
   if (typeof caches !== "undefined") {
     try {
       return caches.open(CACHE_NAME);

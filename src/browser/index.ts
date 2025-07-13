@@ -54,11 +54,11 @@ export interface IJSManualPollOptions extends IManualPollOptions {
 }
 
 export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
-    TMode extends PollingMode.AutoPoll ? IJSAutoPollOptions :
-    TMode extends PollingMode.ManualPoll ? IJSManualPollOptions :
-    TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
-    TMode extends undefined ? IJSAutoPollOptions :
-    never;
+  TMode extends PollingMode.AutoPoll ? IJSAutoPollOptions :
+  TMode extends PollingMode.ManualPoll ? IJSManualPollOptions :
+  TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
+  TMode extends undefined ? IJSAutoPollOptions :
+  never;
 
 export { LocalStorageConfigCache };
 
@@ -66,6 +66,6 @@ export { IndexedDBConfigCache };
 
 export { XmlHttpRequestConfigFetcher };
 
-export { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+export { ClientSideFetchApiConfigFetcher as FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export * from "..";

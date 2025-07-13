@@ -128,7 +128,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  protected setRequestHeaders(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(requestOptions: { headers?: Record<string, number | string | string[]> }, headers: ReadonlyArray<[string, string]>): void {
     setRequestHeadersDefault(requestOptions, headers);
   }
 }
