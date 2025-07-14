@@ -2,7 +2,7 @@ import type { SettingType } from "./ConfigJson";
 import { PrerequisiteFlagComparator, SegmentComparator, UserComparator } from "./ConfigJson";
 import type { PrerequisiteFlagCondition, Segment, SegmentCondition, SettingMap, SettingValue, SettingValueModel, TargetingRule, UserCondition } from "./ProjectConfig";
 import { hasPercentageOptions, isAllowedValue, unwrapValue } from "./RolloutEvaluator";
-import { formatStringList, isIntegerInRange, isNumber, isString } from "./Utils";
+import { formatStringList, hasOwnProperty, isIntegerInRange, isNumber, isString } from "./Utils";
 
 const invalidValuePlaceholder = "<invalid value>";
 const invalidNamePlaceholder = "<invalid name>";
@@ -164,7 +164,7 @@ export class EvaluateLogBuilder {
   }
 
   appendPrerequisiteFlagCondition(condition: PrerequisiteFlagCondition, settings: SettingMap): this {
-    const prerequisiteFlagKey = Object.prototype.hasOwnProperty.call(settings, condition.f)
+    const prerequisiteFlagKey = hasOwnProperty(settings, condition.f)
       ? condition.f
       : invalidReferencePlaceholder;
 

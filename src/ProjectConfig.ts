@@ -1,6 +1,7 @@
 import type { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import * as ConfigJson from "./ConfigJson";
-import { ensurePrototype, isArray, isBoolean, isInteger, isNumber, isObject, isString } from "./Utils";
+import type { ObjectMap } from "./Utils";
+import { ensurePrototype, hasOwnProperty, isArray, isBoolean, isInteger, isNumber, isObject, isString, setPrototypeOf } from "./Utils";
 
 // NOTE: This is a hack which prevents the TS compiler from eliding the namespace import above.
 // TS wants to do this because it figures that the ConfigJson module contains types only.
@@ -90,7 +91,8 @@ export class ProjectConfig {
 
 export type UnknownSettingType = -1;
 
-export type SettingMap = { readonly [key: string]: Setting };
+/** @remarks May or may not be a null-prototype object. */
+export type SettingMap = Readonly<Record<string, Setting> | ObjectMap<string, Setting>>;
 
 export type SettingValue = boolean | string | number | null | undefined;
 
@@ -128,7 +130,7 @@ export declare abstract class Config implements Immutable<AdjustedConfigJsonConf
 
   declare readonly p?: Immutable<PartialWithNull<ConfigJson.Preferences>> | null;
   declare readonly s?: ReadonlyArray<Segment> | null;
-  declare readonly f?: { readonly [key: string]: Setting } | null;
+  declare readonly f?: Readonly<Record<string, Setting>> | null;
 }
 
 type AdjustedConfigJsonSegment = OptionalWithNull<ChangePropType<
@@ -300,7 +302,7 @@ export function prepareConfig(config: Partial<ConfigJson.Config>): Config {
     const segments = config.s;
 
     for (const key in settings) {
-      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+      if (hasOwnProperty(settings, key)) {
         const setting = settings[key];
         setting["_configJsonSalt"] = salt;
         setting["_configSegments"] = segments;
@@ -359,7 +361,7 @@ function checkSettings(settings: { [key: string]: ConfigJson.SettingUnion }, pat
   ensureObject(settings, path);
 
   for (const key in settings) {
-    if (Object.prototype.hasOwnProperty.call(settings, key)) {
+    if (hasOwnProperty(settings, key)) {
       checkObjectProperty(settings, key, path, checkSetting, true);
     }
   }
@@ -510,8 +512,12 @@ function ensureArray(value: unknown[], path: string[]) {
   isArray(value) || throwConfigJsonTypeMismatchError(path);
 }
 
+const objectMapPrototype = Object.create(null) as object;
+objectMapPrototype.toString = function() { return Object.prototype.toString.call(this); };
+
 function ensureObject(value: object, path: string[]) {
   isObject(value) || throwConfigJsonTypeMismatchError(path);
+  setPrototypeOf(value, objectMapPrototype);
 }
 
 function ensureBoolean(value: boolean, path: string[]) {

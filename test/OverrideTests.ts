@@ -1,6 +1,6 @@
 import { assert, expect } from "chai";
-import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig } from "./helpers/fakes";
-import { RefreshErrorCode, SettingKeyValue, User } from "#lib";
+import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfigFetcherBase, FakeConfigFetcherWithNullNewConfig, FakeConfigFetcherWithTwoKeysAndRules, FakeLogger } from "./helpers/fakes";
+import { FlagOverrides, RefreshErrorCode, SettingKeyValue, User } from "#lib";
 import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { IOverrideDataSource, IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
@@ -548,5 +548,47 @@ describe("Local Overrides", () => {
 
       client.dispose();
     });
+  }
+
+  for (const overrideBehavior of [OverrideBehaviour.LocalOnly, OverrideBehaviour.LocalOverRemote, OverrideBehaviour.RemoteOverLocal]) {
+    for (const useSnapshot of [false, true]) {
+      it(`Setting lookup ignores prototype properties - overrideBehavior: ${overrideBehavior} | useSnapshot: ${useSnapshot}`, async () => {
+        const fakeLogger = new FakeLogger();
+
+        const configCatKernel = createKernel({
+          configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+        });
+
+        const overrideMap: Record<string, NonNullable<SettingValue>> = {};
+        const flagOverrides: FlagOverrides = {
+          dataSource: new MapOverrideDataSource(overrideMap, true),
+          behaviour: OverrideBehaviour.LocalOnly,
+        };
+
+        const options: ManualPollOptions = createManualPollOptions("APIKEY", { logger: fakeLogger, flagOverrides }, configCatKernel);
+        const client: IConfigCatClient = new ConfigCatClient(options);
+
+        await client.forceRefreshAsync();
+
+        let value = useSnapshot
+          ? client.snapshot().getValue("toString" satisfies keyof Object, null)
+          : await client.getValueAsync("toString" satisfies keyof Object, null);
+
+        assert.isNull(value);
+
+        const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1001);
+        assert.strictEqual(errors.length, 1);
+
+        overrideMap["toString"] = true;
+
+        value = useSnapshot
+          ? client.snapshot().getValue("toString" satisfies keyof Object, null)
+          : await client.getValueAsync("toString" satisfies keyof Object, null);
+
+        assert.isTrue(value);
+
+        client.dispose();
+      });
+    }
   }
 });

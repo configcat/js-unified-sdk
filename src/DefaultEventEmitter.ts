@@ -1,5 +1,5 @@
 import type { IEventEmitter } from "./EventEmitter";
-import { isFunction } from "./Utils";
+import { createMap, isFunction } from "./Utils";
 
 type Listener = { fn: (...args: any[]) => void; once?: boolean };
 type Listeners = Listener | Listener[] & { fn?: never };
@@ -15,7 +15,7 @@ function isSingle(listeners: Listeners): listeners is Listener {
 
 /** A platform-independent implementation of `IEventEmitter`. */
 export class DefaultEventEmitter implements IEventEmitter {
-  private events: Record<string | symbol, Listeners> = {};
+  private events = createMap<string | symbol, Listeners>();
   private eventCount = 0;
 
   private addListenerCore(eventName: string | symbol, fn: (...args: any[]) => void, once: boolean) {
@@ -66,7 +66,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
   private removeEvent(eventName: string | symbol) {
     if (--this.eventCount === 0) {
-      this.events = {};
+      this.events = createMap();
     } else {
       delete this.events[eventName];
     }
@@ -98,7 +98,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
   removeAllListeners(eventName?: string | symbol): this {
     if (!arguments.length) {
-      this.events = {};
+      this.events = createMap();
       this.eventCount = 0;
     } else if (this.events[eventName!]) {
       this.removeEvent(eventName!);
@@ -148,9 +148,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
     const events = this.events;
     for (const name in events) {
-      if (Object.prototype.hasOwnProperty.call(events, name)) {
-        names.push(name);
-      }
+      names.push(name);
     }
 
     if (typeof Object.getOwnPropertySymbols !== "undefined") {

@@ -116,16 +116,34 @@ export function throwError(err: any): never {
   throw err;
 }
 
-export function ensurePrototype<T>(obj: T, ctor: new (...args: any[]) => T): void {
+/** Indicates a null-prototype object that is used as a map. */
+export type ObjectMap<TKey extends keyof any, TValue> = Record<TKey, TValue>
+  // See also: https://github.com/microsoft/TypeScript/issues/1108
+  & { [K in keyof Object]: TValue };
+
+/** Creates a null-prototype object that is used as a map. */
+export function createMap<TKey extends keyof any, TValue>(): ObjectMap<TKey, TValue> {
+  // See also: https://stackoverflow.com/a/15518712/8656352
+  return Object.create(null) as ObjectMap<TKey, TValue>;
+}
+
+export const setPrototypeOf = typeof Object.setPrototypeOf === "function"
+  ? Object.setPrototypeOf as <T extends object>(obj: T, proto: object | null) => T
+  : <T extends object>(obj: T, proto: object | null): T => ((obj as Record<string, unknown>).__proto__ = proto, obj);
+
+export function ensurePrototype<T extends object>(obj: T, ctor: new (...args: any[]) => T): void {
   // NOTE: due to a known issue in the TS compiler, instanceof is broken when subclassing Error and targeting ES5 or earlier
   // (see https://github.com/microsoft/TypeScript/issues/13965).
   // Thus, we need to manually fix the prototype chain as recommended in the TS docs
   // (see https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work)
 
   if (!(obj instanceof ctor)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (Object.setPrototypeOf || ((obj, proto) => obj["__proto__"] = proto))(obj, ctor.prototype as object);
+    setPrototypeOf(obj, ctor.prototype as object);
   }
+}
+
+export function hasOwnProperty(obj: object, key: keyof any): boolean {
+  return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
 export function isBoolean(value: unknown): value is boolean {
@@ -140,10 +158,9 @@ export function isNumberInRange(value: unknown, minValue: number, maxValue: numb
   return isNumber(value) && minValue <= value && value <= maxValue;
 }
 
-export const isInteger = (typeof Number.isSafeInteger === "function"
-  ? Number.isSafeInteger
-  : (value: unknown) => isNumber(value) && isFinite(value) && Math.floor(value) === value && Math.abs(value) <= 9007199254740991
-) as (value: unknown) => value is number;
+export const isInteger = typeof Number.isSafeInteger === "function"
+  ? Number.isSafeInteger as (value: unknown) => value is number
+  : (value: unknown): value is number => isNumber(value) && isFinite(value) && Math.floor(value) === value && Math.abs(value) <= 9007199254740991;
 
 export function isIntegerInRange(value: unknown, minValue: number, maxValue: number): value is number {
   return isInteger(value) && minValue <= value && value <= maxValue;
@@ -263,7 +280,7 @@ export function parseFloatStrict(value: string): number {
 export function shallowClone<T extends {}>(obj: T, propertyReplacer?: (key: keyof T, value: unknown) => unknown): Record<keyof T, unknown> {
   const clone = {} as Record<keyof T, unknown>;
   for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+    if (hasOwnProperty(obj, key)) {
       const value = obj[key];
       clone[key] = propertyReplacer ? propertyReplacer(key, value) : value;
     }

@@ -10,7 +10,7 @@ import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType?: SettingType | UnknownSettingType;
@@ -634,7 +634,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     const prerequisiteFlagKey = condition.f;
 
-    const prerequisiteFlag = Object.prototype.hasOwnProperty.call(context.settings, prerequisiteFlagKey)
+    const prerequisiteFlag = hasOwnProperty(context.settings, prerequisiteFlagKey)
       ? context.settings[prerequisiteFlagKey]
       : throwInvalidConfigModelError("Prerequisite flag is missing.");
 
@@ -1131,7 +1131,7 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
       toMessage(errorMessage), void 0, EvaluationErrorCode.ConfigJsonNotAvailable);
   }
 
-  if (!Object.prototype.hasOwnProperty.call(settings, key)) {
+  if (!hasOwnProperty(settings, key)) {
     const availableKeys = new LazyString(settings, settings => formatStringList(Object.keys(settings)));
     errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, availableKeys);
     return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
@@ -1155,7 +1155,9 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: SettingMap |
 
   const evaluationDetailsArray: IEvaluationDetails[] = [];
 
-  for (const [key, setting] of Object.entries(settings)) {
+  for (const key in settings) {
+    if (!hasOwnProperty(settings, key)) continue;
+    const setting = settings[key];
     let evaluationDetails: IEvaluationDetails;
     try {
       const evaluateResult = evaluator.evaluate(null, new EvaluateContext(key, setting, user, settings));
@@ -1197,7 +1199,9 @@ export function findKeyAndValue(settings: SettingMap | null,
     return null;
   }
 
-  for (const [settingKey, setting] of Object.entries(settings)) {
+  for (const settingKey in settings) {
+    if (!hasOwnProperty(settings, settingKey)) continue;
+    const setting = settings[settingKey];
     const settingType = getSettingType(setting);
 
     if (variationId === setting.i) {

@@ -10,12 +10,12 @@ import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesConfigCatClient, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
-import type { Config, ProjectConfig, SettingMap, SettingValue } from "./ProjectConfig";
+import type { Config, ProjectConfig, Setting, SettingMap, SettingValue } from "./ProjectConfig";
 import type { IEvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
-import { createWeakRef, errorToString, isObject, shallowClone, throwError } from "./Utils";
+import { createMap, createWeakRef, errorToString, isObject, shallowClone, throwError } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -196,7 +196,7 @@ export interface IConfigCatClientSnapshot {
 }
 
 export class ConfigCatClientCache {
-  private readonly instances: Record<string, [WeakRef<ConfigCatClient>, object]> = {};
+  private readonly instances = createMap<string, [WeakRef<ConfigCatClient>, object]>();
 
   getOrCreate(options: ConfigCatClientOptions): [ConfigCatClient, boolean] {
     let instance: ConfigCatClient | undefined;
@@ -233,7 +233,8 @@ export class ConfigCatClientCache {
 
   clear(): ConfigCatClient[] {
     const removedInstances: ConfigCatClient[] = [];
-    for (const [sdkKey, [weakRef]] of Object.entries(this.instances)) {
+    for (const sdkKey in this.instances) {
+      const [weakRef] = this.instances[sdkKey];
       const instance = weakRef.deref();
       if (instance) {
         removedInstances.push(instance);
@@ -551,7 +552,7 @@ export class ConfigCatClient implements IConfigCatClient {
   snapshot(): IConfigCatClientSnapshot {
     const getRemoteConfig: () => SettingsWithRemoteConfig = () => {
       const config = this.options.cache.getInMemory();
-      const settings = !config.isEmpty ? config.config!.f ?? {} : null;
+      const settings = !config.isEmpty ? config.config!.f ?? createMap<string, Setting>() : null;
       return [settings, config];
     };
 
@@ -577,7 +578,7 @@ export class ConfigCatClient implements IConfigCatClient {
       return new Snapshot(remoteSettings, remoteConfig, this);
     } catch (err) {
       this.options.logger.clientMethodError("snapshot", err);
-      return new Snapshot({}, null, this);
+      return new Snapshot(createMap<string, Setting>(), null, this);
     }
   }
 
@@ -586,7 +587,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     const getRemoteConfigAsync: () => Promise<SettingsWithRemoteConfig> = async () => {
       const config = await this.configService!.getConfigAsync();
-      const settings = !config.isEmpty ? config.config!.f ?? {} : null;
+      const settings = !config.isEmpty ? config.config!.f ?? createMap<string, Setting>() : null;
       return [settings, config];
     };
 

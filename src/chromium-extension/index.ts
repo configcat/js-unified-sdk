@@ -3,15 +3,12 @@ import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "
 import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientInternal } from "../index.pubternals.core";
-import { setupPolyfills } from "../Polyfills";
 import { ClientSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { ChromeLocalStorageConfigCache } from "./ChromeLocalStorageConfigCache";
 
 /* Package public API for Chromium-based browser extensions */
-
-setupPolyfills();
 
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.
