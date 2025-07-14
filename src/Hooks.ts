@@ -57,10 +57,10 @@ export class Hooks implements IProvidesConfigCatClient, IEventEmitter<HookEvents
     // NOTE: Listeners are actually called by eventEmitter, that is, in listeners, `this` will be set to reference the
     // IEventEmitter instance instead of the Hooks one. Thus, we need to augment eventEmitter with a configCatClient
     // property to provide the promised interface for consumers.
-    Object.defineProperty(eventEmitter, "configCatClient" satisfies keyof IProvidesConfigCatClient, {
-      get: () => this.configCatClient satisfies IProvidesConfigCatClient["configCatClient"],
-      enumerable: true,
-    });
+    const propertyDescriptor = Object.create(null) as PropertyDescriptor;
+    propertyDescriptor.get = () => this.configCatClient satisfies IProvidesConfigCatClient["configCatClient"];
+    propertyDescriptor.enumerable = true;
+    Object.defineProperty(eventEmitter, "configCatClient" satisfies keyof IProvidesConfigCatClient, propertyDescriptor);
   }
 
   tryDisconnect(): boolean {

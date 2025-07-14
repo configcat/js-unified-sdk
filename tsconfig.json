@@ -6,8 +6,7 @@
     "moduleResolution": "Node",
     "lib": [
       "DOM", // APIs used: setTimeout, clearTimeout
-      "ES2015", // APIs used: Promise (.race) (polyfilled)
-      "ES2017.Object", // APIs used: Object.values (polyfilled), Object.entries (polyfilled)
+      "ES2015", // APIs used: Promise (.race) (polyfilled in ES5 builds)
       "ES2021.WeakRef", // APIs used: WeakRef (only used if available)
       "ES2021.Promise" // APIs used: AggregateError (only used if available)
     ],

@@ -1,11 +1,12 @@
 import { assert } from "chai";
 import { CdnConfigLocation, ConfigLocation } from "./helpers/ConfigLocation";
 import { platform } from "./helpers/platform";
-import { LogLevel, SettingType, SettingValue, User } from "#lib";
+import { LogLevel, Setting, SettingType, SettingValue, User } from "#lib";
 import { LoggerWrapper } from "#lib/ConfigCatLogger";
 import { createConsoleLogger } from "#lib/index.pubternals";
 import { evaluate, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { getUserAttributes } from "#lib/User";
+import { createMap } from "#lib/Utils";
 
 const testDataBasePath = platform().pathJoin("test", "data");
 
@@ -161,7 +162,7 @@ function getTypedValue(value: string, settingType: SettingType): NonNullable<Set
 
 async function runMatrixTest(configLocation: ConfigLocation, key: string, user: User | undefined, expected: string, evaluator: RolloutEvaluator) {
   const config = await configLocation.fetchConfigCachedAsync();
-  const settings = config.f ?? {};
+  const settings = config.f ?? createMap<string, Setting>();
   const setting = settings[key];
 
   const actual = evaluate(evaluator, settings, key, null, user, null, evaluator["logger"]).value;

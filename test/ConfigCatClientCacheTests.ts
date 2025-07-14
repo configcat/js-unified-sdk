@@ -3,7 +3,6 @@ import { createAutoPollOptions, createKernel, createManualPollOptions, FakeConfi
 import { platform } from "./helpers/platform";
 import { isWeakRefAvailable } from "./helpers/utils";
 import { ConfigCatClient, ConfigCatClientCache } from "#lib/ConfigCatClient";
-import { setupPolyfills } from "#lib/Polyfills";
 import "./helpers/ConfigCatClientCacheExtensions";
 
 describe("ConfigCatClientCache", () => {
@@ -42,7 +41,6 @@ describe("ConfigCatClientCache", () => {
   it("getOrCreate() should return new instance after cached instance is collected", async function() {
     // Arrange
 
-    setupPolyfills();
     const { gc } = platform();
     if (!gc || !isWeakRefAvailable()) {
       this.skip();
@@ -145,7 +143,6 @@ describe("ConfigCatClientCache", () => {
   it("remove() should remove cache entry when cached instance is collected", async function() {
     // Arrange
 
-    setupPolyfills();
     const { gc } = platform();
     if (!gc || !isWeakRefAvailable()) {
       this.skip();
@@ -209,7 +206,6 @@ describe("ConfigCatClientCache", () => {
   it("clear() should remove all cached instances", async function() {
     // Arrange
 
-    setupPolyfills();
     const { gc } = platform();
     if (!gc || !isWeakRefAvailable()) {
       this.skip();

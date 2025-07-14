@@ -11,7 +11,6 @@ import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshErrorCode, 
 import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesConfigCatClient, IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
-import { setupPolyfills } from "#lib/Polyfills";
 import { Config, deserializeConfig, ProjectConfig, SettingValue } from "#lib/ProjectConfig";
 import { EvaluateContext, EvaluationErrorCode, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
@@ -1177,7 +1176,6 @@ describe("ConfigCatClient", () => {
   it("GC should be able to collect cached instances when no strong references are left", async function() {
     // Arrange
 
-    setupPolyfills();
     const { gc } = platform();
     if (!gc || !isWeakRefAvailable()) {
       this.skip();
@@ -1225,7 +1223,6 @@ describe("ConfigCatClient", () => {
   it("GC should be able to collect cached instances when hook handler closes over client instance and no strong references are left", async function() {
     // Arrange
 
-    setupPolyfills();
     const { gc } = platform();
     if (!gc || !isWeakRefAvailable() || typeof FinalizationRegistry === "undefined") {
       this.skip();
@@ -1648,5 +1645,30 @@ describe("ConfigCatClient", () => {
         }
       });
     }
+  }
+
+  for (const useSnapshot of [false, true]) {
+    it(`Setting lookup ignores prototype properties - useSnapshot: ${useSnapshot}`, async () => {
+      const fakeLogger = new FakeLogger();
+
+      const configCatKernel = createKernel({
+        configFetcherFactory: () => new FakeConfigFetcherWithTwoKeysAndRules(),
+      });
+      const options: ManualPollOptions = createManualPollOptions("APIKEY", { logger: fakeLogger }, configCatKernel);
+      const client: IConfigCatClient = new ConfigCatClient(options);
+
+      await client.forceRefreshAsync();
+
+      const value = useSnapshot
+        ? client.snapshot().getValue("toString" satisfies keyof Object, null)
+        : await client.getValueAsync("toString" satisfies keyof Object, null);
+
+      assert.isNull(value);
+
+      const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1001);
+      assert.strictEqual(errors.length, 1);
+
+      client.dispose();
+    });
   }
 });

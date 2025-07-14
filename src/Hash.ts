@@ -1,4 +1,4 @@
-import { utf8Encode } from "./Utils";
+import { createMap, utf8Encode } from "./Utils";
 
 export function sha1(msg: string) {
   function rotate_left(n: number, s: number) {
@@ -111,7 +111,7 @@ export function sha256(msgUtf8: string) {
     // Round constants: first 32 bits of the fractional parts of the cube roots of the first 64 primes
     k = [];
 
-    var isComposite: {[n: number]: number | undefined } = {};
+    var isComposite = createMap<number, number>();
     for (var candidate = 2, primeCounter = 0; primeCounter < 64; candidate++) {
       if (!isComposite[candidate]) {
         for (i = 0; i < 313; i += candidate) {

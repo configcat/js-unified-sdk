@@ -5,15 +5,12 @@ import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "../FlagOverrides";
 import { createFlagOverridesFromQueryParams as createFlagOverridesFromQueryParamsCommon, getClient as getClientInternal } from "../index.pubternals.core";
-import { setupPolyfills } from "../Polyfills";
 import { ServerSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { CloudflareConfigCache } from "./CloudflareConfigCache";
 import { isBoolean } from "../Utils";
 
 /* Package public API for Cloudflare Workers */
-
-setupPolyfills();
 
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.

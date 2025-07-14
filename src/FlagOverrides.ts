@@ -1,6 +1,6 @@
 import type { Setting, SettingValue } from "./ProjectConfig";
 import { createSettingFromValue } from "./ProjectConfig";
-import { isArray, isString, parseFloatStrict } from "./Utils";
+import { hasOwnProperty, isArray, isString, parseFloatStrict } from "./Utils";
 
 export type FlagOverrides = {
   dataSource: IOverrideDataSource;
@@ -63,7 +63,7 @@ function getSettingsFromMap(map: Record<string, NonNullable<SettingValue>>) {
   const settings: Record<string, Setting> = {};
 
   for (const key in map) {
-    if (Object.prototype.hasOwnProperty.call(map, key)) {
+    if (hasOwnProperty(map, key)) {
       settings[key] = createSettingFromValue(map[key]);
     }
   }
@@ -134,7 +134,7 @@ function getQueryString(queryStringOrParams: string | Record<string, string | Re
   let queryString = "", separator = "?";
 
   for (const key in queryStringOrParams) {
-    if (!Object.prototype.hasOwnProperty.call(queryStringOrParams, key)) continue;
+    if (!hasOwnProperty(queryStringOrParams, key)) continue;
 
     const values = queryStringOrParams[key];
     let value: string, length: number;
@@ -168,7 +168,7 @@ function getSettingsFromQueryString(queryStringOrParams: string | Record<string,
 
 function extractSettingsFromQueryParams(queryParams: Record<string, string | ReadonlyArray<string>> | undefined, paramPrefix: string, settings: Record<string, Setting>) {
   for (const key in queryParams) {
-    if (!Object.prototype.hasOwnProperty.call(queryParams, key)) continue;
+    if (!hasOwnProperty(queryParams, key)) continue;
 
     const values = queryParams[key];
     let value: string, length: number;

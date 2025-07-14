@@ -398,6 +398,10 @@ export default [
               "camelCase",
               "UPPER_CASE",
             ],
+            "modifiers": [
+              "private",
+            ],
+            "leadingUnderscore": "allow",
           },
           {
             "selector": [
@@ -410,10 +414,6 @@ export default [
               "camelCase",
               "UPPER_CASE",
             ],
-            "modifiers": [
-              "private",
-            ],
-            "leadingUnderscore": "allow",
           },
           {
             "selector": "memberLike",
