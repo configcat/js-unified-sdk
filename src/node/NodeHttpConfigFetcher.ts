@@ -6,7 +6,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
-import { hasOwnProperty } from "../Utils";
+import { hasOwnProperty, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -105,8 +105,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         }
 
         if (this.logger?.isEnabled(LogLevel.Debug)) {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: requestOptions.agent?.toString() });
+          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
           this.logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
         }
 
@@ -142,7 +141,7 @@ function setRequestHeadersDefault(requestOptions: { headers?: Record<string, htt
       if (!hasOwnProperty(currentHeaders, name)) {
         currentHeaders[name] = value;
       } else if (!Array.isArray(currentValue = currentHeaders[name])) {
-        currentHeaders[name] = [currentValue + "", value];
+        currentHeaders[name] = [String(currentValue), value];
       } else {
         currentValue.push(value);
       }

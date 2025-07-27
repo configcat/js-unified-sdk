@@ -1,6 +1,6 @@
 import type { SafeHooksWrapper } from "./Hooks";
 import type { Message } from "./Utils";
-import { errorToString, isString, LazyString } from "./Utils";
+import { errorToString, isString, LazyString, toStringSafe } from "./Utils";
 
 /**
  * Specifies event severity levels for the `IConfigCatLogger` interface.
@@ -51,7 +51,7 @@ export class FormattableLogMessage {
       let i = 0;
       for (; i < strings.length - 1; i++) {
         cachedMessage += strings[i];
-        cachedMessage += argValues[i];
+        cachedMessage += toStringSafe(argValues[i]);
       }
       cachedMessage += strings[i];
       this.cachedDefaultFormattedMessage = cachedMessage;

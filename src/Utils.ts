@@ -77,9 +77,20 @@ export function getWeakRefStub(): new (target: object) => unknown {
   return WeakRef;
 }
 
+export function toStringSafe(value: unknown): string {
+  try {
+    // NOTE: Attempting to convert symbols and objects with no toString method (e.g. null-prototype objects) to string throws a TypeError.
+    return typeof value === "symbol" ? "[symbol]"
+      : typeof value === "object" && value !== null && typeof value.toString !== "function" ? Object.prototype.toString.call(value)
+      : String(value);
+  } catch {
+    return "[unknown]";
+  }
+}
+
 /** Formats error in a similar way to Chromium-based browsers. */
 export function errorToString(err: any, includeStackTrace = false): string {
-  return err instanceof Error ? visit(err, "") : "" + err;
+  return err instanceof Error ? visit(err, "") : toStringSafe(err);
 
   function visit(err: Error, indent: string, visited?: Error[]) {
     const errString = err.toString();
@@ -102,7 +113,7 @@ export function errorToString(err: any, includeStackTrace = false): string {
           }
           s += "\n" + visit(innerErr, indent + "    ", visited);
         } else {
-          s += "\n" + indent + "--> " + innerErr;
+          s += "\n" + indent + "--> " + toStringSafe(innerErr);
         }
       }
       visited.pop();

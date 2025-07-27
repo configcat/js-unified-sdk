@@ -10,7 +10,7 @@ import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, toStringSafe, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType?: SettingType | UnknownSettingType;
@@ -792,9 +792,9 @@ function hashComparisonValueSlice(sliceUtf8: string, configJsonSalt: string, con
 
 function userAttributeValueToString(userAttributeValue: UserAttributeValue): string {
   return isString(userAttributeValue) ? userAttributeValue
-    : userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + ""
+    : userAttributeValue instanceof Date ? String(userAttributeValue.getTime() / 1000)
     : isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue)
-    : userAttributeValue + "";
+    : toStringSafe(userAttributeValue);
 }
 
 function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
@@ -817,7 +817,7 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
   if (isString(attributeValue) && (version = parseSemVer(attributeValue.trim()))) {
     return version;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid semantic version`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid semantic version`);
 }
 
 function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue,
@@ -831,7 +831,7 @@ function getUserAttributeValueAsNumber(attributeName: string, attributeValue: Us
     && (!isNaN(number = parseFloatStrict(attributeValue.replace(",", "."))) || attributeValue.trim() === "NaN")) {
     return number;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid decimal number`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid decimal number`);
 }
 
 function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue,
@@ -848,7 +848,7 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
     && (!isNaN(number = parseFloatStrict(attributeValue.replace(",", "."))) || attributeValue.trim() === "NaN")) {
     return number;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid Unix timestamp (number of seconds elapsed since Unix epoch)`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid Unix timestamp (number of seconds elapsed since Unix epoch)`);
 }
 
 function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue,
@@ -863,7 +863,7 @@ function getUserAttributeValueAsStringArray(attributeName: string, attributeValu
   if (isStringArray(stringArray)) {
     return stringArray;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid string array`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid string array`);
 }
 
 function handleInvalidUserAttribute(logger: LoggerWrapper, condition: UserCondition, key: string, attributeName: string, reason: string): string {
@@ -993,8 +993,7 @@ export function unwrapValue(settingValue: SettingValueModel | NonNullable<Settin
         throwInvalidConfigModelError(
           settingValue === null ? "Setting value is null."
           : settingValue === void 0 ? "Setting value is undefined."
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          : `Setting value '${settingValue}' is of an unsupported type (${typeof settingValue}).`);
+          : `Setting value '${toStringSafe(settingValue)}' is of an unsupported type (${typeof settingValue}).`);
       }
       return;
   }
