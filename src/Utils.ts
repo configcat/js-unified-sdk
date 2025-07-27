@@ -52,15 +52,15 @@ export const getMonotonicTimeMs = typeof performance !== "undefined" && typeof p
 
 // NOTE: We don't use the built-in WeakRef-related types in the signatures of the exported functions below because
 // this module is exposed via the "pubternal" API, and we don't want these types to be included in the generated
-// type definitions because that might cause problems with older TypeScript versions.
+// type declarations because that might cause problems with older TypeScript versions.
 
 export function createWeakRef(target: object): unknown {
   return new weakRefConstructor(target);
 }
 
-const weakRefConstructor = typeof WeakRef === "function" ? WeakRef : getWeakRefStub() as WeakRefConstructor;
+const weakRefConstructor = typeof WeakRef === "function" ? WeakRef : getWeakRefStub();
 
-export function getWeakRefStub(): Function {
+export function getWeakRefStub(): new (target: object) => unknown {
   type WeakRefImpl = WeakRef<WeakKey> & { target: object };
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -153,7 +153,7 @@ export function isString(value: unknown): value is string {
   return typeof value === "string";
 }
 
-export function isObject(value: unknown): value is Record<string, unknown> {
+export function isObject(value: unknown): value is Record<keyof any, unknown> {
   return typeof value === "object" && value !== null && !isArray(value);
 }
 
@@ -162,11 +162,11 @@ export function isArray(value: unknown): value is ReadonlyArray<unknown> {
   return Array.isArray(value);
 }
 
-export function isStringArray(value: unknown): value is Readonly<string> {
+export function isStringArray(value: unknown): value is ReadonlyArray<string> {
   return isArray(value) && !value.some(item => !isString(item));
 }
 
-export function isFunction(value: unknown): value is ReadonlyArray<unknown> {
+export function isFunction(value: unknown): value is (...args: unknown[]) => unknown {
   return typeof value === "function";
 }
 
