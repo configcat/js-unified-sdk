@@ -1,7 +1,7 @@
 import type { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
-import { ensurePrototype } from "./Utils";
+import { ensurePrototype, toStringSafe } from "./Utils";
 
 export const enum FetchStatus {
   Fetched = 0,
@@ -106,7 +106,7 @@ export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchError
           const [err] = args as FetchErrorCauses["failure"];
           const message = "Request failed due to a network or protocol error.";
           return err
-            ? message + " " + (err instanceof Error ? err.message : err + "")
+            ? message + " " + (err instanceof Error ? err.message : toStringSafe(err))
             : message;
       }
     })(cause, args));

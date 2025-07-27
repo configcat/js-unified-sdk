@@ -15,7 +15,7 @@ import type { IEvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTyp
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
-import { createMap, createWeakRef, errorToString, isObject, shallowClone, throwError } from "./Utils";
+import { createMap, createWeakRef, errorToString, isObject, shallowClone, throwError, toStringSafe } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -782,11 +782,9 @@ export function getSerializableOptions(options: ConfigCatClientOptions): Record<
       return getUserAttributes(value as IUser);
     }
     if (key === "flagOverrides") {
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      return shallowClone(value as FlagOverrides, (_, value) => isObject(value) ? value.toString() : value);
+      return shallowClone(value as FlagOverrides, (_, value) => isObject(value) ? toStringSafe(value) : value);
     }
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return isObject(value) ? value.toString() : value;
+    return isObject(value) ? toStringSafe(value) : value;
   });
 }
 

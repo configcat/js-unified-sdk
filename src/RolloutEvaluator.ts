@@ -10,7 +10,7 @@ import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, toStringSafe, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType?: SettingType | UnknownSettingType;
@@ -794,7 +794,7 @@ function userAttributeValueToString(userAttributeValue: UserAttributeValue): str
   return isString(userAttributeValue) ? userAttributeValue
     : userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + ""
     : isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue)
-    : userAttributeValue + "";
+    : toStringSafe(userAttributeValue);
 }
 
 function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
