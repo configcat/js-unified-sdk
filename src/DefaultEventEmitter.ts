@@ -97,11 +97,11 @@ export class DefaultEventEmitter implements IEventEmitter {
     this.removeListener;
 
   removeAllListeners(eventName?: string | symbol): this {
-    if (!eventName) {
+    if (!arguments.length) {
       this.events = {};
       this.eventCount = 0;
-    } else if (this.events[eventName]) {
-      this.removeEvent(eventName);
+    } else if (this.events[eventName!]) {
+      this.removeEvent(eventName!);
     }
 
     return this;
@@ -153,7 +153,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       }
     }
 
-    if (Object.getOwnPropertySymbols) {
+    if (typeof Object.getOwnPropertySymbols !== "undefined") {
       return names.concat(Object.getOwnPropertySymbols(events));
     }
 
