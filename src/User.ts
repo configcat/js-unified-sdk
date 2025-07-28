@@ -43,7 +43,7 @@ export interface IUser {
    * * accept `string` values containing a valid JSON string which can be deserialized to an array of `string`,
    * * all other values are considered invalid (a warning will be logged and the currently evaluated targeting rule will be skipped).
    **/
-  custom: Record<string, UserAttributeValue>;
+  custom?: Record<string, UserAttributeValue>;
 }
 
 /**
