@@ -774,6 +774,9 @@ export function getSerializableOptions(options: ConfigCatClientOptions): Record<
   // user-provided objects. See also: https://github.com/configcat/common-js/pull/111
 
   return shallowClone(options, (key, value) => {
+    if (value == null) {
+      return value;
+    }
     if (key === "defaultUser") {
       return getUserAttributes(value as IUser);
     }
