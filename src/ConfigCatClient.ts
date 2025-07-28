@@ -250,11 +250,11 @@ const clientInstanceCache = new ConfigCatClientCache();
 type SettingsWithRemoteConfig = [settings: SettingMap | null, config: ProjectConfig | null];
 
 export class ConfigCatClient implements IConfigCatClient {
-  protected configService?: IConfigService;
+  protected configService: IConfigService | null;
   protected evaluator: IRolloutEvaluator;
   private readonly options: OptionsBase;
   private readonly hooks: Hooks;
-  private defaultUser?: IUser;
+  private defaultUser: IUser | undefined;
   private readonly suppressFinalize: () => void;
 
   private static get instanceCache() { return clientInstanceCache; }
@@ -304,9 +304,7 @@ export class ConfigCatClient implements IConfigCatClient {
     this.hooks = options.yieldHooks();
     this.hooks.configCatClient = this;
 
-    if (options.defaultUser) {
-      this.setDefaultUser(options.defaultUser);
-    }
+    this.defaultUser = options.defaultUser;
 
     this.evaluator = new RolloutEvaluator(options.logger);
 
@@ -317,6 +315,7 @@ export class ConfigCatClient implements IConfigCatClient {
         : options instanceof LazyLoadOptions ? new LazyLoadConfigService(options)
         : throwError(Error("Invalid 'options' value"));
     } else {
+      this.configService = null;
       this.hooks.emit("clientReady", ClientCacheState.HasLocalOverrideFlagDataOnly);
     }
 
@@ -335,7 +334,7 @@ export class ConfigCatClient implements IConfigCatClient {
     ConfigCatClient.close(data.configService, data.logger);
   }
 
-  private static close(configService?: IConfigService, logger?: LoggerWrapper, hooks?: Hooks) {
+  private static close(configService: IConfigService | null, logger?: LoggerWrapper, hooks?: Hooks) {
     logger?.debug("close() called.");
 
     hooks?.tryDisconnect();
@@ -794,7 +793,12 @@ export function getSerializableOptions(options: ConfigCatClientOptions): Record<
 // Since a strong reference is stored to the held value (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry),
 // objects implementing this interface MUST NOT contain a strong reference (either directly or transitively) to the ConfigCatClient object because
 // that would prevent the client object from being GC'd, which would defeat the whole purpose of the finalization logic.
-interface IFinalizationData { sdkKey: string; cacheToken?: object; configService?: IConfigService; logger?: LoggerWrapper }
+interface IFinalizationData {
+  sdkKey: string;
+  cacheToken: object | undefined;
+  configService: IConfigService | null;
+  logger: LoggerWrapper;
+}
 
 let registerForFinalization = function(client: ConfigCatClient, data: IFinalizationData): () => void {
   // Use FinalizationRegistry (finalization callbacks) if the runtime provides that feature.

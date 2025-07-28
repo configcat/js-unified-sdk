@@ -58,6 +58,7 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
       sdkType,
       sdkVersion,
       eventEmitterFactory: () => new DefaultEventEmitter(),
+      defaultCacheFactory: null,
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     setupKernel ??= kernel => {

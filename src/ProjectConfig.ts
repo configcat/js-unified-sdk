@@ -317,11 +317,14 @@ export function prepareConfig(config: Partial<ConfigJson.Config>): Config {
  * Creates a setting that can be used for feature flag evaluation from the specified value.
  */
 export function createSettingFromValue(value: NonNullable<SettingValue>): Setting {
-  return {
-    t: -1 satisfies UnknownSettingType,
-    v: value,
-  } satisfies Partial<Setting> as Setting;
+  const setting = Object.create(objectMapPrototype) as AdjustedConfigJsonSetting;
+  setting.t = -1 satisfies UnknownSettingType;
+  setting.v = value;
+  return setting as Setting;
 }
+
+const objectMapPrototype = Object.create(null) as object;
+objectMapPrototype.toString = function() { return Object.prototype.toString.call(this); };
 
 function checkConfig(config: Partial<ConfigJson.Config>, path: string[]): asserts config is Config & Partial<ConfigJson.Config> {
   if (config == null) {
@@ -511,9 +514,6 @@ function checkObjectProperty<T, K extends string & keyof T>(obj: T, property: K,
 function ensureArray(value: unknown[], path: string[]) {
   isArray(value) || throwConfigJsonTypeMismatchError(path);
 }
-
-const objectMapPrototype = Object.create(null) as object;
-objectMapPrototype.toString = function() { return Object.prototype.toString.call(this); };
 
 function ensureObject(value: object, path: string[]) {
   isObject(value) || throwConfigJsonTypeMismatchError(path);

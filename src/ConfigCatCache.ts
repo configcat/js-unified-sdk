@@ -48,7 +48,7 @@ export class InMemoryConfigCache implements IConfigCache {
 
 export class ExternalConfigCache implements IConfigCache {
   private cachedConfig: ProjectConfig = ProjectConfig.empty;
-  private cachedSerializedConfig: string | undefined;
+  private cachedSerializedConfig: string | undefined = void 0;
 
   constructor(
     private readonly cache: IConfigCatCache,

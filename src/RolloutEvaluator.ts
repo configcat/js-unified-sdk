@@ -13,16 +13,16 @@ import type { Message } from "./Utils";
 import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, toStringSafe, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
-  private _settingType?: SettingType | UnknownSettingType;
+  private _settingType: SettingType | UnknownSettingType | undefined = void 0;
   get settingType(): SettingType | UnknownSettingType { return this._settingType ??= getSettingType(this.setting); }
 
-  private _visitedFlags?: string[];
+  private _visitedFlags: string[] | undefined = void 0;
   get visitedFlags(): string[] { return this._visitedFlags ??= []; }
 
-  isMissingUserObjectLogged?: boolean;
-  isMissingUserObjectAttributeLogged?: boolean;
+  isMissingUserObjectLogged = false;
+  isMissingUserObjectAttributeLogged = false;
 
-  logBuilder?: EvaluateLogBuilder; // initialized by RolloutEvaluator.evaluate
+  logBuilder!: EvaluateLogBuilder | null; // initialized by RolloutEvaluator.evaluate
 
   constructor(
     readonly key: string,
@@ -34,7 +34,7 @@ export class EvaluateContext {
 
   static forPrerequisiteFlag(key: string, setting: Setting, dependentFlagContext: EvaluateContext): EvaluateContext {
     const context = new EvaluateContext(key, setting, dependentFlagContext.user, dependentFlagContext.settings);
-    context._visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the list is created!
+    context._visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the array is created!
     context.logBuilder = dependentFlagContext.logBuilder;
     return context;
   }
@@ -43,8 +43,8 @@ export class EvaluateContext {
 export interface IEvaluateResult {
   returnValue: NonNullable<SettingValue>;
   selectedValue: SettingValueContainer;
-  matchedTargetingRule?: TargetingRule;
-  matchedPercentageOption?: PercentageOption;
+  matchedTargetingRule: TargetingRule | undefined;
+  matchedPercentageOption: PercentageOption | undefined;
 }
 
 type IntermediateEvaluateResult = Omit<IEvaluateResult, "returnValue">;
@@ -66,12 +66,12 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult {
     this.logger.debug("RolloutEvaluator.evaluate() called.");
 
-    let logBuilder = context.logBuilder;
-
     // Building the evaluation log is expensive, so let's not do it if it wouldn't be logged anyway.
-    if (this.logger.isEnabled(LogLevel.Info)) {
-      context.logBuilder = logBuilder = new EvaluateLogBuilder(this.logger.eol);
+    const logBuilder = context.logBuilder = this.logger.isEnabled(LogLevel.Info)
+      ? new EvaluateLogBuilder(this.logger.eol)
+      : null;
 
+    if (logBuilder) {
       logBuilder.append(`Evaluating '${context.key}'`);
 
       if (context.user) {
@@ -135,7 +135,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return evaluateResult;
     }
 
-    return { selectedValue: context.setting as SettingValueContainer };
+    return evaluateResultFrom(context.setting as SettingValueContainer);
   }
 
   private evaluateTargetingRules(targetingRules: ReadonlyArray<TargetingRule>, context: EvaluateContext): IntermediateEvaluateResult | undefined {
@@ -159,7 +159,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       }
 
       if (!hasPercentageOptions(targetingRule)) {
-        return { selectedValue: targetingRule.s!, matchedTargetingRule: targetingRule };
+        return evaluateResultFrom(targetingRule.s!, targetingRule);
       }
 
       const percentageOptions = targetingRule.p!;
@@ -240,7 +240,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         logBuilder.newLine(`- Hash value ${hashValue} selects % option ${i + 1} (${percentage}%), '${valueToString(percentageOptionValue)}'.`);
       }
 
-      return { selectedValue: percentageOption, matchedTargetingRule, matchedPercentageOption: percentageOption };
+      return evaluateResultFrom(percentageOption, matchedTargetingRule, percentageOption);
     }
 
     throwInvalidConfigModelError("Sum of percentage option percentages is less than 100.");
@@ -782,6 +782,12 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   }
 }
 
+function evaluateResultFrom(
+  selectedValue: SettingValueContainer, matchedTargetingRule?: TargetingRule, matchedPercentageOption?: PercentageOption
+): IntermediateEvaluateResult {
+  return { selectedValue, matchedTargetingRule, matchedPercentageOption };
+}
+
 function hashComparisonValue(value: string, configJsonSalt: string, contextSalt: string): string {
   return hashComparisonValueSlice(utf8Encode(value), configJsonSalt, contextSalt);
 }
@@ -1102,20 +1108,19 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
   fetchTime?: Date, user?: IUser, errorMessage?: Message, errorException?: any, errorCode = EvaluationErrorCode.UnexpectedError
 ): IEvaluationDetails<SettingTypeOf<T>> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { _errorMessage?: Message } = {
+  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { _errorMessage: Message | undefined } = {
     key,
     value: defaultValue as SettingTypeOf<T>,
     fetchTime,
     user,
     isDefaultValue: true,
     errorCode,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    _errorMessage: errorMessage,
     get errorMessage() { return this._errorMessage?.toString(); },
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     errorException,
   };
-  if (errorMessage != null) {
-    evaluationDetails._errorMessage = errorMessage;
-  }
   return evaluationDetails;
 }
 

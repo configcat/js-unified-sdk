@@ -17,7 +17,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     };
   }
 
-  private logger?: LoggerWrapper;
+  private logger: LoggerWrapper | null = null;
 
   private handleStateChange(httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {

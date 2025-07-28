@@ -40,7 +40,7 @@ export const enum RefreshErrorCode {
 
 /** Contains the result of an `IConfigCatClient.forceRefreshAsync` operation. */
 export class RefreshResult {
-  private readonly _errorMessage?: Message;
+  private readonly _errorMessage: Message | undefined;
   /** Error message in case the operation failed, otherwise `undefined`. */
   get errorMessage(): string | undefined { return this._errorMessage?.toString(); }
 
@@ -56,9 +56,7 @@ export class RefreshResult {
       throw Error("Invalid 'errorCode' value");
     }
 
-    if (errorMessage != null) {
-      this._errorMessage = errorMessage;
-    }
+    this._errorMessage = errorMessage;
   }
 
   /** Indicates whether the operation was successful or not. */

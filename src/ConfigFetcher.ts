@@ -54,9 +54,9 @@ export class FetchRequest {
 /** The response data of a ConfigCat config fetch operation. */
 export class FetchResponse {
   /** The value of the `ETag` HTTP response header. */
-  readonly eTag?: string;
+  readonly eTag?: string = void 0;
 
-  private readonly rayId?: string;
+  private readonly rayId?: string = void 0;
 
   constructor(
     /** The HTTP status code. */
