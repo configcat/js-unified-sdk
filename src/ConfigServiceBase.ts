@@ -9,7 +9,7 @@ import { RedirectMode } from "./ConfigJson";
 import type { Config } from "./ProjectConfig";
 import { deserializeConfig, prepareConfig, ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
-import { isPromiseLike } from "./Utils";
+import { isArray, isPromiseLike } from "./Utils";
 
 /** Specifies the possible config data refresh error codes. */
 export const enum RefreshErrorCode {
@@ -404,7 +404,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   }
 
   private onCacheSynced(syncResult: CacheSyncResult): ProjectConfig {
-    if (!Array.isArray(syncResult)) {
+    if (!isArray(syncResult)) {
       return syncResult;
     }
 

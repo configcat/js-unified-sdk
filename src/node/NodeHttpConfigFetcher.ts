@@ -6,7 +6,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
-import { hasOwnProperty, toStringSafe } from "../Utils";
+import { hasOwnProperty, isArray, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -139,7 +139,7 @@ function setRequestHeadersDefault(requestOptions: { headers?: Record<string, htt
       let currentValue: http.OutgoingHttpHeader;
       if (!hasOwnProperty(currentHeaders, name)) {
         currentHeaders[name] = value;
-      } else if (!Array.isArray(currentValue = currentHeaders[name])) {
+      } else if (!isArray(currentValue = currentHeaders[name])) {
         currentHeaders[name] = [String(currentValue), value];
       } else {
         currentValue.push(value);
@@ -157,7 +157,7 @@ function getResponseHeadersDefault(httpResponse: http.IncomingMessage): [string,
   function extractHeader(name: string, httpResponse: http.IncomingMessage, headers: [string, string][]) {
     let value: string | string[] | undefined;
     if (hasOwnProperty(httpResponse.headers, name) && (value = httpResponse.headers[name]) != null) {
-      headers.push([name, !Array.isArray(value) ? value : value[0]]);
+      headers.push([name, !isArray(value) ? value : value[0]]);
     }
   }
 }
