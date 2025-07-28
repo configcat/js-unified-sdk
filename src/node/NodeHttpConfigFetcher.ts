@@ -17,7 +17,7 @@ export interface INodeHttpConfigFetcherOptions {
    *
    * This option applies when the SDK connects to a custom `http://...` URL you specified via `baseUrl`.
    */
-  httpAgent?: http.Agent;
+  httpAgent?: http.Agent | null;
 
   /**
    * The {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent} instance to use for secure HTTP communication.
@@ -27,7 +27,7 @@ export interface INodeHttpConfigFetcherOptions {
    *
    * This option applies when the SDK connects to the ConfigCat CDN or a custom `https://...` URL you specified via `baseUrl`.
    */
-  httpsAgent?: https.Agent;
+  httpsAgent?: https.Agent | null;
 }
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
@@ -39,14 +39,14 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     };
   }
 
-  private logger?: LoggerWrapper;
+  private logger: LoggerWrapper | null = null;
 
-  private readonly httpAgent?: http.Agent;
-  private readonly httpsAgent?: https.Agent;
+  private readonly httpAgent: http.Agent | undefined;
+  private readonly httpsAgent: https.Agent | undefined;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
-    this.httpAgent = options?.httpAgent;
-    this.httpsAgent = options?.httpsAgent;
+    this.httpAgent = options?.httpAgent ?? void 0;
+    this.httpsAgent = options?.httpsAgent ?? void 0;
   }
 
   private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
@@ -89,10 +89,9 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         const { lastETag, timeoutMs } = request;
 
-        const requestOptions: (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> } = {
-          agent: isHttpsUrl ? this.httpsAgent : this.httpAgent,
-          timeout: timeoutMs,
-        };
+        const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
+        requestOptions.agent = isHttpsUrl ? this.httpsAgent : this.httpAgent;
+        requestOptions.timeout = timeoutMs;
 
         if (isCustomUrl) {
           this.setRequestHeaders(requestOptions, request.headers);

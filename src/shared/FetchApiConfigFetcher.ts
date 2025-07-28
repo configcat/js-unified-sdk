@@ -6,7 +6,7 @@ import { FetchError, FetchResponse } from "../ConfigFetcher";
 
 export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
   // eslint-disable-next-line @typescript-eslint/prefer-readonly
-  private logger?: LoggerWrapper;
+  private logger: LoggerWrapper | null = null;
 
   protected constructor(private readonly runsOnServerSide?: boolean) {
   }
@@ -18,7 +18,9 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
     const isCustomUrl = !isCdnUrl(url);
     const { lastETag, timeoutMs } = request;
 
-    const requestInit: RequestInit & { headers?: [string, string][] } = { method: "GET" };
+    const requestInit = Object.create(null) as RequestInit & { headers?: [string, string][] };
+    requestInit.method = "GET";
+
     if (isCustomUrl) {
       this.setRequestHeaders(requestInit, request.headers);
     } else if (this.runsOnServerSide) {

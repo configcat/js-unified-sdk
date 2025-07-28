@@ -1,12 +1,8 @@
 import type { IEventEmitter } from "./EventEmitter";
-import { createMap, isFunction } from "./Utils";
+import { createMap, isArray, isFunction } from "./Utils";
 
-type Listener = { fn: (...args: any[]) => void; once?: boolean };
-type Listeners = Listener | Listener[] & { fn?: never };
-
-function isSingle(listeners: Listeners): listeners is Listener {
-  return !!listeners.fn;
-}
+type Listener = { fn: (...args: any[]) => void; once: boolean };
+type Listeners = Listener | Listener[];
 
 // NOTE: It's better to place this class into a separate module so
 // it can be omitted from the final bundle in case it's not used.
@@ -29,7 +25,7 @@ export class DefaultEventEmitter implements IEventEmitter {
     if (!listeners) {
       this.events[eventName] = listener;
       this.eventCount++;
-    } else if (isSingle(listeners)) {
+    } else if (!isArray(listeners)) {
       this.events[eventName] = [listeners, listener];
     } else {
       listeners.push(listener);
@@ -45,7 +41,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       return this;
     }
 
-    if (!isSingle(listeners)) {
+    if (isArray(listeners)) {
       for (let i = listeners.length - 1; i >= 0; i--) {
         if (isMatch(listeners[i], state)) {
           listeners.splice(i, 1);
@@ -114,7 +110,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       return [];
     }
 
-    if (isSingle(listeners)) {
+    if (!isArray(listeners)) {
       return [listeners.fn];
     }
 
@@ -132,7 +128,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       return 0;
     }
 
-    if (isSingle(listeners)) {
+    if (!isArray(listeners)) {
       return 1;
     }
 
@@ -167,7 +163,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
     let listener: Listener, length: number;
 
-    if (isSingle(listeners)) {
+    if (!isArray(listeners)) {
       [listener, length] = [listeners, 1];
     } else {
       // According to the specification, potential removes during emit should not change the list of notified listeners,

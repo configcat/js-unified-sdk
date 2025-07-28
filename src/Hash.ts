@@ -90,6 +90,8 @@ export function sha1(msg: string) {
   return toHexString([H0, H1, H2, H3, H4]);
 }
 
+const sha256PrecomputedData = Object.create(null) as { h?: number[], k?: number[] };
+
 // Based on: https://stackoverflow.com/a/59777755/8656352
 export function sha256(msgUtf8: string) {
   function rightRotate(value: number, amount: number) {
@@ -101,7 +103,7 @@ export function sha256(msgUtf8: string) {
   var maxWord = mathPow(2, 32);
   var i, j; // Used as a counter across the whole file
 
-  var precomputedData = sha256 as { h?: number[], k?: number[] };
+  var precomputedData = sha256PrecomputedData;
   var hash = precomputedData.h!;
   var k = precomputedData.k;
   if (!k) {

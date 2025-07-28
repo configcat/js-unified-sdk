@@ -65,6 +65,7 @@ class DenoPlatform extends PlatformAbstractions<IDenoAutoPollOptions, IDenoManua
       sdkType,
       sdkVersion,
       eventEmitterFactory: () => new DefaultEventEmitter(),
+      defaultCacheFactory: null,
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     return (setupKernel ?? (k => k))(kernel);

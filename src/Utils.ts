@@ -1,13 +1,13 @@
 // NOTE: Normally, we'd just use AbortController/AbortSignal, however that may not be available on all platforms,
 // and we don't want to include a complete polyfill. So we implement a simplified version that fits our use case.
 export class AbortToken {
-  private callbacks: (() => void)[] | null = [];
+  private callbacks: (() => void)[] | undefined = [];
   get aborted(): boolean { return !this.callbacks; }
 
   abort(): void {
     if (!this.aborted) {
       const callbacks = this.callbacks!;
-      this.callbacks = null;
+      this.callbacks = void 0;
       for (const callback of callbacks) {
         callback();
       }

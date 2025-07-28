@@ -37,6 +37,7 @@ class NodePlatform extends PlatformAbstractions<INodeAutoPollOptions, INodeManua
       sdkType,
       sdkVersion,
       eventEmitterFactory: () => new EventEmitter(),
+      defaultCacheFactory: null,
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     return (setupKernel ?? (k => k))(kernel);

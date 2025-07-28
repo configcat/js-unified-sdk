@@ -42,6 +42,7 @@ class BrowserPlatform extends PlatformAbstractions<IJSAutoPollOptions, IJSManual
       sdkType,
       sdkVersion,
       eventEmitterFactory: () => new DefaultEventEmitter(),
+      defaultCacheFactory: null,
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     setupKernel ??= kernel => {

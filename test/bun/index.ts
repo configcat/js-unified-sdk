@@ -36,6 +36,7 @@ class BunPlatform extends PlatformAbstractions<IBunAutoPollOptions, IBunManualPo
       sdkType,
       sdkVersion,
       eventEmitterFactory: () => new EventEmitter(),
+      defaultCacheFactory: null,
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     return (setupKernel ?? (k => k))(kernel);

@@ -33,7 +33,7 @@ export class FormattableLogMessage {
       new FormattableLogMessage(strings, argNames, argValues);
   }
 
-  private cachedDefaultFormattedMessage?: string;
+  private cachedDefaultFormattedMessage: string | undefined = void 0;
 
   constructor(
     readonly strings: ReadonlyArray<string>,
@@ -85,7 +85,7 @@ export type LogFilterCallback = (level: LogLevel, eventId: LogEventId, message: 
 
 /** Defines the interface used by the ConfigCat SDK to perform logging. */
 export interface IConfigCatLogger {
-  /** Gets the log level (the minimum level to use for filtering log events). */
+  /** Gets the log level (the minimum level to use for filtering log events). Defaults to `LogLevel.Warn`. */
   readonly level?: LogLevel;
 
   /** Gets the character sequence to use for line breaks in log messages. Defaults to "\n". */

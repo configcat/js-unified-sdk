@@ -155,8 +155,8 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
 export interface IConfigCatKernel {
   sdkType: string;
   sdkVersion: string;
-  eventEmitterFactory?: () => IEventEmitter;
-  defaultCacheFactory?: (options: OptionsBase) => IConfigCache;
+  eventEmitterFactory: (() => IEventEmitter) | null | undefined;
+  defaultCacheFactory: ((options: OptionsBase) => IConfigCache) | null | undefined;
   configFetcherFactory: (options: OptionsBase) => IConfigCatConfigFetcher;
 }
 
@@ -184,9 +184,9 @@ export abstract class OptionsBase {
 
   configFetcher: IConfigCatConfigFetcher;
 
-  flagOverrides?: FlagOverrides;
+  flagOverrides: FlagOverrides | null = null;
 
-  defaultUser?: IUser;
+  defaultUser: IUser | undefined = void 0;
 
   offline: boolean = false;
 
@@ -216,7 +216,7 @@ export abstract class OptionsBase {
     const hooks = new Hooks(eventEmitter);
     const hooksWeakRef = createWeakRef(hooks) as WeakRef<Hooks>;
     this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{
-      hooks, // stored only temporarily, will be deleted by `yieldHooks()`
+      hooks, // stored only temporarily, will be unreferenced by `yieldHooks()`
       hooksWeakRef,
       emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean {
         return this.hooksWeakRef.deref()?.emit(eventName, ...args) ?? false;
@@ -269,15 +269,15 @@ export abstract class OptionsBase {
 
     this.cache = cache
       ? new ExternalConfigCache(cache, this.logger)
-      : (kernel.defaultCacheFactory ? kernel.defaultCacheFactory(this) : new InMemoryConfigCache());
+      : (kernel.defaultCacheFactory?.(this) ?? new InMemoryConfigCache());
 
     this.configFetcher = configFetcher ?? kernel.configFetcherFactory(this);
   }
 
   yieldHooks(): Hooks {
-    const hooksWrapper = this.hooks as unknown as { hooks?: Hooks };
+    const hooksWrapper = this.hooks as unknown as { hooks: Hooks | undefined };
     const hooks = hooksWrapper.hooks;
-    delete hooksWrapper.hooks;
+    hooksWrapper.hooks = void 0;
     return hooks ?? new Hooks(new NullEventEmitter());
   }
 
