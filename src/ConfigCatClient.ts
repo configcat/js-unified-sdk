@@ -763,7 +763,7 @@ function validateKey(key: string): void {
   }
 }
 
-function ensureAllowedDefaultValue(value: SettingValue): void {
+function ensureAllowedDefaultValue(value: unknown): asserts value is SettingValue {
   if (value != null && !isAllowedValue(value)) {
     throw TypeError("The default value must be boolean, number, string, null or undefined.");
   }
