@@ -368,7 +368,7 @@ export class ConfigCatClient implements IConfigCatClient {
     }
 
     if (errors) {
-      throw typeof AggregateError !== "undefined" ? AggregateError(errors) : errors.pop();
+      throw typeof AggregateError === "function" ? AggregateError(errors) : errors.pop();
     }
   }
 
@@ -453,7 +453,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     if (evaluationErrors?.length) {
       this.options.logger.settingEvaluationError("getAllValuesAsync", "evaluation result",
-        typeof AggregateError !== "undefined" ? AggregateError(evaluationErrors) : evaluationErrors.pop());
+        typeof AggregateError === "function" ? AggregateError(evaluationErrors) : evaluationErrors.pop());
     }
 
     for (const evaluationDetail of evaluationDetailsArray) {
@@ -479,7 +479,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
     if (evaluationErrors?.length) {
       this.options.logger.settingEvaluationError("getAllValueDetailsAsync", "evaluation result",
-        typeof AggregateError !== "undefined" ? AggregateError(evaluationErrors) : evaluationErrors.pop());
+        typeof AggregateError === "function" ? AggregateError(evaluationErrors) : evaluationErrors.pop());
     }
 
     for (const evaluationDetail of evaluationDetailsArray) {
@@ -802,7 +802,7 @@ interface IFinalizationData {
 
 let registerForFinalization = function(client: ConfigCatClient, data: IFinalizationData): () => void {
   // Use FinalizationRegistry (finalization callbacks) if the runtime provides that feature.
-  if (typeof FinalizationRegistry !== "undefined") {
+  if (typeof FinalizationRegistry === "function") {
     const finalizationRegistry = new FinalizationRegistry<IFinalizationData>(data => ConfigCatClient["finalize"](data));
 
     registerForFinalization = (client, data) => {

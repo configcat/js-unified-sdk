@@ -41,7 +41,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
     let cleanup: (() => void) | undefined;
 
     // NOTE: Older Chromium versions (e.g. the one used in our tests) may not support AbortController.
-    if (typeof AbortController !== "undefined") {
+    if (typeof AbortController === "function") {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       requestInit.signal = controller.signal;

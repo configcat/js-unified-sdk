@@ -46,7 +46,8 @@ export function delay(delayMs: number, abortToken?: AbortToken | null): Promise<
   });
 }
 
-export const getMonotonicTimeMs = typeof performance !== "undefined" && typeof performance.now === "function"
+// eslint-disable-next-line @typescript-eslint/unbound-method
+export const getMonotonicTimeMs = typeof performance !== "undefined" && isFunction(performance?.now)
   ? () => performance.now()
   : () => new Date().getTime();
 
@@ -81,7 +82,8 @@ export function toStringSafe(value: unknown): string {
   try {
     // NOTE: Attempting to convert symbols and objects with no toString method (e.g. null-prototype objects) to string throws a TypeError.
     return typeof value === "symbol" ? "[symbol]"
-      : typeof value === "object" && value !== null && typeof value.toString !== "function" ? Object.prototype.toString.call(value)
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      : typeof value === "object" && value !== null && !isFunction(value.toString) ? Object.prototype.toString.call(value)
       : String(value);
   } catch {
     return "[unknown]";
@@ -104,7 +106,7 @@ export function errorToString(err: any, includeStackTrace = false): string {
       s += "\n" + stack.replace(/^\s*(?:at\s)?/gm, indent + "    at ");
     }
 
-    if (typeof AggregateError !== "undefined" && err instanceof AggregateError) {
+    if (typeof AggregateError === "function" && err instanceof AggregateError) {
       (visited ??= []).push(err);
       for (const innerErr of err.errors) {
         if (innerErr instanceof Error) {
@@ -138,7 +140,7 @@ export function createMap<TKey extends keyof any, TValue>(): ObjectMap<TKey, TVa
   return Object.create(null) as ObjectMap<TKey, TValue>;
 }
 
-export const setPrototypeOf = typeof Object.setPrototypeOf === "function"
+export const setPrototypeOf = isFunction(Object.setPrototypeOf)
   ? Object.setPrototypeOf as <T extends object>(obj: T, proto: object | null) => T
   : <T extends object>(obj: T, proto: object | null): T => ((obj as Record<string, unknown>).__proto__ = proto, obj);
 
@@ -169,7 +171,7 @@ export function isNumberInRange(value: unknown, minValue: number, maxValue: numb
   return isNumber(value) && minValue <= value && value <= maxValue;
 }
 
-export const isInteger = typeof Number.isSafeInteger === "function"
+export const isInteger = isFunction(Number.isSafeInteger)
   ? Number.isSafeInteger as (value: unknown) => value is number
   : (value: unknown): value is number => isNumber(value) && isFinite(value) && Math.floor(value) === value && Math.abs(value) <= 9007199254740991;
 

@@ -147,7 +147,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       names.push(name);
     }
 
-    if (typeof Object.getOwnPropertySymbols !== "undefined") {
+    if (isFunction(Object.getOwnPropertySymbols)) {
       return names.concat(Object.getOwnPropertySymbols(events));
     }
 
