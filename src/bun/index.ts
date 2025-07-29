@@ -3,6 +3,7 @@ import type { IConfigCatClient } from "../ConfigCatClient";
 import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "../ConfigCatClientOptions";
 import { PollingMode } from "../ConfigCatClientOptions";
 import { getClient as getClientInternal } from "../index.pubternals.core";
+import type { INodeHttpConfigFetcherOptions } from "../node/NodeHttpConfigFetcher";
 import { NodeHttpConfigFetcher } from "../node/NodeHttpConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
 
@@ -25,22 +26,22 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
       sdkVersion: CONFIGCAT_SDK_VERSION,
       eventEmitterFactory: () => new EventEmitter(),
       defaultCacheFactory: null,
-      configFetcherFactory: NodeHttpConfigFetcher["getFactory"](),
+      configFetcherFactory: NodeHttpConfigFetcher["getFactory"](options),
     });
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals.core";
 
 /** Options used to configure the ConfigCat SDK in the case of Auto Polling mode. */
-export interface IBunAutoPollOptions extends IAutoPollOptions {
+export interface IBunAutoPollOptions extends IAutoPollOptions, INodeHttpConfigFetcherOptions {
 }
 
 /** Options used to configure the ConfigCat SDK in the case of Lazy Loading mode. */
-export interface IBunLazyLoadingOptions extends ILazyLoadingOptions {
+export interface IBunLazyLoadingOptions extends ILazyLoadingOptions, INodeHttpConfigFetcherOptions {
 }
 
 /** Options used to configure the ConfigCat SDK in the case of Manual Polling mode. */
-export interface IBunManualPollOptions extends IManualPollOptions {
+export interface IBunManualPollOptions extends IManualPollOptions, INodeHttpConfigFetcherOptions {
 }
 
 export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
@@ -52,6 +53,6 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
 
 export { NodeHttpConfigFetcher };
 
-export { ServerSideFetchApiConfigFetcher as FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+export { ServerSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export * from "..";

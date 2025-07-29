@@ -57,6 +57,6 @@ export { ChromeLocalStorageConfigCache };
 
 export { IndexedDBConfigCache };
 
-export { ClientSideFetchApiConfigFetcher as FetchApiConfigFetcher };
+export { ClientSideFetchApiConfigFetcher };
 
 export * from "..";

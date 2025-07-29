@@ -6,13 +6,7 @@
 
 export * from "./index.pubternals.core";
 
-export type { IConfigCache } from "./ConfigCatCache";
-
-export { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
-
 export type { IConfigCatKernel, OptionsBase } from "./ConfigCatClientOptions";
-
-export { FetchResult, FetchStatus } from "./ConfigFetcher";
 
 export { DefaultEventEmitter } from "./DefaultEventEmitter";
 

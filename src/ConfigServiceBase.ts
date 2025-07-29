@@ -62,7 +62,7 @@ export class RefreshResult {
   /** Indicates whether the operation was successful or not. */
   get isSuccess(): boolean { return this._errorMessage == null; }
 
-  static from(fetchResult: FetchResult): RefreshResult {
+  private static from(fetchResult: FetchResult): RefreshResult {
     return fetchResult.status !== FetchStatus.Errored
       ? RefreshResult.success()
       : RefreshResult.failure(fetchResult.errorCode, fetchResult.errorMessage!, fetchResult.errorException);
@@ -161,7 +161,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     const latestConfig = await this.syncUpWithCache();
     if (!this.isOffline) {
       const [fetchResult, config] = await this.refreshConfigCoreAsync(latestConfig, true);
-      return [RefreshResult.from(fetchResult), config];
+      return [RefreshResult["from"](fetchResult), config];
     } else if (this.options.cache instanceof ExternalConfigCache) {
       return [RefreshResult.success(), latestConfig];
     } else {
@@ -218,7 +218,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
   protected onConfigFetched(fetchResult: FetchResult, isInitiatedByUser: boolean): void {
     this.options.logger.debug("config fetched");
-    this.options.hooks.emit("configFetched", RefreshResult.from(fetchResult), isInitiatedByUser);
+    this.options.hooks.emit("configFetched", RefreshResult["from"](fetchResult), isInitiatedByUser);
   }
 
   protected onConfigChanged(newConfig: ProjectConfig): void {

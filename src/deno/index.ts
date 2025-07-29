@@ -50,6 +50,6 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
   TMode extends undefined ? IDenoAutoPollOptions :
   never;
 
-export { ServerSideFetchApiConfigFetcher as FetchApiConfigFetcher };
+export { ServerSideFetchApiConfigFetcher };
 
 export * from "..";
