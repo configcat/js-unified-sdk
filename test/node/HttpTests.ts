@@ -158,7 +158,7 @@ class MockttpProxyAgent extends https.Agent {
     this.proxyUrl = new URL(proxyUrl);
   }
 
-  createConnection(options: ClientRequestArgs, callback: Function): Duplex {
+  override createConnection(options: ClientRequestArgs, callback: Function): Duplex {
     const proxyOptions = {
       ...options,
       host: this.proxyUrl.hostname,

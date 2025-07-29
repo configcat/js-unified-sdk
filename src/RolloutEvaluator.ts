@@ -1254,11 +1254,11 @@ export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | 
 }
 
 export class EvaluationError extends Error {
-  readonly name = EvaluationError.name;
+  override readonly name = EvaluationError.name;
 
   constructor(
     readonly errorCode: EvaluationErrorCode,
-    readonly message: string
+    override readonly message: string
   ) {
     super(message);
     ensurePrototype(this, EvaluationError);
