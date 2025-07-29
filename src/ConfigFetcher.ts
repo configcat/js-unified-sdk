@@ -44,7 +44,7 @@ export class FetchRequest {
      */
     readonly lastETag: string | undefined,
     /** Additional HTTP request headers. Should be included in every HTTP request. */
-    readonly headers: ReadonlyArray<[name: string, value: string]>,
+    readonly headers: ReadonlyArray<readonly [name: string, value: string]>,
     /** The request timeout to apply, configured via `IOptions.requestTimeoutMs`. */
     readonly timeoutMs: number
   ) {
@@ -64,7 +64,7 @@ export class FetchResponse {
     /** The HTTP reason phrase. */
     readonly reasonPhrase: string,
     /** The HTTP response headers. */
-    headers: ReadonlyArray<[name: string, value: string]>,
+    headers: ReadonlyArray<readonly [name: string, value: string]>,
     /** The response body. */
     readonly body?: string
   ) {

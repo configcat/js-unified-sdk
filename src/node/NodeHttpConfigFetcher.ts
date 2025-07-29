@@ -127,12 +127,12 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  protected setRequestHeaders(requestOptions: { headers?: Record<string, number | string | string[]> }, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(requestOptions: { headers?: Record<string, number | string | string[]> }, headers: ReadonlyArray<readonly [string, string]>): void {
     setRequestHeadersDefault(requestOptions, headers);
   }
 }
 
-function setRequestHeadersDefault(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
+function setRequestHeadersDefault(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<readonly [string, string]>): void {
   if (headers.length) {
     const currentHeaders = requestOptions.headers ??= {};
     for (const [name, value] of headers) {

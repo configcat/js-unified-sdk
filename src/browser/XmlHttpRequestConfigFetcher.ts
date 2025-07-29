@@ -73,7 +73,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  protected setRequestHeaders(httpRequest: IHttpRequest, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(httpRequest: IHttpRequest, headers: ReadonlyArray<readonly [string, string]>): void {
   }
 }
 

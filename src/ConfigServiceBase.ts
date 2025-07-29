@@ -129,7 +129,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   protected readonly cacheKey: string;
 
   protected readonly configFetcher: IConfigCatConfigFetcher;
-  private readonly requestHeaders: ReadonlyArray<[string, string]>;
+  private readonly requestHeaders: ReadonlyArray<readonly [string, string]>;
 
   abstract readonly readyPromise: Promise<ClientCacheState>;
 

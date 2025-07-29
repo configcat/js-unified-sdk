@@ -70,16 +70,16 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
     }
   }
 
-  protected setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<readonly [string, string]>): void {
     if (this.runsOnServerSide) {
       setRequestHeadersDefault(requestInit, headers);
     }
   }
 }
 
-function setRequestHeadersDefault(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
-  for (const header of headers) {
-    (requestInit.headers ??= []).push(header);
+function setRequestHeadersDefault(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<readonly [string, string]>): void {
+  for (const [name, value] of headers) {
+    (requestInit.headers ??= []).push([name, value]);
   }
 }
 
