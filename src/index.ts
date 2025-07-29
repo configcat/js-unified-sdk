@@ -23,7 +23,7 @@ export { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserCompara
 
 export { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
 
-export type { FlagOverrides } from "./FlagOverrides";
+export type { FlagOverrides, IOverrideDataSource } from "./FlagOverrides";
 
 export { OverrideBehaviour } from "./FlagOverrides";
 
@@ -33,8 +33,6 @@ export type {
 } from "./ProjectConfig";
 
 export { ConfigJson, deserializeConfig, prepareConfig, createSettingFromValue } from "./ProjectConfig";
-
-export type { IOverrideDataSource } from "./FlagOverrides";
 
 export type { IEvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 

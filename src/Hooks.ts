@@ -135,6 +135,4 @@ export class Hooks implements IProvidesConfigCatClient, IEventEmitter<HookEvents
 // We need to break such strong reference chains with a weak reference somewhere. As consumers are free to add hook event handlers which
 // close over the client instance (e.g. `client.on("configChanged", cfg => { client.GetValue(...) }`), that is, a chain like
 // AutoPollConfigService -> Hooks -> event handler -> ConfigCatClient can be created, it is the hooks reference that we need to make weak.
-export type SafeHooksWrapper = {
-  emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean;
-};
+export type SafeHooksWrapper = Pick<Hooks, "emit">;

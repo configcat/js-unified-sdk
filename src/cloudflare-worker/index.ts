@@ -110,6 +110,6 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
 
 export { CloudflareConfigCache };
 
-export { ServerSideFetchApiConfigFetcher as FetchApiConfigFetcher };
+export { ServerSideFetchApiConfigFetcher };
 
 export * from "..";

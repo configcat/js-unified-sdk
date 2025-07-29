@@ -29,7 +29,7 @@ class BunPlatform extends PlatformAbstractions<IBunAutoPollOptions, IBunManualPo
 
   readFileUtf8(path: string) { return fs.readFileSync(path, "utf8"); }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: IBunOptions) { return NodeHttpConfigFetcher["getFactory"]()(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IBunOptions) { return NodeHttpConfigFetcher["getFactory"](platformOptions)(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IBunOptions) {
     const kernel: IConfigCatKernel = {

@@ -63,6 +63,6 @@ export { IndexedDBConfigCache };
 
 export { XmlHttpRequestConfigFetcher };
 
-export { ClientSideFetchApiConfigFetcher as FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+export { ClientSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export * from "..";

@@ -53,4 +53,6 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
 
 export { NodeHttpConfigFetcher };
 
+export { ServerSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+
 export * from "..";
