@@ -70,7 +70,7 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
 
   protected getClientImpl = getClient;
 
-  protected adjustOptions<TOptions extends IOptions>(options?: TOptions) {
+  protected override adjustOptions<TOptions extends IOptions>(options?: TOptions) {
     options = { ...options } as TOptions;
     options.baseUrl ??= CdnConfigLocation.getDefaultCdnUrl(options);
     // HACK: There are issues with HTTPS in workerd (see e.g. https://github.com/cloudflare/workers-sdk/issues/4257),
@@ -80,7 +80,7 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
     return options;
   }
 
-  protected augmentOptions<TOptions extends OptionsBase>(options: TOptions) {
+  protected override augmentOptions<TOptions extends OptionsBase>(options: TOptions) {
     const augmentedOptions = options as AugmentedOptions<TOptions>;
     augmentedOptions.getRealUrl = function() {
       const url = new URL(this.getUrl());

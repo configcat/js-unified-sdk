@@ -550,10 +550,10 @@ export function nameOfSettingType(value: SettingType): string {
 }
 
 export class InvalidConfigModelError extends Error {
-  readonly name = InvalidConfigModelError.name;
+  override readonly name = InvalidConfigModelError.name;
 
   constructor(
-    readonly message: string
+    override readonly message: string
   ) {
     super(message);
     ensurePrototype(this, InvalidConfigModelError);

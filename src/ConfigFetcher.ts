@@ -90,7 +90,7 @@ export type FetchErrorCauses = {
 };
 
 export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchErrorCauses> extends Error {
-  readonly name = FetchError.name;
+  override readonly name = FetchError.name;
   readonly args: FetchErrorCauses[TCause];
 
   constructor(public cause: TCause, ...args: FetchErrorCauses[TCause]) {

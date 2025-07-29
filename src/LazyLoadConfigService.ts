@@ -42,7 +42,7 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
     return cachedConfig;
   }
 
-  refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
+  override refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
     this.options.logger.debug("LazyLoadConfigService.refreshConfigAsync() called.");
     return super.refreshConfigAsync();
   }
