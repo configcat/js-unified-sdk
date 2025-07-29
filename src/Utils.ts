@@ -46,7 +46,7 @@ export function delay(delayMs: number, abortToken?: AbortToken | null): Promise<
   });
 }
 
-export const getMonotonicTimeMs = typeof performance !== "undefined" && typeof performance.now === "function"
+export const getMonotonicTimeMs = typeof performance !== "undefined" && typeof performance?.now === "function"
   ? () => performance.now()
   : () => new Date().getTime();
 
@@ -104,7 +104,7 @@ export function errorToString(err: any, includeStackTrace = false): string {
       s += "\n" + stack.replace(/^\s*(?:at\s)?/gm, indent + "    at ");
     }
 
-    if (typeof AggregateError !== "undefined" && err instanceof AggregateError) {
+    if (typeof AggregateError === "function" && err instanceof AggregateError) {
       (visited ??= []).push(err);
       for (const innerErr of err.errors) {
         if (innerErr instanceof Error) {

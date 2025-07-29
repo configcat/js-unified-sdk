@@ -80,7 +80,7 @@ export interface IQueryStringProvider {
 
 class DefaultQueryStringProvider implements IQueryStringProvider {
   get currentValue() {
-    if (typeof location === "undefined") return;
+    if (typeof location === "undefined" || location === null) return;
     return location.search;
   }
 }

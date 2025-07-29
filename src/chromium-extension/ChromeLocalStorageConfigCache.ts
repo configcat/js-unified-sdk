@@ -35,7 +35,7 @@ export class ChromeLocalStorageConfigCache implements IConfigCatCache {
 
 export function getChromeLocalStorage(): ILocalStorage | undefined {
   if (typeof chrome !== "undefined") {
-    return chrome.storage?.local;
+    return chrome?.storage?.local;
   }
 }
 
