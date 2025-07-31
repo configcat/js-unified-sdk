@@ -40,17 +40,17 @@ export class EvaluateContext {
   }
 }
 
-export interface IEvaluateResult {
+export type EvaluateResult = {
   returnValue: NonNullable<SettingValue>;
   selectedValue: SettingValueContainer;
   matchedTargetingRule: TargetingRule | undefined;
   matchedPercentageOption: PercentageOption | undefined;
-}
+};
 
-type IntermediateEvaluateResult = Omit<IEvaluateResult, "returnValue">;
+type IntermediateEvaluateResult = Omit<EvaluateResult, "returnValue">;
 
 export interface IRolloutEvaluator {
-  evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult;
+  evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult;
 }
 
 const targetingRuleIgnoredMessage = "The current targeting rule is ignored and the evaluation continues with the next rule.";
@@ -63,7 +63,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   constructor(private readonly logger: LoggerWrapper) {
   }
 
-  evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult {
+  evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult {
     this.logger.debug("RolloutEvaluator.evaluate() called.");
 
     // Building the evaluation log is expensive, so let's not do it if it wouldn't be logged anyway.
@@ -105,7 +105,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
           + "Learn more: https://configcat.com/docs/sdk-reference/js/#setting-type-mapping");
       }
 
-      const result = this.evaluateSetting(context) as IEvaluateResult;
+      const result = this.evaluateSetting(context) as EvaluateResult;
       result.returnValue = returnValue = unwrapValue(result.selectedValue.v, settingType);
       return result;
     } catch (err) {
@@ -1048,8 +1048,7 @@ export const enum EvaluationErrorCode {
   SettingKeyMissing = 1001,
 }
 
-/** The evaluated value and additional information about the evaluation of a feature flag or setting. */
-export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> {
+type EvaluationDetailsProps<TValue extends SettingValue> = {
   /** Key of the feature flag or setting. */
   key: string;
 
@@ -1060,10 +1059,10 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
   variationId?: VariationIdValue;
 
   /** Time of last successful config download (if there has been a successful download already). */
-  fetchTime?: Date;
+  fetchTime: Date | undefined;
 
   /** The User object used for the evaluation (if available). */
-  user?: IUser;
+  user: IUser | undefined;
 
   /**
    * Indicates whether the default value passed to the setting evaluation methods like `IConfigCatClient.getValueAsync`, `IConfigCatClient.getValueDetailsAsync`, etc.
@@ -1078,20 +1077,50 @@ export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> 
   errorMessage?: string;
 
   /** The exception object related to the error in case evaluation failed (if any). */
-  errorException?: any;
+  errorException?: unknown;
 
   /** The targeting rule (if any) that matched during the evaluation and was used to return the evaluated value. */
   matchedTargetingRule?: TargetingRule;
 
   /** The percentage option (if any) that was used to select the evaluated value. */
   matchedPercentageOption?: PercentageOption;
-}
+};
+
+type PickWithType<T, TPropMap extends { [K in keyof T]?: unknown }> = {
+  [K in keyof TPropMap]: TPropMap[K];
+};
+
+/** The evaluated value and additional information about the evaluation of a feature flag or setting. */
+export type EvaluationDetails<TValue extends SettingValue = SettingValue> = EvaluationDetailsProps<TValue>
+  & (
+    // Success case
+    PickWithType<EvaluationDetailsProps<TValue>, {
+      value: NonNullable<TValue>;
+      variationId: VariationIdValue;
+      isDefaultValue: false;
+      errorCode: EvaluationErrorCode.None;
+      errorMessage?: undefined;
+      errorException?: undefined;
+      matchedTargetingRule: TargetingRule | undefined;
+      matchedPercentageOption: PercentageOption | undefined;
+    }>
+    // Error case
+    | PickWithType<EvaluationDetailsProps<TValue>, {
+      variationId?: undefined;
+      isDefaultValue: true;
+      errorCode: Exclude<EvaluationErrorCode, EvaluationErrorCode.None>;
+      errorMessage: string;
+      errorException?: any;
+      matchedTargetingRule?: undefined;
+      matchedPercentageOption?: undefined;
+    }>
+  );
 
 /* Helper functions */
 
-function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult,
-  fetchTime?: Date, user?: IUser
-): IEvaluationDetails<SettingTypeOf<T>> {
+function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: EvaluateResult,
+  fetchTime: Date | undefined, user: IUser | undefined
+): EvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: evaluateResult.returnValue as SettingTypeOf<T>,
@@ -1106,10 +1135,11 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
 }
 
 export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
-  fetchTime?: Date, user?: IUser, errorMessage?: Message, errorException?: any, errorCode = EvaluationErrorCode.UnexpectedError
-): IEvaluationDetails<SettingTypeOf<T>> {
+  fetchTime: Date | undefined, user: IUser | undefined, errorMessage: Message, errorException?: any,
+  errorCode: Exclude<EvaluationErrorCode, EvaluationErrorCode.None> = EvaluationErrorCode.UnexpectedError
+): EvaluationDetails<SettingTypeOf<T>> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { _errorMessage: Message | undefined } = {
+  const evaluationDetails: EvaluationDetails<SettingTypeOf<T>> & { _errorMessage: Message } = {
     key,
     value: defaultValue as SettingTypeOf<T>,
     fetchTime,
@@ -1127,7 +1157,7 @@ export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: s
 
 export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: SettingMap | null,
   key: string, defaultValue: T, user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper
-): IEvaluationDetails<SettingTypeOf<T>> {
+): EvaluationDetails<SettingTypeOf<T>> {
 
   let errorMessage: LogMessage;
   if (!settings) {
@@ -1150,7 +1180,7 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
 
 export function evaluateAll(evaluator: IRolloutEvaluator, settings: SettingMap | null,
   user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string
-): [IEvaluationDetails[], any[] | undefined] {
+): [EvaluationDetails[], any[] | undefined] {
 
   let errors: any[] | undefined;
 
@@ -1158,12 +1188,12 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: SettingMap |
     return [[], errors];
   }
 
-  const evaluationDetailsArray: IEvaluationDetails[] = [];
+  const evaluationDetailsArray: EvaluationDetails[] = [];
 
   for (const key in settings) {
     if (!hasOwnProperty(settings, key)) continue;
     const setting = settings[key];
-    let evaluationDetails: IEvaluationDetails;
+    let evaluationDetails: EvaluationDetails;
     try {
       const evaluateResult = evaluator.evaluate(null, new EvaluateContext(key, setting, user, settings));
       evaluationDetails = evaluationDetailsFromEvaluateResult(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
@@ -1257,7 +1287,7 @@ export class EvaluationError extends Error {
   override readonly name = EvaluationError.name;
 
   constructor(
-    readonly errorCode: EvaluationErrorCode,
+    readonly errorCode: Exclude<EvaluationErrorCode, EvaluationErrorCode.None>,
     override readonly message: string
   ) {
     super(message);
@@ -1265,7 +1295,7 @@ export class EvaluationError extends Error {
   }
 }
 
-export function getEvaluationErrorCode(err: any): EvaluationErrorCode {
+export function getEvaluationErrorCode(err: any): Exclude<EvaluationErrorCode, EvaluationErrorCode.None> {
   return !(err instanceof Error) ? EvaluationErrorCode.UnexpectedError
     : err instanceof EvaluationError ? err.errorCode
     : err instanceof InvalidConfigModelError ? EvaluationErrorCode.InvalidConfigModel

@@ -167,7 +167,7 @@ describe("Setting evaluation (config v2)", () => {
       ["configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/P4e3fAz_1ky2-Zg2e4cbkw", "stringMatchedTargetingRuleAndOrPercentageOption", "12345", "b@configcat.com", "", "Falcon", false, true],
       ["configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/P4e3fAz_1ky2-Zg2e4cbkw", "stringMatchedTargetingRuleAndOrPercentageOption", "12345", "b@configcat.com", "US", "Spider", false, true],
     ]) {
-    it(`IEvaluationDetails.matchedTargetingRule/matchedTargetingOption - sdkKey: ${sdkKey} | key: ${key} | userId: ${userId} | email: ${email} | percentageBase: ${percentageBase}`, async () => {
+    it(`EvaluationDetails.matchedTargetingRule/matchedTargetingOption - sdkKey: ${sdkKey} | key: ${key} | userId: ${userId} | email: ${email} | percentageBase: ${percentageBase}`, async () => {
       const configLocation = new CdnConfigLocation(sdkKey);
       const config = await configLocation.fetchConfigAsync();
       const settings = config.f ?? {};

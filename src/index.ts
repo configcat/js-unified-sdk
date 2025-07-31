@@ -34,7 +34,7 @@ export type {
 
 export { ConfigJson, deserializeConfig, prepareConfig, createSettingFromValue } from "./ProjectConfig";
 
-export type { IEvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
+export type { EvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 
 export { EvaluationErrorCode } from "./RolloutEvaluator";
 
