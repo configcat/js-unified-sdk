@@ -3,13 +3,15 @@ import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManua
 import { platform } from "./helpers/platform";
 import { allowEventLoop, isWeakRefAvailable } from "./helpers/utils";
 import { AutoPollConfigService } from "#lib/AutoPollConfigService";
-import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
+import { ExternalConfigCache } from "#lib/ConfigCatCache";
+import { ConfigCatClient, IConfigCatClient, IConfigCatClientSnapshot } from "#lib/ConfigCatClient";
 import { AutoPollOptions, IAutoPollOptions, IConfigCatKernel, ILazyLoadingOptions, IManualPollOptions, IOptions, LazyLoadOptions, ManualPollOptions, OptionsBase, PollingMode } from "#lib/ConfigCatClientOptions";
 import { LogLevel } from "#lib/ConfigCatLogger";
 import { FetchResponse } from "#lib/ConfigFetcher";
 import { ClientCacheState, ConfigServiceBase, IConfigService, RefreshErrorCode, RefreshResult } from "#lib/ConfigServiceBase";
 import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesConfigCatClient, IProvidesHooks } from "#lib/Hooks";
+import { createFlagOverridesFromMap } from "#lib/index.pubternals";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { Config, deserializeConfig, ProjectConfig, SettingValue } from "#lib/ProjectConfig";
 import { EvaluateContext, EvaluateResult, EvaluationDetails, EvaluationErrorCode, IRolloutEvaluator } from "#lib/RolloutEvaluator";
@@ -1526,6 +1528,48 @@ describe("ConfigCatClient", () => {
       assert.equal(configChangedEvents.length, 1);
       assert.equal(evaluationDetails.length, flagEvaluatedEvents.length);
       assert.equal(errorEvents.length, 1);
+    });
+  }
+
+  const optionsFactoriesForEventEmittedDuringInitTests: [PollingMode | "LocalOnly", (options: IOptions, kernel: IConfigCatKernel) => OptionsBase, ClientCacheState][] = [
+    [PollingMode.AutoPoll, (options, kernel) => createAutoPollOptions("SDK-KEY", options, kernel), ClientCacheState.HasUpToDateFlagData],
+    [PollingMode.LazyLoad, (options, kernel) => createLazyLoadOptions("SDK-KEY", options, kernel), ClientCacheState.HasUpToDateFlagData],
+    [PollingMode.ManualPoll, (options, kernel) => createManualPollOptions("SDK-KEY", options, kernel), ClientCacheState.HasCachedFlagDataOnly],
+    [
+      "LocalOnly",
+      (options, kernel) => createAutoPollOptions("SDK-KEY", { ...options, flagOverrides: createFlagOverridesFromMap({ "debug": true }, OverrideBehaviour.LocalOnly) }, kernel),
+      ClientCacheState.HasLocalOverrideFlagDataOnly,
+    ],
+  ];
+
+  for (const [pollingMode, optionsFactory, expectedCacheState] of optionsFactoriesForEventEmittedDuringInitTests) {
+    it(`ConfigCatClient should already be usable when event is emitted during initialization - pollingMode: ${pollingMode !== "LocalOnly" ? PollingMode[pollingMode] : pollingMode}`, () => {
+      const fakeCache = new FakeExternalCache();
+      const configJson = FakeConfigFetcherWithTwoKeys.configJson;
+      fakeCache.cachedValue = ProjectConfig.serialize(new ProjectConfig(configJson, deserializeConfig(configJson), ProjectConfig.generateTimestamp(), "etag"));
+
+      const configCatKernel = createKernel({ defaultCacheFactory: (options) => new ExternalConfigCache(fakeCache, options.logger) });
+
+      let snapshot: IConfigCatClientSnapshot | undefined;
+      const options: IOptions = {
+        configFetcher: new FakeConfigFetcherWithTwoKeys(5000),
+        setupHooks: hooks => hooks.on(pollingMode !== "LocalOnly" ? "configChanged" : "clientReady", function() {
+          snapshot = this.configCatClient.snapshot();
+        }),
+      };
+      const internalOptions = optionsFactory(options, configCatKernel);
+
+      const currentSnapshot = snapshot;
+      assert.isUndefined(currentSnapshot);
+
+      const client = new ConfigCatClient(internalOptions);
+
+      assert.isDefined(snapshot);
+      assert.equal(snapshot.cacheState, expectedCacheState);
+      assert.equal(snapshot.fetchedConfig !== null, pollingMode !== "LocalOnly");
+      assert.isTrue(snapshot.getValue("debug", null));
+
+      client.dispose();
     });
   }
 

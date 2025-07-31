@@ -11,6 +11,8 @@ export class ManualPollConfigService extends ConfigServiceBase<ManualPollOptions
 
     super(options);
 
+    this.prepareClientForEvents();
+
     const initialCacheSyncUp = this.syncUpWithCache();
     this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
   }

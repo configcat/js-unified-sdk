@@ -26,6 +26,8 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     // cache expiration in the polling loop, otherwise some fetch operations may be missed.
     this.pollExpirationMs = this.pollIntervalMs - POLL_EXPIRATION_TOLERANCE_MS;
 
+    this.prepareClientForEvents();
+
     const initialCacheSyncUp = this.syncUpWithCache();
 
     if (options.maxInitWaitTimeSeconds !== 0) {

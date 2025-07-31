@@ -218,14 +218,13 @@ export abstract class OptionsBase {
 
     const eventEmitter = kernel.eventEmitterFactory?.() ?? new NullEventEmitter();
     const hooks = new Hooks(eventEmitter);
-    const hooksWeakRef = createWeakRef(hooks) as WeakRef<Hooks>;
-    this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{
-      hooks, // stored only temporarily, will be unreferenced by `yieldHooks()`
-      hooksWeakRef,
+    this.hooks = {
+      hooks, // stored only temporarily to keep alive the object, will be unreferenced by `yieldHooks()`
+      unwrap() { return this.hooks; },
       emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean {
-        return this.hooksWeakRef.deref()?.emit(eventName, ...args) ?? false;
+        return this.unwrap()?.emit(eventName, ...args) ?? false;
       },
-    };
+    } as SafeHooksWrapper & { hooks: Hooks };
 
     let logFilter: LogFilterCallback | undefined;
     let logger: IConfigCatLogger | null | undefined;
@@ -279,10 +278,11 @@ export abstract class OptionsBase {
   }
 
   yieldHooks(): Hooks {
-    const hooksWrapper = this.hooks as unknown as { hooks: Hooks | undefined };
-    const hooks = hooksWrapper.hooks;
-    hooksWrapper.hooks = void 0;
-    return hooks ?? new Hooks(new NullEventEmitter());
+    const hooksWrapper = this.hooks as SafeHooksWrapper & { hooks: WeakRef<Hooks> };
+    const hooks = hooksWrapper.unwrap() ?? new Hooks(new NullEventEmitter());
+    hooksWrapper.hooks = createWeakRef(hooks) as WeakRef<Hooks>;
+    hooksWrapper.unwrap = function() { return this.hooks.deref(); };
+    return hooks;
   }
 
   getUrl(): string {

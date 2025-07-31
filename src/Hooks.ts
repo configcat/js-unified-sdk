@@ -46,7 +46,7 @@ export interface IProvidesConfigCatClient {
 
 const disconnectedEventEmitter = new NullEventEmitter();
 
-export class Hooks implements IProvidesConfigCatClient, IEventEmitter<HookEvents, IProvidesConfigCatClient> {
+export class Hooks implements IProvidesHooks {
   private eventEmitter: IEventEmitter;
 
   configCatClient!: IConfigCatClient; // initialized by ConfigCatClient.constructor
@@ -75,30 +75,30 @@ export class Hooks implements IProvidesConfigCatClient, IEventEmitter<HookEvents
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void) => this =
+  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
     this.on;
 
   /** @inheritdoc */
-  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void): this {
+  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.on(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void): this {
+  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.once(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void): this {
+  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.removeListener(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: this, ...args: HookEvents[TEventName]) => void) => this =
+  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
     // eslint-disable-next-line @typescript-eslint/unbound-method
     this.removeListener;
 
@@ -135,4 +135,4 @@ export class Hooks implements IProvidesConfigCatClient, IEventEmitter<HookEvents
 // We need to break such strong reference chains with a weak reference somewhere. As consumers are free to add hook event handlers which
 // close over the client instance (e.g. `client.on("configChanged", cfg => { client.GetValue(...) }`), that is, a chain like
 // AutoPollConfigService -> Hooks -> event handler -> ConfigCatClient can be created, it is the hooks reference that we need to make weak.
-export type SafeHooksWrapper = Pick<Hooks, "emit">;
+export type SafeHooksWrapper = Pick<Hooks, "emit"> & { unwrap(): Hooks | undefined };
