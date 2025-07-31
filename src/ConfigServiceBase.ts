@@ -1,5 +1,6 @@
 import type { CacheSyncResult } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
+import type { ConfigCatClient } from "./ConfigCatClient";
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { LogMessage } from "./ConfigCatLogger";
 import { toMessage } from "./ConfigCatLogger";
@@ -145,6 +146,14 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     ];
 
     this.status = options.offline ? ConfigServiceStatus.Offline : ConfigServiceStatus.Online;
+  }
+
+  protected prepareClientForEvents(): void {
+    const client = this.options.hooks.unwrap()?.configCatClient as ConfigCatClient;
+    const initConfigService = client?.["initConfigService"];
+    if (typeof initConfigService === "function") {
+      initConfigService.call(client, this);
+    }
   }
 
   dispose(): void {

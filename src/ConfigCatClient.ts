@@ -305,6 +305,9 @@ export class ConfigCatClient implements IConfigCatClient {
 
     this.evaluator = new RolloutEvaluator(options.logger);
 
+    // At this point the client instance must be fully initialized (apart from the configService property) because it
+    // may be accessed from a handler of an event that is emitted during the initialization of the config service.
+    // (At the same time, the config service must initialize the configService property before emitting any events.)
     if (options.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly) {
       this.configService = options.createConfigService();
     } else {
@@ -313,6 +316,10 @@ export class ConfigCatClient implements IConfigCatClient {
     }
 
     this.suppressFinalize = registerForFinalization(this, { sdkKey: options.sdkKey, cacheToken, configService: this.configService, logger: options.logger });
+  }
+
+  private initConfigService(instance: IConfigService) {
+    this.configService = instance;
   }
 
   private static finalize(data: FinalizationData) {
