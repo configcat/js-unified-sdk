@@ -1,23 +1,17 @@
 # ConfigCat Angular Sample App
 
-To run the sample project you need [Angular CLI](https://cli.angular.io/) installed
-
-``` shell
-npm install -g @angular/cli
-```
-
 ## Start sample
 
 1. Install dependencies
 
 ``` shell
-npm install
+npm i
 ```
 
 2. Run sample app
 
 ``` shell
-ng serve
+npm run start
 ```
 
-3. Open browser at `http://localhost:4200/`
+3. Open browser at http://localhost:4200/

@@ -3,7 +3,7 @@
 To run this sample, execute:
 
 ```bash
-npm install
+npm i
 npm run dev
 ```
 

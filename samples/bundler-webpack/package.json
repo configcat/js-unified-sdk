@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "build": "webpack --mode development",
-    "start": "npm run build & node ../shared/server.mjs dist"
+    "start": "npm run build && node ../shared/server.mjs dist"
   },
   "dependencies": {
     "@configcat/sdk": "^0.1.0"

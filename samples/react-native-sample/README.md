@@ -1,16 +1,15 @@
-#  ConfigCat Feature Flags sample app for React Native
+#  ConfigCat React Native Sample App
 
-1. Have <a href="https://docs.expo.io/versions/latest/workflow/expo-cli/" target="_blank">Expo CLI</a>
-   ```bash
-   npm install -g expo-cli
-   ```
-2. Install dependencies
+1. Install dependencies
+
    ```bash
    npm i
    ```
-3. Run app
+
+2. Run app
+
    ```bash
-   expo start
+   npm start
    ```
 
-To open hot reloading app in browser just press `w` in terminal.
+To open hot reloading app in browser, just press `w` in terminal.

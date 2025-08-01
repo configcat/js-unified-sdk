@@ -16,7 +16,6 @@ class Demo extends Component {
   async checkAwesome() {
     const value = await this.client.getValueAsync('isAwesomeFeatureEnabled', false)
     this.setState(() => ({ isAwesomeEnabled: value }))
-    
   }
 
   async checkProofOfConcept() {
@@ -45,7 +44,7 @@ class Demo extends Component {
         <br />
         <h2>ConfigCat Dashboard</h2>
         <p>A screenshot to see how the ConfigCat Dashboard looks like for this Sample Project.</p>
-        <img alt="screenshot" src="mgmt_console.png" />
+        <img alt="screenshot" src="/mgmt_console.png" />
       </div>
     )
   }

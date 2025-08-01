@@ -1,4 +1,4 @@
-const configcat = require("@configcat/sdk/node");
+const configcat = require("@configcat/sdk");
 
 (async () => {
   const logger = configcat.createConsoleLogger(configcat.LogLevel.Info); // Setting log level to Info to show detailed feature flag evaluation
