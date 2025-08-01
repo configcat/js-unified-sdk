@@ -4,7 +4,8 @@ import { createClientWithManualPoll, FakeLogger } from "./helpers/fakes";
 import { IManualPollOptions, OverrideBehaviour, SettingValue, User, UserAttributeValue } from "#lib";
 import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { MapOverrideDataSource } from "#lib/FlagOverrides";
-import { evaluate, isAllowedValue, RolloutEvaluator } from "#lib/RolloutEvaluator";
+import { isAllowedValue } from "#lib/ProjectConfig";
+import { evaluate, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { errorToString } from "#lib/Utils";
 
 describe("Setting evaluation (config v2)", () => {

@@ -3,14 +3,14 @@ import { LogLevel, toMessage } from "./ConfigCatLogger";
 import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, inferValue, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
-import type { Condition, ConditionContainer, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingMap, SettingValue, SettingValueContainer, SettingValueModel, TargetingRule, UnknownSettingType, UserCondition, VariationIdValue } from "./ProjectConfig";
-import { InvalidConfigModelError, nameOfSettingType } from "./ProjectConfig";
+import type { Condition, ConditionContainer, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingMap, SettingValue, SettingValueContainer, TargetingRule, UnknownSettingType, UserCondition, VariationIdValue } from "./ProjectConfig";
+import { getConditionType, getSettingType, getTimestampAsDate, hasPercentageOptions, inferSettingType, InvalidConfigModelError, isCompatibleValue, nameOfSettingType, throwInvalidConfigModelError, unwrapValue } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message, PickWithType } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isBoolean, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, toStringSafe, utf8Encode } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, toStringSafe, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType: SettingType | UnknownSettingType | undefined = void 0;
@@ -878,137 +878,6 @@ function handleInvalidUserAttribute(logger: LoggerWrapper, condition: UserCondit
   return invalidUserAttributeError(attributeName, reason);
 }
 
-export function isAllowedValue(value: unknown): value is NonNullable<SettingValue> {
-  return inferSettingType(value) !== void 0;
-}
-
-function inferSettingType(value: unknown): SettingType | undefined {
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (typeof value) {
-    case "boolean": return SettingType.Boolean;
-    case "string": return SettingType.String;
-    case "number": return SettingType.Double;
-  }
-}
-
-function isCompatibleValue(value: SettingValue, settingType: SettingType): boolean {
-  switch (settingType) {
-    case SettingType.Boolean: return isBoolean(value);
-    case SettingType.String: return isString(value);
-    case SettingType.Int:
-    case SettingType.Double: return isNumber(value);
-    default: return false;
-  }
-}
-
-function getSettingType(setting: Setting): SettingType | UnknownSettingType {
-  const settingType = setting.t;
-  if (isIntegerInRange(settingType, SettingType.Boolean, SettingType.Double)
-    || settingType === (-1 satisfies UnknownSettingType) && isSettingWithSimpleValue(setting)) {
-    return settingType;
-  }
-
-  throwInvalidConfigModelError("Setting type is invalid.");
-}
-
-function isSettingWithSimpleValue(setting: Setting): boolean {
-  return !setting.r?.length && !setting.p?.length;
-}
-
-export function hasPercentageOptions(targetingRule: TargetingRule): boolean;
-export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid: true): boolean | undefined;
-export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid?: boolean): boolean | undefined {
-  const simpleValue = targetingRule.s;
-  const percentageOptions = targetingRule.p;
-  if (simpleValue != null) {
-    if (percentageOptions == null) {
-      return false;
-    }
-  } else if (percentageOptions?.length) {
-    return true;
-  }
-
-  if (!ignoreIfInvalid) {
-    throwInvalidConfigModelError("Targeting rule THEN part is missing or invalid.");
-  }
-}
-
-function getConditionType(container: ConditionContainer): keyof ConditionContainer {
-  let type: keyof ConditionContainer | undefined | false, condition: Condition | null | undefined;
-
-  condition = container.u;
-  if (condition != null) {
-    type = "u";
-  }
-
-  condition = container.p;
-  if (condition != null) {
-    type = !type ? "p" : false;
-  }
-
-  condition = container.s;
-  if (condition != null) {
-    type = !type ? "s" : false;
-  }
-
-  if (!type) {
-    throwInvalidConfigModelError("Condition is missing or invalid.");
-  }
-
-  return type;
-}
-
-export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
-  ignoreIfInvalid?: false
-): NonNullable<SettingValue>;
-export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
-  ignoreIfInvalid: true
-): NonNullable<SettingValue> | undefined;
-export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
-  ignoreIfInvalid?: boolean
-): NonNullable<SettingValue> | undefined {
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (settingType) {
-    case SettingType.Boolean: {
-      const value = (settingValue as SettingValueModel).b;
-      if (value != null) return value;
-      break;
-    }
-    case SettingType.String: {
-      const value = (settingValue as SettingValueModel).s;
-      if (value != null) return value;
-      break;
-    }
-    case SettingType.Int: {
-      const value = (settingValue as SettingValueModel).i;
-      if (value != null) return value;
-      break;
-    }
-    case SettingType.Double: {
-      const value = (settingValue as SettingValueModel).d;
-      if (value != null) return value;
-      break;
-    }
-    case (-1 satisfies UnknownSettingType):
-      if (isAllowedValue(settingValue)) {
-        return settingValue;
-      }
-    // eslint-disable-next-line no-fallthrough
-    default: // unsupported value
-      if (!ignoreIfInvalid) {
-        throwInvalidConfigModelError(
-          settingValue === null ? "Setting value is null."
-          : settingValue === void 0 ? "Setting value is undefined."
-          : `Setting value '${toStringSafe(settingValue)}' is of an unsupported type (${typeof settingValue}).`);
-      }
-      return;
-  }
-
-  if (!ignoreIfInvalid) {
-    throwInvalidConfigModelError("Setting value is missing or invalid.");
-  }
-}
-
 function getConfigJsonSalt(setting: Setting): string {
   return setting["_configJsonSalt"] ?? throwInvalidConfigModelError("Config JSON salt is missing.");
 }
@@ -1016,11 +885,6 @@ function getConfigJsonSalt(setting: Setting): string {
 function ensureComparisonValue<T>(comparisonValue: T | null | undefined): T {
   return comparisonValue ?? throwInvalidConfigModelError("Comparison value is missing.");
 }
-
-function throwInvalidConfigModelError(message: string): never {
-  throw new InvalidConfigModelError(message);
-}
-
 /* Evaluation details */
 
 export type SettingTypeOf<T> =
@@ -1278,10 +1142,6 @@ export function findKeyAndValue(settings: SettingMap | null,
 
   logger.settingForVariationIdIsNotPresent(variationId);
   return null;
-}
-
-export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | undefined {
-  return projectConfig ? new Date(projectConfig.timestamp) : void 0;
 }
 
 export class EvaluationError extends Error {

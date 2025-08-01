@@ -1,7 +1,8 @@
-import type { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
+import type { PrerequisiteFlagComparator, SegmentComparator, UserComparator } from "./ConfigJson";
+import { SettingType } from "./ConfigJson";
 import * as ConfigJson from "./ConfigJson";
 import type { ObjectMap } from "./Utils";
-import { ensurePrototype, hasOwnProperty, isArray, isBoolean, isInteger, isNumber, isObject, isString, setPrototypeOf } from "./Utils";
+import { ensurePrototype, hasOwnProperty, isArray, isBoolean, isInteger, isIntegerInRange, isNumber, isObject, isString, setPrototypeOf, toStringSafe } from "./Utils";
 
 // NOTE: This is a hack which prevents the TS compiler from eliding the namespace import above.
 // TS wants to do this because it figures that the ConfigJson module contains types only.
@@ -85,6 +86,10 @@ export class ProjectConfig {
 
     return new ProjectConfig(configJson, config, fetchTime, httpETag);
   }
+}
+
+export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | undefined {
+  return projectConfig ? new Date(projectConfig.timestamp) : void 0;
 }
 
 /* Config model type definition */
@@ -547,6 +552,141 @@ function throwConfigJsonTypeMismatchError(path: string[]): never {
 export function nameOfSettingType(value: SettingType): string {
   /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
   return ConfigJson.SettingType[value] as string;
+}
+
+export function getSettingType(setting: Setting): SettingType | UnknownSettingType {
+  const settingType = setting.t;
+  if (isIntegerInRange(settingType, SettingType.Boolean, SettingType.Double)
+    || settingType === (-1 satisfies UnknownSettingType) && isSettingWithSimpleValue(setting)) {
+    return settingType;
+  }
+
+  throwInvalidConfigModelError("Setting type is invalid.");
+}
+
+export function inferSettingType(value: unknown): SettingType | undefined {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (typeof value) {
+    case "boolean": return SettingType.Boolean;
+    case "string": return SettingType.String;
+    case "number": return SettingType.Double;
+  }
+}
+
+export function isCompatibleValue(value: SettingValue, settingType: SettingType): boolean {
+  switch (settingType) {
+    case SettingType.Boolean: return isBoolean(value);
+    case SettingType.String: return isString(value);
+    case SettingType.Int:
+    case SettingType.Double: return isNumber(value);
+    default: return false;
+  }
+}
+
+export function isAllowedValue(value: unknown): value is NonNullable<SettingValue> {
+  return inferSettingType(value) !== void 0;
+}
+
+function isSettingWithSimpleValue(setting: Setting): boolean {
+  return !setting.r?.length && !setting.p?.length;
+}
+
+export function hasPercentageOptions(targetingRule: TargetingRule): boolean;
+export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid: true): boolean | undefined;
+export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid?: boolean): boolean | undefined {
+  const simpleValue = targetingRule.s;
+  const percentageOptions = targetingRule.p;
+  if (simpleValue != null) {
+    if (percentageOptions == null) {
+      return false;
+    }
+  } else if (percentageOptions?.length) {
+    return true;
+  }
+
+  if (!ignoreIfInvalid) {
+    throwInvalidConfigModelError("Targeting rule THEN part is missing or invalid.");
+  }
+}
+
+export function getConditionType(container: ConditionContainer): keyof ConditionContainer {
+  let type: keyof ConditionContainer | undefined | false, condition: Condition | null | undefined;
+
+  condition = container.u;
+  if (condition != null) {
+    type = "u";
+  }
+
+  condition = container.p;
+  if (condition != null) {
+    type = !type ? "p" : false;
+  }
+
+  condition = container.s;
+  if (condition != null) {
+    type = !type ? "s" : false;
+  }
+
+  if (!type) {
+    throwInvalidConfigModelError("Condition is missing or invalid.");
+  }
+
+  return type;
+}
+
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
+  ignoreIfInvalid?: false
+): NonNullable<SettingValue>;
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
+  ignoreIfInvalid: true
+): NonNullable<SettingValue> | undefined;
+export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
+  ignoreIfInvalid?: boolean
+): NonNullable<SettingValue> | undefined {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (settingType) {
+    case SettingType.Boolean: {
+      const value = (settingValue as SettingValueModel).b;
+      if (value != null) return value;
+      break;
+    }
+    case SettingType.String: {
+      const value = (settingValue as SettingValueModel).s;
+      if (value != null) return value;
+      break;
+    }
+    case SettingType.Int: {
+      const value = (settingValue as SettingValueModel).i;
+      if (value != null) return value;
+      break;
+    }
+    case SettingType.Double: {
+      const value = (settingValue as SettingValueModel).d;
+      if (value != null) return value;
+      break;
+    }
+    case (-1 satisfies UnknownSettingType):
+      if (isAllowedValue(settingValue)) {
+        return settingValue;
+      }
+    // eslint-disable-next-line no-fallthrough
+    default: // unsupported value
+      if (!ignoreIfInvalid) {
+        throwInvalidConfigModelError(
+          settingValue === null ? "Setting value is null."
+          : settingValue === void 0 ? "Setting value is undefined."
+          : `Setting value '${toStringSafe(settingValue)}' is of an unsupported type (${typeof settingValue}).`);
+      }
+      return;
+  }
+
+  if (!ignoreIfInvalid) {
+    throwInvalidConfigModelError("Setting value is missing or invalid.");
+  }
+}
+
+export function throwInvalidConfigModelError(message: string): never {
+  throw new InvalidConfigModelError(message);
 }
 
 export class InvalidConfigModelError extends Error {

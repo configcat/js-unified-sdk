@@ -1,7 +1,7 @@
 import type { SettingType } from "./ConfigJson";
 import { PrerequisiteFlagComparator, SegmentComparator, UserComparator } from "./ConfigJson";
 import type { PrerequisiteFlagCondition, Segment, SegmentCondition, SettingMap, SettingValue, SettingValueModel, TargetingRule, UserCondition } from "./ProjectConfig";
-import { hasPercentageOptions, isAllowedValue, unwrapValue } from "./RolloutEvaluator";
+import { hasPercentageOptions, isAllowedValue, unwrapValue } from "./ProjectConfig";
 import { formatStringList, hasOwnProperty, isIntegerInRange, isNumber, isString } from "./Utils";
 
 const invalidValuePlaceholder = "<invalid value>";
