@@ -5,6 +5,7 @@ import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/Con
 import { getSerializableOptions } from "#lib/ConfigCatClient";
 import { IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogFilterCallback, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
+import { IConfigService } from "#lib/ConfigServiceBase";
 import { createFlagOverridesFromMap } from "#lib/index.pubternals";
 import { ProjectConfig } from "#lib/ProjectConfig";
 
@@ -474,7 +475,11 @@ describe("Options", () => {
   });
 });
 
-class FakeOptionsBase extends OptionsBase { }
+class FakeOptionsBase extends OptionsBase {
+  override createConfigService(): IConfigService {
+    throw new Error("Method not implemented.");
+  }
+}
 
 class FakeCache implements IConfigCache {
   get localCachedConfig(): ProjectConfig { throw new Error("Property not implemented."); }
