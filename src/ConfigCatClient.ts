@@ -22,7 +22,7 @@ export interface IConfigCatClient extends IProvidesHooks {
    * Returns the value of a feature flag or setting identified by `key`.
    * @remarks
    * It is important to provide an argument for the `defaultValue` parameter that matches the type of the feature flag or setting you are evaluating.
-   * Please refer to {@link https://configcat.com/docs/sdk-reference/js/#setting-type-mapping | this table} for the corresponding types.
+   * Please refer to {@link https://configcat.com/docs/sdk-reference/js/overview/#setting-type-mapping | this table} for the corresponding types.
    * @param key Key of the feature flag or setting.
    * @param defaultValue In case of failure, this value will be returned. Only the following types are allowed: `string`, `boolean`, `number`, `null` and `undefined`.
    * @param user The User Object to use for evaluating targeting rules and percentage options.
@@ -36,7 +36,7 @@ export interface IConfigCatClient extends IProvidesHooks {
    * Returns the value along with evaluation details of a feature flag or setting identified by `key`.
    * @remarks
    * It is important to provide an argument for the `defaultValue` parameter that matches the type of the feature flag or setting you are evaluating.
-   * Please refer to {@link https://configcat.com/docs/sdk-reference/js/#setting-type-mapping | this table} for the corresponding types.
+   * Please refer to {@link https://configcat.com/docs/sdk-reference/js/overview/#setting-type-mapping | this table} for the corresponding types.
    * @param key Key of the feature flag or setting.
    * @param defaultValue In case of failure, this value will be returned. Only the following types are allowed: `string`, `boolean`, `number`, `null` and `undefined`.
    * @param user The User Object to use for evaluating targeting rules and percentage options.
@@ -161,7 +161,7 @@ export interface IConfigCatClientSnapshot {
    * Returns the value of a feature flag or setting identified by `key` synchronously, based on the snapshot.
    * @remarks
    * It is important to provide an argument for the `defaultValue` parameter that matches the type of the feature flag or setting you are evaluating.
-   * Please refer to {@link https://configcat.com/docs/sdk-reference/js/#setting-type-mapping | this table} for the corresponding types.
+   * Please refer to {@link https://configcat.com/docs/sdk-reference/js/overview/#setting-type-mapping | this table} for the corresponding types.
    * @param key Key of the feature flag or setting.
    * @param defaultValue In case of failure, this value will be returned. Only the following types are allowed: `string`, `boolean`, `number`, `null` and `undefined`.
    * @param user The User Object to use for evaluating targeting rules and percentage options.
@@ -175,7 +175,7 @@ export interface IConfigCatClientSnapshot {
  * Returns the value along with evaluation details of a feature flag or setting identified by `key` synchronously, based on the snapshot.
  * @remarks
  * It is important to provide an argument for the `defaultValue` parameter that matches the type of the feature flag or setting you are evaluating.
- * Please refer to {@link https://configcat.com/docs/sdk-reference/js/#setting-type-mapping | this table} for the corresponding types.
+ * Please refer to {@link https://configcat.com/docs/sdk-reference/js/overview/#setting-type-mapping | this table} for the corresponding types.
  * @param key Key of the feature flag or setting.
  * @param defaultValue In case of failure, this value will be returned. Only the following types are allowed: `string`, `boolean`, `number`, `null` and `undefined`.
  * @param user The User Object to use for evaluating targeting rules and percentage options.
