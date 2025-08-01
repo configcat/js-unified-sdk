@@ -10,8 +10,7 @@
 
 ConfigCat SDK for JavaScript provides easy integration for your application to [ConfigCat](https://configcat.com).
 
-This repository hosts the next generation of the ConfigCat SDK for JavaScript platforms. It ships in the form of a single, unified NPM package for
-different JS platforms, as opposed to the one package per platform model used before.
+This repository hosts the modern ConfigCat SDK for JavaScript platforms. Unlike the legacy platform-specific packages, it provides a single, unified NPM package that supports multiple JS environments.
 
 The new SDK combines and, thus, supersedes these packages:
 * [configcat-common](https://www.npmjs.com/package/configcat-common)
@@ -20,13 +19,9 @@ The new SDK combines and, thus, supersedes these packages:
 * [configcat-js-chromium-extension](https://www.npmjs.com/package/configcat-js-chromium-extension)
 * [configcat-node](https://www.npmjs.com/package/configcat-node)
 
-The new SDK maintains backward compatibility, so it can be used as a drop-in replacement for the packages listed above. In most cases you just need to
-replace the old package with the new and adjust the import specifiers (as shown [here](#1-install-and-import-package)).
+The new SDK maintains strong backward compatibility, making it a drop-in replacement for the packages listed above. In most cases you just need to replace the old package with the new and adjust the import specifiers (as shown [here](#1-install-and-import-package)).
 
-> [!CAUTION]
-> Please note that the SDK is still under development and is currently in beta phase. Use it at your own risk.
-
-## Getting Started
+## Getting started
 
 ### 1. Install and import package:
 
@@ -50,17 +45,18 @@ Then import it into your application:
   import * as configcat from "@configcat/sdk/node";
   ```
 
-* Bun backend applications:
-  ```js
-  import * as configcat from "@configcat/sdk/bun";
-  ```
-
 * Deno backend applications:
   ```js
   import * as configcat from "npm:@configcat/sdk/deno";
   ```
 
-  (To make this work, you may need to enable the [unstable-byonm](https://docs.deno.com/runtime/manual/tools/unstable_flags/#--unstable-byonm) feature or adjust your [import map](https://docs.deno.com/runtime/manual/basics/import_maps/).)
+  > [!NOTE]
+  > To make this work, you may need to enable the [unstable-byonm](https://deno.com/blog/node-to-deno-challenge#what-are-all-these-unstable-node-compatibility-settings) feature or adjust your [import map](https://docs.deno.com/runtime/fundamentals/modules/#differentiating-between-imports-or-importmap-in-deno.json-and---import-map-option).
+
+* Bun backend applications:
+  ```js
+  import * as configcat from "@configcat/sdk/bun";
+  ```
 
 * Cloudflare Workers:
   ```js
@@ -72,7 +68,11 @@ Then import it into your application:
   import * as configcat from "@configcat/sdk/chromium-extension";
   ```
 
-> Please note that these package references require your JS runtime (execution engine) or bundler to support the [exports](https://nodejs.org/api/packages.html#exports) package.json field, introduced in Node.js v12.7. In the unlikely case of compatibility issues, you can fall back to `import * as configcat from "@configcat/sdk";`. Basically, this is another entry point to the Node.js build, however, if your bundler recognizes the [browser](https://github.com/defunctzombie/package-browser-field-spec) package.json field, it will also work in your browser applications seamlessly.
+> [!NOTE]
+> Please note that subpath imports require your bundler to support the [exports](https://nodejs.org/api/packages.html#exports) package.json field, introduced in Node.js v12.7. **In the unlikely case of bundler compatibility issues**, you can fall back to importing from the main entry point `@configcat/sdk`. Basically, this is another entry point to the Node.js build, however, if your bundler recognizes the [browser](https://github.com/defunctzombie/package-browser-field-spec) package.json field, it will also work in your browser applications seamlessly.
+
+> [!NOTE]
+> For subpath imports to work **in TypeScript**, you must set the [moduleResolution](https://www.typescriptlang.org/tsconfig/#moduleResolution) option to `node16`, `nodenext` or `bundler` in your `tsconfig.json`. For TypeScript versions older than 4.7, where these options are not available, you need to fall back to module resolution `node` and importing from the main entry point `@configcat/sdk`.
 
 #### *via CDN*
 
@@ -104,10 +104,12 @@ Import the package directly from a CDN server into your application:
 ![SDK-KEY](https://raw.githubusercontent.com/configcat/js-unified-sdk/master/media/readme02-3.png  "SDK-KEY")
 
 ### 3. Create a *ConfigCat* client instance:
+
 ```js
 const configCatClient = configcat.getClient("#YOUR-SDK-KEY#");
 ```
 
+> [!NOTE]
 > You can acquire singleton client instances for your SDK keys using the `getClient("<sdkKey>")` factory function.
 (However, please keep in mind that subsequent calls to `getClient()` with the *same SDK Key* return a *shared* client instance, which was set up by the first call.)
 
@@ -138,7 +140,7 @@ configCatClient.getValueAsync('isMyAwesomeFeatureEnabled', false)
   });
 ```
 
-## Getting user specific setting values with Targeting
+## Getting user specific setting values with targeting
 
 Using this feature, you will be able to get different setting values for different users in your application by passing a `User Object` to `getValueAsync()`.
 
@@ -155,7 +157,7 @@ if (value) {
 }
 ```
 
-## Sample/Demo apps
+## Sample/demo apps
   - [Plain HTML + JS](https://github.com/configcat/js-unified-sdk/tree/master/samples/html)
   - [Plain HTML + JS using ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/html-esm)
   - [Plain HTML + TS running the SDK in a Web Worker](https://github.com/configcat/js-unified-sdk/tree/master/samples/web-worker)
@@ -169,12 +171,12 @@ if (value) {
   - [Sample Node.js console application using TypeScript and ECMAScript module system](https://github.com/configcat/js-unified-sdk/tree/master/samples/ts-node-console-esm)
   - [Sample Node.js application using Express and Docker](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-expresswithdocker)
   - [Sample Node.js application on how to get real time updates on feature flag changes](https://github.com/configcat/js-unified-sdk/tree/master/samples/node-realtimeupdate)
-  - [Sample Bun console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/bun-console)
   - [Sample Deno console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/deno-console)
+  - [Sample Bun console application](https://github.com/configcat/js-unified-sdk/tree/master/samples/bun-console)
   - [Sample Cloudflare Worker](https://github.com/configcat/js-unified-sdk/tree/master/samples/cloudflare-worker)
   - [Sample Chrome extension](https://github.com/configcat/js-unified-sdk/tree/master/samples/chrome-extension)
 
-## Polling Modes
+## Polling modes
 
 The ConfigCat SDK supports 3 different polling mechanisms to acquire the setting values from ConfigCat. After latest setting values are downloaded, they are stored in the internal cache then all requests are served from there. Read more about Polling Modes and how to use them at [ConfigCat Docs](https://configcat.com/docs/sdk-reference/js/#polling-modes).
 
@@ -182,7 +184,7 @@ The ConfigCat SDK supports 3 different polling mechanisms to acquire the setting
 
 The frontend/mobile SDKs are running in your users' browsers/devices. The SDK is downloading a [config.json](https://configcat.com/docs/requests/) file from ConfigCat's CDN servers. The URL path for this config.json file contains your SDK key, so the SDK key and the content of your config.json file (feature flag keys, feature flag values, targeting rules, % rules) can be visible to your users.
 
-This SDK key is read-only, it only allows downloading your config.json file, but nobody can make any changes with it in your ConfigCat account.  
+This SDK key is read-only, it only allows downloading your config.json file, but nobody can make any changes with it in your ConfigCat account.
 Suppose you don't want your SDK key or the content of your config.json file visible to your users. In that case, we recommend you use the SDK only in your backend applications and call a backend endpoint in your frontend/mobile application to evaluate the feature flags for a specific application customer.
 
 Also, we recommend using [sensitive targeting comparators](https://configcat.com/docs/advanced/targeting/#sensitive-text-comparators) in the targeting rules of those feature flags that are used in the frontend/mobile SDKs.
@@ -190,23 +192,23 @@ Also, we recommend using [sensitive targeting comparators](https://configcat.com
 ## Package content
 
 Currently the `@configcat/sdk` NPM package includes the following builds of the library:
-- `dist/configcat.browser.umd.min.js` - for referencing the library in old browsers via HTML script tag:
+- `dist/configcat.browser.umd.min.js` - for referencing the library in old browsers via a HTML `<script>` tag:
    - Uses the UMD bundle format.
    - Targets ES5 and includes all required polyfills.
    - TypeScript type definitions are not provided.
-* `dist/configcat.browser.esm.min.js` - for referencing the library in newer browsers via HTML script tag:
+* `dist/configcat.browser.esm.min.js` - for referencing the library in newer browsers via a HTML `<script>` tag:
   - Uses the standard ECMAScript module format.
   - Targets ES2015 and includes all required polyfills.
   - TypeScript type definitions are not provided.
-* `dist/configcat.chromium-extension.esm.js` - for referencing the library in Chromium-based browser extensions via HTML script tag:
+* `dist/configcat.chromium-extension.esm.js` - for referencing the library in Chromium-based browser extensions via a HTML `<script>` tag:
   - Uses the standard ECMAScript module format.
   - Targets ES2017 and includes all required polyfills.
   - TypeScript type definitions are not provided.
 * `lib/cjs/` - for old versions of Node.js and bundlers not supporting ES modules:
   - Uses the legacy CommonJS module format.
-  - Targets ES2017 and includes all required polyfills except for the `Promise` feature. 
+  - Targets ES2017 and includes all required polyfills except for the `Promise` feature.
   - TypeScript type definitions are provided.
-* `lib/esm/` - for modern versions of Node.js, Deno and bundlers:
+* `lib/esm/` - for modern versions of Node.js, Deno, Bun and bundlers:
   - Uses the standard ECMAScript module format.
   - Targets ES2017 and includes all required polyfills except for the `Promise` feature.
   - TypeScript type definitions are provided.
