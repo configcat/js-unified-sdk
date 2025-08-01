@@ -75,9 +75,7 @@ export class Hooks implements IProvidesHooks {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.on;
+  addListener!: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this;
 
   /** @inheritdoc */
   on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
@@ -98,9 +96,7 @@ export class Hooks implements IProvidesHooks {
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.removeListener;
+  off!: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this;
 
   /** @inheritdoc */
   removeAllListeners(eventName?: keyof HookEvents): this {
@@ -128,6 +124,12 @@ export class Hooks implements IProvidesHooks {
     return this.eventEmitter.emit(eventName, ...args);
   }
 }
+
+/* eslint-disable @typescript-eslint/unbound-method */
+const hooksPrototype = Hooks.prototype;
+hooksPrototype.addListener = hooksPrototype.on;
+hooksPrototype.off = hooksPrototype.removeListener;
+/* eslint-enabled @typescript-eslint/unbound-method */
 
 // Strong back-references to the client instance must be avoided so GC can collect it when user doesn't have references to it any more.
 // E.g. if a strong reference chain like AutoPollConfigService -> ... -> ConfigCatClient existed, the client instance could not be collected
