@@ -4,19 +4,8 @@
 
 Make sure the CI is running: https://github.com/configcat/js-unified-sdk/actions/workflows/js-sdk-ci.yml
 
-## Via shell script
+## Steps
 
-1. Run `./deploy.sh`
-
-2. Add release notes: https://github.com/configcat/js-unified-sdk/releases
-
-2. Update `@configcat/sdk` in [`react-sdk`](https://github.com/configcat/react-sdk/) and re-deploy the package.
-
-3. Test all packages manually!
-
-### or
-
-## Manually
 1. Run tests
    ```PowerShell
     npm test
@@ -40,6 +29,8 @@ Increase version number by using `npm version patch | minor | major`
 
     You can follow the build status [here](https://github.com/configcat/js-unified-sdk/actions/workflows/js-sdk-ci.yml).
 
-2. Add release notes: https://github.com/configcat/js-unified-sdk/releases
-2. Update `@configcat/sdk` in [`react-sdk`](https://github.com/configcat/react-sdk/) and re-deploy the package.
-3. Test all packages manually!
+1. Add release notes: https://github.com/configcat/js-unified-sdk/releases
+
+1. Update the `@configcat/sdk` package in [`react-sdk`](https://github.com/configcat/react-sdk/) and deploy that too.
+
+1. Test all packages manually!
