@@ -102,7 +102,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
           "The type of a setting must match the type of the specified default value. "
           + `Setting's type was ${settingTypeName} but the default value's type was ${typeof defaultValue}. `
           + `Please use a default value which corresponds to the setting type ${settingTypeName}. `
-          + "Learn more: https://configcat.com/docs/sdk-reference/js/#setting-type-mapping");
+          + "Learn more: https://configcat.com/docs/sdk-reference/js/overview/#setting-type-mapping");
       }
 
       const result = this.evaluateSetting(context) as EvaluateResult;
