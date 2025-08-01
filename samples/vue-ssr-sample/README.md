@@ -5,7 +5,7 @@
 1. Install dependencies
 
 ``` shell
-npm install
+npm i
 ```
 
 2. Run sample app
@@ -14,4 +14,4 @@ npm install
 npm run dev
 ```
 
-3. Open browser at `http://localhost:5173/`
+3. Open browser at http://localhost:5173/

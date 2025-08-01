@@ -22,7 +22,9 @@
                         pollIntervalSeconds: 4,
                         setupHooks: function(hooks) {
                             hooks.on('configChanged', function () {
-                                updateFeatureFlagValue();
+                                // Please note that this event may be emitted during initialization, before `getClient` returns the client instance.
+                                // However, you can safely access the client via the `this` context of the event handler callback.
+                                updateFeatureFlagValue(this.configCatClient);
                             });
                         }
                     }
@@ -32,7 +34,7 @@
                 $('#flagkey').prop("disabled", true);
                 $('#start').prop("disabled", true);
 
-                function updateFeatureFlagValue() {
+                function updateFeatureFlagValue(configCatClient) {
                     configCatClient.getValueAsync($('#flagkey').val(), false).then(function (value) {
                         $('#unknown').prop('hidden', true);
                         $('#flip').prop('hidden', false);
@@ -46,7 +48,7 @@
                     });
                 }
 
-                updateFeatureFlagValue();
+                updateFeatureFlagValue(configCatClient);
             });
         });
     </script>

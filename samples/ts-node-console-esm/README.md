@@ -11,5 +11,5 @@ npm i
 ## Run 
 
 ```
-npm run start
+npm start
 ```

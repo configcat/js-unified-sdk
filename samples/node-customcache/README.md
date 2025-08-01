@@ -1,27 +1,32 @@
 # Sample application using custom cache implementation
 
-This is a simple Node.js application to demonstrate how to use your cache implementation in ConfigCat. The `configcat-redis-cachejs` file shows how can you create simple adapter for redis cache.
+This is a simple Node.js application to demonstrate how to use your cache implementation in ConfigCat. The `configcat-redis-cachejs` file shows how you can create a simple adapter for Redis cache.
 
-# Run web application on local machine
 ## Install dependencies
 
 ```
 npm i
 ```
 
-### Setup redis
-The easiest way to get a redis instance on your machine is a docker based solution.
+## Run web application on local machine
 
-1. Pull the latest redis docker images
+### Setup Redis
+
+The easiest way to get a Redis instance on your machine is a Docker-based solution.
+
+1. Pull the latest Docker image for Redis
+
 ```
 docker pull redis
 ```
-2. Run the contanier
+
+2. Run the container
+
 ```
 docker run --name container-redis -p 6379:6379 -d redis
 ```
 
-## Start console application
+### Start console application
 
 ```
 npm start

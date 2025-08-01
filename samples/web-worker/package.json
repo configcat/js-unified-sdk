@@ -6,12 +6,13 @@
   "private": true,
   "scripts": {
     "build": "webpack --mode development",
-    "start": "npm run build & node ../shared/server.mjs dist"
+    "start": "npm run build && node ../shared/server.mjs dist"
   },
   "dependencies": {
     "@configcat/sdk": "^0.1.0"
   },
   "devDependencies": {
+    "ts-loader": "^9.5.2",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"
   }
