@@ -611,9 +611,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.on;
+  addListener!: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this;
 
   /** @inheritdoc */
   on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
@@ -634,9 +632,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.removeListener;
+  off!: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this;
 
   /** @inheritdoc */
   removeAllListeners(eventName?: keyof HookEvents): this {
@@ -659,6 +655,12 @@ export class ConfigCatClient implements IConfigCatClient {
     return this.hooks.eventNames();
   }
 }
+
+/* eslint-disable @typescript-eslint/unbound-method */
+const configCatClientPrototype = ConfigCatClient.prototype;
+configCatClientPrototype.addListener = configCatClientPrototype.on;
+configCatClientPrototype.off = configCatClientPrototype.removeListener;
+/* eslint-enabled @typescript-eslint/unbound-method */
 
 class Snapshot implements IConfigCatClientSnapshot {
   private readonly defaultUser: IUser | undefined;

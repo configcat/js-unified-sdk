@@ -68,9 +68,7 @@ export class DefaultEventEmitter implements IEventEmitter {
     }
   }
 
-  addListener: (eventName: string | symbol, listener: (...args: any[]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.on;
+  addListener!: (eventName: string | symbol, listener: (...args: any[]) => void) => this;
 
   on(eventName: string | symbol, listener: (...args: any[]) => void): this {
     return this.addListenerCore(eventName, listener, false);
@@ -88,9 +86,7 @@ export class DefaultEventEmitter implements IEventEmitter {
     return this.removeListenerCore(eventName, listener, (listener, fn) => listener.fn === fn);
   }
 
-  off: (eventName: string | symbol, listener: (...args: any[]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.removeListener;
+  off!: (eventName: string | symbol, listener: (...args: any[]) => void) => this;
 
   removeAllListeners(eventName?: string | symbol): this {
     if (!arguments.length) {
@@ -205,3 +201,9 @@ export class DefaultEventEmitter implements IEventEmitter {
     return true;
   }
 }
+
+/* eslint-disable @typescript-eslint/unbound-method */
+const defaultEventEmitterPrototype = DefaultEventEmitter.prototype;
+defaultEventEmitterPrototype.addListener = defaultEventEmitterPrototype.on;
+defaultEventEmitterPrototype.off = defaultEventEmitterPrototype.removeListener;
+/* eslint-enabled @typescript-eslint/unbound-method */
