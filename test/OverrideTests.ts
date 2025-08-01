@@ -5,8 +5,8 @@ import { ConfigCatClient, IConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import { IOverrideDataSource, IQueryStringProvider, MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { createFlagOverridesFromQueryParams } from "#lib/index.pubternals";
-import { ConfigJson, InvalidConfigModelError, prepareConfig, Setting, SettingValue } from "#lib/ProjectConfig";
-import { EvaluationError, EvaluationErrorCode, isAllowedValue } from "#lib/RolloutEvaluator";
+import { ConfigJson, InvalidConfigModelError, isAllowedValue, prepareConfig, Setting, SettingValue } from "#lib/ProjectConfig";
+import { EvaluationError, EvaluationErrorCode } from "#lib/RolloutEvaluator";
 
 describe("Local Overrides", () => {
   it("Values from map - LocalOnly", async () => {
