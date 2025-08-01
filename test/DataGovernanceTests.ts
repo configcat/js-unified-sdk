@@ -3,7 +3,7 @@ import type { AugmentedOptions } from "./helpers/platform";
 import { DataGovernance, IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { FetchRequest, FetchResponse, FetchResult, fetchResultFromSuccess, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import type * as ConfigJson from "#lib/ConfigJson";
-import { ClientCacheState, ConfigServiceBase } from "#lib/ConfigServiceBase";
+import { ClientCacheState, ConfigServiceBase, IConfigService } from "#lib/ConfigServiceBase";
 import { prepareConfig, ProjectConfig } from "#lib/ProjectConfig";
 
 const globalUrl = "https://cdn-global.configcat.com";
@@ -285,6 +285,10 @@ export class FakeOptions extends OptionsBase {
   constructor(baseUrl?: string, dataGovernance?: DataGovernance) {
     const kernel: Partial<IConfigCatKernel> = { configFetcherFactory: options => new FakeConfigFetcher(options) };
     super("API_KEY", kernel as unknown as IConfigCatKernel, "TEST", { baseUrl, dataGovernance });
+  }
+
+  override createConfigService(): IConfigService {
+    throw new Error("Method not implemented.");
   }
 }
 

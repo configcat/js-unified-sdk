@@ -1,14 +1,18 @@
+import { AutoPollConfigService } from "./AutoPollConfigService";
 import type { IConfigCache, IConfigCatCache } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { IConfigCatLogger, LogFilterCallback } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger, LoggerWrapper } from "./ConfigCatLogger";
 import type { IConfigCatConfigFetcher } from "./ConfigFetcher";
+import type { IConfigService } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { FlagOverrides } from "./FlagOverrides";
 import { sha1 } from "./Hash";
 import type { HookEvents, IProvidesHooks, SafeHooksWrapper } from "./Hooks";
 import { Hooks } from "./Hooks";
+import { LazyLoadConfigService } from "./LazyLoadConfigService";
+import { ManualPollConfigService } from "./ManualPollConfigService";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
 import { createWeakRef, isNumberInRange } from "./Utils";
@@ -291,6 +295,8 @@ export abstract class OptionsBase {
   getCacheKey(): string {
     return sha1(`${this.sdkKey}_${OptionsBase.configFileName}_${ProjectConfig.serializationFormatVersion}`);
   }
+
+  abstract createConfigService(): IConfigService;
 }
 
 const PROXY_PATH_SEGMENT = "/" + PROXY_SDKKEY_PREFIX;
@@ -338,12 +344,20 @@ export class AutoPollOptions extends OptionsBase {
       throw Error("Invalid 'maxInitWaitTimeSeconds' value");
     }
   }
+
+  override createConfigService(): IConfigService {
+    return new AutoPollConfigService(this);
+  }
 }
 
 export class ManualPollOptions extends OptionsBase {
   constructor(sdkKey: string, kernel: IConfigCatKernel, options?: IManualPollOptions | null) {
 
     super(sdkKey, kernel, kernel.sdkType + "/m-" + kernel.sdkVersion, options);
+  }
+
+  override createConfigService(): IConfigService {
+    return new ManualPollConfigService(this);
   }
 }
 
@@ -364,6 +378,10 @@ export class LazyLoadOptions extends OptionsBase {
     if (!isNumberInRange(this.cacheTimeToLiveSeconds, 1, 2147483647)) {
       throw Error("Invalid 'cacheTimeToLiveSeconds' value");
     }
+  }
+
+  override createConfigService(): IConfigService {
+    return new LazyLoadConfigService(this);
   }
 }
 

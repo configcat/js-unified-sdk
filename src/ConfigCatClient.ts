@@ -1,4 +1,3 @@
-import { AutoPollConfigService } from "./AutoPollConfigService";
 import type { ConfigCatClientOptions, IConfigCatKernel, OptionsBase, OptionsForPollingMode } from "./ConfigCatClientOptions";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode, PROXY_SDKKEY_PREFIX } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
@@ -8,8 +7,6 @@ import { ClientCacheState, RefreshErrorCode, refreshResultFromFailure } from "./
 import type { FlagOverrides } from "./FlagOverrides";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesConfigCatClient, IProvidesHooks } from "./Hooks";
-import { LazyLoadConfigService } from "./LazyLoadConfigService";
-import { ManualPollConfigService } from "./ManualPollConfigService";
 import type { Config, ProjectConfig, Setting, SettingMap, SettingValue } from "./ProjectConfig";
 import type { EvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
@@ -309,11 +306,7 @@ export class ConfigCatClient implements IConfigCatClient {
     this.evaluator = new RolloutEvaluator(options.logger);
 
     if (options.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly) {
-      this.configService =
-        options instanceof AutoPollOptions ? new AutoPollConfigService(options)
-        : options instanceof ManualPollOptions ? new ManualPollConfigService(options)
-        : options instanceof LazyLoadOptions ? new LazyLoadConfigService(options)
-        : throwError(Error("Invalid 'options' value"));
+      this.configService = options.createConfigService();
     } else {
       this.configService = null;
       this.hooks.emit("clientReady", ClientCacheState.HasLocalOverrideFlagDataOnly);
