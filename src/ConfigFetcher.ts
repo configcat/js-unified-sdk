@@ -9,26 +9,34 @@ export const enum FetchStatus {
   Errored = 2,
 }
 
-export class FetchResult {
-  private constructor(
-    readonly status: FetchStatus,
-    readonly config: ProjectConfig,
-    readonly errorCode: RefreshErrorCode,
-    readonly errorMessage?: Message,
-    readonly errorException?: any) {
+export type FetchResult =
+  { readonly config: ProjectConfig }
+  & ({
+    readonly status: FetchStatus.Fetched | FetchStatus.NotModified;
+    readonly errorCode: RefreshErrorCode.None;
+    readonly errorMessage?: undefined;
+    readonly errorException?: undefined;
   }
+  | {
+    readonly status: FetchStatus.Errored;
+    readonly errorCode: Exclude<RefreshErrorCode, RefreshErrorCode.None>;
+    readonly errorMessage: Message;
+    readonly errorException?: any;
+  });
 
-  static success(config: ProjectConfig, errorCode: RefreshErrorCode.None): FetchResult {
-    return new FetchResult(FetchStatus.Fetched, config, errorCode);
-  }
+export function fetchResultFromSuccess(config: ProjectConfig): FetchResult {
+  return { status: FetchStatus.Fetched, config, errorCode: 0 satisfies RefreshErrorCode.None };
+}
 
-  static notModified(config: ProjectConfig, errorCode: RefreshErrorCode.None): FetchResult {
-    return new FetchResult(FetchStatus.NotModified, config, errorCode);
-  }
+export function fetchResultFromNotModified(config: ProjectConfig): FetchResult {
+  return { status: FetchStatus.NotModified, config, errorCode: 0 satisfies RefreshErrorCode.None };
+}
 
-  static error(config: ProjectConfig, errorCode: RefreshErrorCode, errorMessage?: Message, errorException?: any): FetchResult {
-    return new FetchResult(FetchStatus.Errored, config, errorCode, errorMessage ?? "Unknown error.", errorException);
-  }
+export function fetchResultFromError(config: ProjectConfig,
+  errorCode: Exclude<RefreshErrorCode, RefreshErrorCode.None>, errorMessage: Message, errorException?: any
+): FetchResult {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  return { status: FetchStatus.Errored, config, errorCode, errorMessage, errorException };
 }
 
 /** The request parameters for a ConfigCat config fetch operation. */

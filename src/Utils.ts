@@ -319,3 +319,8 @@ export class LazyString<TState = any> {
 }
 
 export type Message = { toString(): string };
+
+/** Picks a set of properties from object `T` and change their type as specified by `TPropMap`. */
+export type PickWithType<T, TPropMap extends { [K in keyof T]?: unknown }> = {
+  [K in keyof TPropMap]: TPropMap[K];
+};

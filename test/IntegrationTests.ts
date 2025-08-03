@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
 import { FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
-import { FormattableLogMessage, IConfigCatClient, IEvaluationDetails, IOptions, LogLevel, OverrideBehaviour, PollingMode, SettingKeyValue, User } from "#lib";
+import { EvaluationDetails, FormattableLogMessage, IConfigCatClient, IOptions, LogLevel, OverrideBehaviour, PollingMode, SettingKeyValue, User } from "#lib";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { createConsoleLogger, createFlagOverridesFromMap, OptionsBase } from "#lib/index.pubternals";
 
@@ -64,7 +64,7 @@ for (const pollingMode of [PollingMode.AutoPoll, PollingMode.ManualPoll, Polling
         await client.forceRefreshAsync();
       }
 
-      const actual: IEvaluationDetails = await client.getValueDetailsAsync("stringDefaultCat", defaultValue);
+      const actual: EvaluationDetails = await client.getValueDetailsAsync("stringDefaultCat", defaultValue);
       assert.isFalse(actual.isDefaultValue);
       assert.strictEqual(actual.value, "Cat");
       assert.strictEqual(actual.variationId, "7a0be518");
@@ -78,7 +78,7 @@ for (const pollingMode of [PollingMode.AutoPoll, PollingMode.ManualPoll, Polling
         await client.forceRefreshAsync();
       }
 
-      const actual: IEvaluationDetails = await client.getValueDetailsAsync("NotExistsKey", defaultValue);
+      const actual: EvaluationDetails = await client.getValueDetailsAsync("NotExistsKey", defaultValue);
       assert.isTrue(actual.isDefaultValue);
       assert.strictEqual(actual.value, defaultValue);
       assert.isNull(actual.variationId ?? null);
@@ -149,7 +149,7 @@ for (const pollingMode of [PollingMode.AutoPoll, PollingMode.ManualPoll, Polling
         await client.forceRefreshAsync();
       }
 
-      const eds: IEvaluationDetails[] = await client.getAllValueDetailsAsync();
+      const eds: EvaluationDetails[] = await client.getAllValueDetailsAsync();
       const settingValues: any = {};
       const variationIds: any = {};
 

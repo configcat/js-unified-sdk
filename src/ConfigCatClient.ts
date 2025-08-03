@@ -3,15 +3,15 @@ import type { ConfigCatClientOptions, IConfigCatKernel, OptionsBase, OptionsForP
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode, PROXY_SDKKEY_PREFIX } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "./ConfigCatLogger";
-import type { IConfigService } from "./ConfigServiceBase";
-import { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
+import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
+import { ClientCacheState, RefreshErrorCode, refreshResultFromFailure } from "./ConfigServiceBase";
 import type { FlagOverrides } from "./FlagOverrides";
 import { nameOfOverrideBehaviour, OverrideBehaviour } from "./FlagOverrides";
 import type { HookEvents, Hooks, IProvidesConfigCatClient, IProvidesHooks } from "./Hooks";
 import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
 import type { Config, ProjectConfig, Setting, SettingMap, SettingValue } from "./ProjectConfig";
-import type { IEvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
+import type { EvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, getTimestampAsDate, isAllowedValue, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
@@ -46,7 +46,7 @@ export interface IConfigCatClient extends IProvidesHooks {
    * @throws {Error} `key` is empty.
    * @throws {TypeError} `defaultValue` is not of an allowed type.
    */
-  getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<IEvaluationDetails<SettingTypeOf<T>>>;
+  getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<EvaluationDetails<SettingTypeOf<T>>>;
 
   /**
    * Returns all setting keys.
@@ -66,7 +66,7 @@ export interface IConfigCatClient extends IProvidesHooks {
    * @param user The User Object to use for evaluating targeting rules and percentage options.
    * @returns A promise that fulfills with the array of values along with evaluation details.
    */
-  getAllValueDetailsAsync(user?: IUser): Promise<IEvaluationDetails[]>;
+  getAllValueDetailsAsync(user?: IUser): Promise<EvaluationDetails[]>;
 
   /** Returns the key of a setting and it's value identified by the given Variation ID (analytics) */
 
@@ -185,7 +185,7 @@ export interface IConfigCatClientSnapshot {
  * @throws {Error} `key` is empty.
  * @throws {TypeError} `defaultValue` is not of an allowed type.
  */
-  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): IEvaluationDetails<SettingTypeOf<T>>;
+  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): EvaluationDetails<SettingTypeOf<T>>;
 
   /**
    * Returns the key of a setting and its value identified by the specified `variationId`.
@@ -322,7 +322,7 @@ export class ConfigCatClient implements IConfigCatClient {
     this.suppressFinalize = registerForFinalization(this, { sdkKey: options.sdkKey, cacheToken, configService: this.configService, logger: options.logger });
   }
 
-  private static finalize(data: IFinalizationData) {
+  private static finalize(data: FinalizationData) {
     // Safeguard against situations where user forgets to dispose of the client instance.
 
     data.logger?.debug("finalize() called.");
@@ -378,7 +378,7 @@ export class ConfigCatClient implements IConfigCatClient {
     validateKey(key);
     ensureAllowedDefaultValue(defaultValue);
 
-    let value: SettingTypeOf<T>, evaluationDetails: IEvaluationDetails<SettingTypeOf<T>>;
+    let value: SettingTypeOf<T>, evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
@@ -397,13 +397,13 @@ export class ConfigCatClient implements IConfigCatClient {
     return value;
   }
 
-  async getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<IEvaluationDetails<SettingTypeOf<T>>> {
+  async getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<EvaluationDetails<SettingTypeOf<T>>> {
     this.options.logger.debug("getValueDetailsAsync() called.");
 
     validateKey(key);
     ensureAllowedDefaultValue(defaultValue);
 
-    let evaluationDetails: IEvaluationDetails<SettingTypeOf<T>>;
+    let evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     let remoteConfig: ProjectConfig | null = null;
     user ??= this.defaultUser;
     try {
@@ -440,7 +440,7 @@ export class ConfigCatClient implements IConfigCatClient {
     this.options.logger.debug("getAllValuesAsync() called.");
 
     const defaultReturnValue = "empty array";
-    let result: SettingKeyValue[], evaluationDetailsArray: IEvaluationDetails[], evaluationErrors: any[] | undefined;
+    let result: SettingKeyValue[], evaluationDetailsArray: EvaluationDetails[], evaluationErrors: any[] | undefined;
     user ??= this.defaultUser;
     try {
       const [settings, remoteConfig] = await this.getSettingsAsync();
@@ -463,11 +463,11 @@ export class ConfigCatClient implements IConfigCatClient {
     return result;
   }
 
-  async getAllValueDetailsAsync(user?: IUser): Promise<IEvaluationDetails[]> {
+  async getAllValueDetailsAsync(user?: IUser): Promise<EvaluationDetails[]> {
     this.options.logger.debug("getAllValueDetailsAsync() called.");
 
     const defaultReturnValue = "empty array";
-    let evaluationDetailsArray: IEvaluationDetails[], evaluationErrors: any[] | undefined;
+    let evaluationDetailsArray: EvaluationDetails[], evaluationErrors: any[] | undefined;
     user ??= this.defaultUser;
     try {
       const [settings, remoteConfig] = await this.getSettingsAsync();
@@ -511,10 +511,10 @@ export class ConfigCatClient implements IConfigCatClient {
         return result;
       } catch (err) {
         this.options.logger.clientMethodError("forceRefreshAsync", err);
-        return RefreshResult.failure(RefreshErrorCode.UnexpectedError, errorToString(err), err);
+        return refreshResultFromFailure(RefreshErrorCode.UnexpectedError, errorToString(err), err);
       }
     } else {
-      return RefreshResult.failure(RefreshErrorCode.LocalOnlyClient,
+      return refreshResultFromFailure(RefreshErrorCode.LocalOnlyClient,
         "Client is configured to use the LocalOnly override behavior, which prevents synchronization with external cache and making HTTP requests.");
     }
   }
@@ -693,7 +693,7 @@ class Snapshot implements IConfigCatClientSnapshot {
     validateKey(key);
     ensureAllowedDefaultValue(defaultValue);
 
-    let value: SettingTypeOf<T>, evaluationDetails: IEvaluationDetails<SettingTypeOf<T>>;
+    let value: SettingTypeOf<T>, evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     user ??= this.defaultUser;
     try {
       evaluationDetails = evaluate(this.evaluator, this.mergedSettings, key, defaultValue, user, this.remoteConfig, this.options.logger);
@@ -709,13 +709,13 @@ class Snapshot implements IConfigCatClientSnapshot {
     return value;
   }
 
-  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): IEvaluationDetails<SettingTypeOf<T>> {
+  getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): EvaluationDetails<SettingTypeOf<T>> {
     this.options.logger.debug("Snapshot.getValueDetails() called.");
 
     validateKey(key);
     ensureAllowedDefaultValue(defaultValue);
 
-    let evaluationDetails: IEvaluationDetails<SettingTypeOf<T>>;
+    let evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     user ??= this.defaultUser;
     try {
       evaluationDetails = evaluate(this.evaluator, this.mergedSettings, key, defaultValue, user, this.remoteConfig, this.options.logger);
@@ -793,17 +793,17 @@ export function getSerializableOptions(options: ConfigCatClientOptions): Record<
 // Since a strong reference is stored to the held value (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry),
 // objects implementing this interface MUST NOT contain a strong reference (either directly or transitively) to the ConfigCatClient object because
 // that would prevent the client object from being GC'd, which would defeat the whole purpose of the finalization logic.
-interface IFinalizationData {
+type FinalizationData = {
   sdkKey: string;
   cacheToken: object | undefined;
   configService: IConfigService | null;
   logger: LoggerWrapper;
-}
+};
 
-let registerForFinalization = function(client: ConfigCatClient, data: IFinalizationData): () => void {
+let registerForFinalization = function(client: ConfigCatClient, data: FinalizationData): () => void {
   // Use FinalizationRegistry (finalization callbacks) if the runtime provides that feature.
   if (typeof FinalizationRegistry === "function") {
-    const finalizationRegistry = new FinalizationRegistry<IFinalizationData>(data => ConfigCatClient["finalize"](data));
+    const finalizationRegistry = new FinalizationRegistry<FinalizationData>(data => ConfigCatClient["finalize"](data));
 
     registerForFinalization = (client, data) => {
       const unregisterToken = {};

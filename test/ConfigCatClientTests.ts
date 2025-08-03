@@ -12,7 +12,7 @@ import { MapOverrideDataSource, OverrideBehaviour } from "#lib/FlagOverrides";
 import { IProvidesConfigCatClient, IProvidesHooks } from "#lib/Hooks";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { Config, deserializeConfig, ProjectConfig, SettingValue } from "#lib/ProjectConfig";
-import { EvaluateContext, EvaluationErrorCode, IEvaluateResult, IEvaluationDetails, IRolloutEvaluator } from "#lib/RolloutEvaluator";
+import { EvaluateContext, EvaluateResult, EvaluationDetails, EvaluationErrorCode, IRolloutEvaluator } from "#lib/RolloutEvaluator";
 import { User } from "#lib/User";
 import { delay, getMonotonicTimeMs, Message } from "#lib/Utils";
 import "./helpers/ConfigCatClientCacheExtensions";
@@ -150,7 +150,7 @@ describe("ConfigCatClient", () => {
     const client: IConfigCatClient = new ConfigCatClient(options);
     assert.isDefined(client);
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     const value = await client.getValueAsync("debug", true);
@@ -202,7 +202,7 @@ describe("ConfigCatClient", () => {
 
     const user = new User("a@configcat.com");
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     // Act
@@ -246,7 +246,7 @@ describe("ConfigCatClient", () => {
 
     const user = new User("a@configcat.com");
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     // Act
@@ -290,7 +290,7 @@ describe("ConfigCatClient", () => {
 
     const user = new User("a@configcat.com");
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     // Act
@@ -335,7 +335,7 @@ describe("ConfigCatClient", () => {
     const user = new User("a@configcat.com");
     user.custom = { eyeColor: "red" };
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     // Act
@@ -381,7 +381,7 @@ describe("ConfigCatClient", () => {
 
     const user = new User("a@configcat.com");
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     // Act
@@ -427,14 +427,14 @@ describe("ConfigCatClient", () => {
 
     const err = new Error("Something went wrong.");
     client["evaluator"] = new class implements IRolloutEvaluator {
-      evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult {
+      evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult {
         throw err;
       }
     }();
 
     const user = new User("a@configcat.com");
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     const errorEvents: [string, any][] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
     client.on("clientError", (msg: Message, err: any) => errorEvents.push([msg.toString(), err]));
@@ -483,7 +483,7 @@ describe("ConfigCatClient", () => {
 
     const user = new User("a@configcat.com");
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     // Act
@@ -536,14 +536,14 @@ describe("ConfigCatClient", () => {
 
     const err = new Error("Something went wrong.");
     client["evaluator"] = new class implements IRolloutEvaluator {
-      evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult {
+      evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult {
         throw err;
       }
     }();
 
     const user = new User("a@configcat.com");
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     const errorEvents: [string, any][] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
     client.on("clientError", (msg: Message, err: any) => errorEvents.push([msg.toString(), err]));
@@ -923,7 +923,7 @@ describe("ConfigCatClient", () => {
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", void 0, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options);
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     const actual = await client.getAllValuesAsync();
@@ -941,7 +941,7 @@ describe("ConfigCatClient", () => {
     const options: AutoPollOptions = createAutoPollOptions("APIKEY", { logger: null, maxInitWaitTimeSeconds: 0 }, configCatKernel);
     const client: IConfigCatClient = new ConfigCatClient(options);
 
-    const flagEvaluatedEvents: IEvaluationDetails[] = [];
+    const flagEvaluatedEvents: EvaluationDetails[] = [];
     client.on("flagEvaluated", ed => flagEvaluatedEvents.push(ed));
 
     const actual = await client.getAllValuesAsync();
@@ -1406,7 +1406,7 @@ describe("ConfigCatClient", () => {
       const clientReadyEvents: [IConfigCatClient, ClientCacheState][] = [];
       const configFetchedEvents: [IConfigCatClient, RefreshResult, boolean][] = [];
       const configChangedEvents: [IConfigCatClient, Config][] = [];
-      const flagEvaluatedEvents: [IConfigCatClient, IEvaluationDetails][] = [];
+      const flagEvaluatedEvents: [IConfigCatClient, EvaluationDetails][] = [];
       const errorEvents: [IConfigCatClient, string, any][] = [];
 
       const handleClientReady = function(this: IProvidesConfigCatClient, cacheState: ClientCacheState) {
@@ -1418,7 +1418,7 @@ describe("ConfigCatClient", () => {
       const handleConfigChanged = function(this: IProvidesConfigCatClient, pc: Config) {
         configChangedEvents.push([this.configCatClient, pc]);
       };
-      const handleFlagEvaluated = function(this: IProvidesConfigCatClient, ed: IEvaluationDetails) {
+      const handleFlagEvaluated = function(this: IProvidesConfigCatClient, ed: EvaluationDetails) {
         flagEvaluatedEvents.push([this.configCatClient, ed]);
       };
       const handleClientError = function(this: IProvidesConfigCatClient, msg: Message, err: any) {
@@ -1509,7 +1509,7 @@ describe("ConfigCatClient", () => {
 
       // 4. All flags are evaluated
       const keys = await client.getAllKeysAsync();
-      const evaluationDetails: IEvaluationDetails[] = [];
+      const evaluationDetails: EvaluationDetails[] = [];
       for (const key of keys) {
         evaluationDetails.push(await client.getValueDetailsAsync(key, false));
       }

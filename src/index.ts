@@ -21,7 +21,9 @@ export { FetchError, FetchRequest, FetchResponse } from "./ConfigFetcher";
 
 export { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 
-export { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
+export type { RefreshResult } from "./ConfigServiceBase";
+
+export { ClientCacheState, RefreshErrorCode } from "./ConfigServiceBase";
 
 export type { FlagOverrides, IOverrideDataSource } from "./FlagOverrides";
 
@@ -34,7 +36,7 @@ export type {
 
 export { ConfigJson, deserializeConfig, prepareConfig, createSettingFromValue } from "./ProjectConfig";
 
-export type { IEvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
+export type { IEvaluationDetails, EvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 
 export { EvaluationErrorCode } from "./RolloutEvaluator";
 

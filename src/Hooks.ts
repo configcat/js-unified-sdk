@@ -3,7 +3,7 @@ import type { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter, IEventProvider } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { Config } from "./ProjectConfig";
-import type { IEvaluationDetails } from "./RolloutEvaluator";
+import type { EvaluationDetails } from "./RolloutEvaluator";
 import type { Message } from "./Utils";
 
 /** Hooks (events) that can be emitted by `ConfigCatClient`. */
@@ -21,7 +21,7 @@ export type HookEvents = {
    */
   clientReady: [cacheState: ClientCacheState];
   /** Occurs after the value of a feature flag of setting has been evaluated. */
-  flagEvaluated: [evaluationDetails: IEvaluationDetails];
+  flagEvaluated: [evaluationDetails: EvaluationDetails];
   /**
    * Occurs after attempting to update the cached config by fetching the latest version from the ConfigCat CDN.
    */
