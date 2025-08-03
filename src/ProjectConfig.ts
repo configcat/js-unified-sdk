@@ -2,7 +2,7 @@ import type { PrerequisiteFlagComparator, SegmentComparator, UserComparator } fr
 import { SettingType } from "./ConfigJson";
 import * as ConfigJson from "./ConfigJson";
 import type { ObjectMap } from "./Utils";
-import { ensurePrototype, hasOwnProperty, isArray, isBoolean, isInteger, isIntegerInRange, isNumber, isObject, isString, setPrototypeOf, toStringSafe } from "./Utils";
+import { ensurePrototype, ensureStringArg, hasOwnProperty, isArray, isBoolean, isInteger, isIntegerInRange, isNumber, isObject, isString, setPrototypeOf, toStringSafe } from "./Utils";
 
 // NOTE: This is a hack which prevents the TS compiler from eliding the namespace import above.
 // TS wants to do this because it figures that the ConfigJson module contains types only.
@@ -286,6 +286,7 @@ export declare abstract class SegmentCondition implements Immutable<ConfigJson.S
  * whether referenced segments and feature flags actually exist. (Such issues are checked during feature flag evaluation.)
  */
 export function deserializeConfig(configJson: string): Config {
+  ensureStringArg(configJson, "configJson", true);
   const configJsonParsed: unknown = JSON.parse(configJson);
   return prepareConfig(configJsonParsed as ConfigJson.Config);
 }
@@ -322,6 +323,8 @@ export function prepareConfig(config: Partial<ConfigJson.Config>): Config {
  * Creates a setting that can be used for feature flag evaluation from the specified value.
  */
 export function createSettingFromValue(value: NonNullable<SettingValue>): Setting {
+  // NOTE: We don't validate the type of value here for backward compatibility reasons. (It's checked during feature flag evaluation.)
+
   const setting = Object.create(objectMapPrototype) as AdjustedConfigJsonSetting;
   setting.t = -1 satisfies UnknownSettingType;
   setting.v = value;

@@ -125,10 +125,6 @@ export function errorToString(err: any, includeStackTrace = false): string {
   }
 }
 
-export function throwError(err: any): never {
-  throw err;
-}
-
 /** Indicates a null-prototype object that is used as a map. */
 export type ObjectMap<TKey extends keyof any, TValue> = Record<TKey, TValue>
   // See also: https://github.com/microsoft/TypeScript/issues/1108
@@ -204,6 +200,68 @@ export function isPromiseLike<T>(obj: unknown): obj is PromiseLike<T> {
   // See also: https://stackoverflow.com/a/27746324/8656352
   // eslint-disable-next-line @typescript-eslint/unbound-method
   return isFunction((obj as PromiseLike<T> | undefined)?.then);
+}
+
+export function ensureBooleanArg(value: boolean, argName: string, memberPath?: string): boolean {
+  isBoolean(value) || throwUnexpectedArgType(value, argName, "boolean", memberPath);
+  return value;
+}
+
+export function ensureNumberArg(value: number, argName: string, memberPath?: string): number {
+  isNumber(value) || throwUnexpectedArgType(value, argName, "number", memberPath);
+  return value;
+}
+
+export function ensureNumberArgInRange(value: number, argName: string,
+  rangeDescription: string, isInRange: (value: number) => boolean, memberPath?: string
+): number {
+  isNumber(value) || throwUnexpectedArgType(value, argName, "number", memberPath);
+  isInRange(value) || throwInvalidArg(argName, `Expected a value ${rangeDescription}, got ${value}.`, memberPath, RangeError);
+  return value;
+}
+
+export function ensureEnumArg<T extends number>(value: T, argName: string,
+  enumName: string, isValidEnum: (value: number) => boolean, memberPath?: string
+): T {
+  ensureNumberArg(value, argName, memberPath);
+  isValidEnum(value) || throwInvalidArg(argName, `Expected a valid \`${enumName}\` value, got '${value}'.`, memberPath, RangeError);
+  return value;
+}
+
+export function ensureStringArg(value: string, argName: string, requireNonEmpty?: boolean, memberPath?: string): string {
+  isString(value) || throwUnexpectedArgType(value, argName, "string", memberPath);
+  (value.length || !requireNonEmpty) || throwInvalidArg(argName, "Expected a non-empty string.", memberPath);
+  return value;
+}
+
+export function ensureFunctionArg<T extends (...args: any[]) => any>(value: T, argName: string, memberPath?: string): T {
+  isFunction(value) || throwUnexpectedArgType(value, argName, "function", memberPath);
+  return value;
+}
+
+export function ensureObjectArg<T extends object>(value: T, argName: string, requiredProps?: ObjectMap<keyof T, boolean>, memberPath?: string): T {
+  isObject(value) || throwUnexpectedArgType(value, argName, "object", memberPath);
+  if (requiredProps) {
+    for (const key in requiredProps) {
+      const isMethod = requiredProps[key as keyof T];
+      if (!(key in value)
+        || (isMethod && !isFunction((value as Record<string, unknown>)[key]))
+      ) {
+        throwInvalidArg(argName, `Expected an object with ${isMethod ? "method" : "property"} \`${key}\`.`, memberPath, TypeError);
+      }
+    }
+  }
+  return value;
+}
+
+function throwUnexpectedArgType(value: unknown, argName: string, expectedType: string, memberPath?: string): never {
+  const actualType = value === null ? "null" : typeof value;
+  throwInvalidArg(argName, `Expected a value of type ${expectedType}, got ${actualType}.`, memberPath, TypeError);
+}
+
+export function throwInvalidArg(argName: string, reason: string, memberPath?: string, errorConstructor?: ErrorConstructor): never {
+  const argKind = !memberPath ? (memberPath = "", "argument") : "property";
+  throw (errorConstructor ?? Error)(`Invalid ${argKind} \`${argName}${memberPath}\`. ${reason}`);
 }
 
 export function formatStringList(items: ReadonlyArray<string>, maxLength = 0, getOmittedItemsText?: (count: number) => string, separator = ", "): string {

@@ -2,10 +2,11 @@ import { ConfigCatClient } from "./ConfigCatClient";
 import type { IConfigCatClient } from "./ConfigCatClient";
 import type { IConfigCatKernel, OptionsForPollingMode, PollingMode } from "./ConfigCatClientOptions";
 import type { IConfigCatLogger, LogLevel } from "./ConfigCatLogger";
-import { ConfigCatConsoleLogger } from "./ConfigCatLogger";
+import { ConfigCatConsoleLogger, nameOfLogLevel } from "./ConfigCatLogger";
 import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "./FlagOverrides";
-import { MapOverrideDataSource, QueryParamsOverrideDataSource } from "./FlagOverrides";
+import { MapOverrideDataSource, nameOfOverrideBehaviour, QueryParamsOverrideDataSource } from "./FlagOverrides";
 import type { SettingValue } from "./ProjectConfig";
+import { ensureBooleanArg, ensureEnumArg, ensureObjectArg, ensureStringArg } from "./Utils";
 
 /* Package "pubternal" API (core part) */
 
@@ -41,6 +42,9 @@ export function disposeAllClients(): void {
  * @param eol The character sequence to use for line breaks in log messages. Defaults to "\n".
  */
 export function createConsoleLogger(logLevel: LogLevel, eol?: string): IConfigCatLogger {
+  ensureEnumArg(logLevel, "logLevel", "LogLevel", value => nameOfLogLevel(value) !== void 0);
+  eol == null || ensureStringArg(eol, "eol", true);
+
   return new ConfigCatConsoleLogger(logLevel, eol);
 }
 
@@ -54,6 +58,10 @@ export function createConsoleLogger(logLevel: LogLevel, eol?: string): IConfigCa
  * @param watchChanges If set to `true`, the input map will be tracked for changes.
  */
 export function createFlagOverridesFromMap(map: Record<string, NonNullable<SettingValue>>, behaviour: OverrideBehaviour, watchChanges?: boolean): FlagOverrides {
+  ensureObjectArg(map, "map");
+  ensureEnumArg(behaviour, "behaviour", "OverrideBehaviour", value => nameOfOverrideBehaviour(value) !== void 0);
+  watchChanges == null || ensureBooleanArg(watchChanges, "watchChanges");
+
   return { dataSource: new MapOverrideDataSource(map, watchChanges), behaviour };
 }
 
@@ -73,6 +81,11 @@ export function createFlagOverridesFromMap(map: Record<string, NonNullable<Setti
 export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
   watchChanges?: boolean, paramPrefix?: string, queryStringProvider?: IQueryStringProvider
 ): FlagOverrides {
+  ensureEnumArg(behaviour, "behaviour", "OverrideBehaviour", value => nameOfOverrideBehaviour(value) !== void 0);
+  watchChanges == null || ensureBooleanArg(watchChanges, "watchChanges");
+  paramPrefix == null || ensureStringArg(paramPrefix, "paramPrefix");
+  queryStringProvider == null || ensureObjectArg(queryStringProvider, "queryStringProvider");
+
   return { dataSource: new QueryParamsOverrideDataSource(watchChanges, paramPrefix, queryStringProvider), behaviour };
 }
 

@@ -135,7 +135,7 @@ describe("Setting evaluation (config v2)", () => {
       };
 
       const options: IManualPollOptions = {
-        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour },
+        flagOverrides: overrideBehaviour != null ? { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour } : null,
       };
 
       // eslint-disable-next-line @stylistic/max-len

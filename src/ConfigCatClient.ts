@@ -13,7 +13,7 @@ import type { EvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingType
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
-import { createMap, createWeakRef, errorToString, isObject, shallowClone, throwError, toStringSafe } from "./Utils";
+import { createMap, createWeakRef, ensureEnumArg, ensureObjectArg, ensureStringArg, errorToString, isObject, shallowClone, throwInvalidArg, toStringSafe } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -260,19 +260,17 @@ export class ConfigCatClient implements IConfigCatClient {
   static get<TMode extends PollingMode>(sdkKey: string, pollingMode: TMode,
     options: OptionsForPollingMode<TMode> | undefined | null, configCatKernel: IConfigCatKernel
   ): IConfigCatClient {
-    const invalidSdkKeyError = "Invalid 'sdkKey' value";
-    if (!sdkKey) {
-      throw Error(invalidSdkKeyError);
-    }
+    ensureStringArg(sdkKey, "sdkKey", true);
+    options == null || ensureObjectArg(options, "options");
 
     const internalOptions =
       pollingMode === PollingMode.AutoPoll ? new AutoPollOptions(sdkKey, configCatKernel, options)
       : pollingMode === PollingMode.ManualPoll ? new ManualPollOptions(sdkKey, configCatKernel, options)
       : pollingMode === PollingMode.LazyLoad ? new LazyLoadOptions(sdkKey, configCatKernel, options)
-      : throwError(Error("Invalid 'pollingMode' value"));
+      : ensureEnumArg(pollingMode, "pollingMode", "PollingMode", () => false) as never;
 
     if (internalOptions.flagOverrides?.behaviour !== OverrideBehaviour.LocalOnly && !isValidSdkKey(sdkKey, internalOptions.baseUrlOverriden)) {
-      throw Error(invalidSdkKeyError);
+      throwInvalidArg("sdkKey", `Expected a string matching the SDK Key format, got '${toStringSafe(sdkKey)}'.`);
     }
 
     const [instance, instanceAlreadyCreated] = clientInstanceCache.getOrCreate(internalOptions);
@@ -287,10 +285,6 @@ export class ConfigCatClient implements IConfigCatClient {
   constructor(
     options: ConfigCatClientOptions,
     private readonly cacheToken?: object) {
-
-    if (!options) {
-      throw Error("Invalid 'options' value");
-    }
 
     this.options = options;
 
@@ -376,8 +370,9 @@ export class ConfigCatClient implements IConfigCatClient {
   async getValueAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<SettingTypeOf<T>> {
     this.options.logger.debug("getValueAsync() called.");
 
-    validateKey(key);
+    validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
+    validateUserObject(user);
 
     let value: SettingTypeOf<T>, evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     let remoteConfig: ProjectConfig | null = null;
@@ -401,8 +396,9 @@ export class ConfigCatClient implements IConfigCatClient {
   async getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<EvaluationDetails<SettingTypeOf<T>>> {
     this.options.logger.debug("getValueDetailsAsync() called.");
 
-    validateKey(key);
+    validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
+    validateUserObject(user);
 
     let evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     let remoteConfig: ProjectConfig | null = null;
@@ -440,6 +436,8 @@ export class ConfigCatClient implements IConfigCatClient {
   async getAllValuesAsync(user?: IUser): Promise<SettingKeyValue[]> {
     this.options.logger.debug("getAllValuesAsync() called.");
 
+    validateUserObject(user);
+
     const defaultReturnValue = "empty array";
     let result: SettingKeyValue[], evaluationDetailsArray: EvaluationDetails[], evaluationErrors: any[] | undefined;
     user ??= this.defaultUser;
@@ -467,6 +465,8 @@ export class ConfigCatClient implements IConfigCatClient {
   async getAllValueDetailsAsync(user?: IUser): Promise<EvaluationDetails[]> {
     this.options.logger.debug("getAllValueDetailsAsync() called.");
 
+    validateUserObject(user);
+
     const defaultReturnValue = "empty array";
     let evaluationDetailsArray: EvaluationDetails[], evaluationErrors: any[] | undefined;
     user ??= this.defaultUser;
@@ -492,6 +492,8 @@ export class ConfigCatClient implements IConfigCatClient {
 
   async getKeyAndValueAsync(variationId: string): Promise<SettingKeyValue | null> {
     this.options.logger.debug("getKeyAndValueAsync() called.");
+
+    validateVariationId(variationId);
 
     const defaultReturnValue = "null";
     try {
@@ -521,7 +523,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   setDefaultUser(defaultUser: IUser): void {
-    this.defaultUser = defaultUser;
+    this.defaultUser = ensureObjectArg(defaultUser, "defaultUser");
   }
 
   clearDefaultUser(): void {
@@ -693,8 +695,9 @@ class Snapshot implements IConfigCatClientSnapshot {
   getValue<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): SettingTypeOf<T> {
     this.options.logger.debug("Snapshot.getValue() called.");
 
-    validateKey(key);
+    validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
+    validateUserObject(user);
 
     let value: SettingTypeOf<T>, evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     user ??= this.defaultUser;
@@ -715,8 +718,9 @@ class Snapshot implements IConfigCatClientSnapshot {
   getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): EvaluationDetails<SettingTypeOf<T>> {
     this.options.logger.debug("Snapshot.getValueDetails() called.");
 
-    validateKey(key);
+    validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
+    validateUserObject(user);
 
     let evaluationDetails: EvaluationDetails<SettingTypeOf<T>>;
     user ??= this.defaultUser;
@@ -734,6 +738,8 @@ class Snapshot implements IConfigCatClientSnapshot {
 
   getKeyAndValue(variationId: string): SettingKeyValue | null {
     this.options.logger.debug("Snapshot.getKeyAndValue() called.");
+
+    validateVariationId(variationId);
 
     const defaultReturnValue = "null";
     try {
@@ -760,16 +766,22 @@ function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {
   }
 }
 
-function validateKey(key: string): void {
-  if (!key) {
-    throw Error("Invalid 'key' value");
-  }
+function validateSettingKey(key: string): void {
+  ensureStringArg(key, "key", true);
 }
 
 function ensureAllowedDefaultValue(value: unknown): asserts value is SettingValue {
   if (value != null && !isAllowedValue(value)) {
-    throw TypeError("The default value must be boolean, number, string, null or undefined.");
+    throwInvalidArg("defaultValue", "The default value must be boolean, number, string, null or undefined.", void 0, TypeError);
   }
+}
+
+function validateUserObject(user: IUser | undefined): void {
+  user == null || ensureObjectArg(user, "user");
+}
+
+function validateVariationId(variationId: string): void {
+  ensureStringArg(variationId, "variationId", true);
 }
 
 export function getSerializableOptions(options: ConfigCatClientOptions): Record<string, unknown> {

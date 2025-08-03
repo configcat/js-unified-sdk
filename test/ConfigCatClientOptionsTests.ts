@@ -3,7 +3,7 @@ import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManua
 import { OverrideBehaviour, User } from "#lib";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { getSerializableOptions } from "#lib/ConfigCatClient";
-import { IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
+import { IConfigCatKernel, IManualPollOptions, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { ConfigCatConsoleLogger, IConfigCatLogger, LogEventId, LogFilterCallback, LoggerWrapper, LogLevel, LogMessage } from "#lib/ConfigCatLogger";
 import { IConfigService } from "#lib/ConfigServiceBase";
 import { createFlagOverridesFromMap } from "#lib/index.pubternals";
@@ -14,7 +14,7 @@ describe("Options", () => {
   it("ManualPollOptions initialization With -1 requestTimeoutMs ShouldThrowError", () => {
     expect(() => {
       createManualPollOptions("APIKEY", { requestTimeoutMs: -1 });
-    }).to.throw("Invalid 'requestTimeoutMs' value");
+    }).to.throw(RangeError, "Invalid property `options.requestTimeoutMs`. Expected a value greater than 0, got -1.");
   });
 
   it("ManualPollOptions initialization With undefined 'defaultCacheFactory' Should init with InMemoryCache", () => {
@@ -66,7 +66,7 @@ describe("Options", () => {
   it("AutoPollOptions initialization With -1 requestTimeoutMs ShouldThrowError", () => {
     expect(() => {
       createAutoPollOptions("APIKEY", { requestTimeoutMs: -1 });
-    }).to.throw("Invalid 'requestTimeoutMs' value");
+    }).to.throw(RangeError, "Invalid property `options.requestTimeoutMs`. Expected a value greater than 0, got -1.");
   });
 
   it("AutoPollOptions initialization With 'sdkKey' Should create an instance, defaults OK", () => {
@@ -106,45 +106,37 @@ describe("Options", () => {
   it("AutoPollOptions initialization With -1 'pollIntervalSeconds' ShouldThrowError", () => {
     expect(() => {
       createAutoPollOptions("APIKEY", { pollIntervalSeconds: -1 });
-    }).to.throw("Invalid 'pollIntervalSeconds' value");
+    }).to.throw(RangeError, "Invalid property `options.pollIntervalSeconds`. Expected a value between 1 and 2147483, got -1.");
   });
 
   it("AutoPollOptions initialization With NaN 'pollIntervalSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("pollIntervalSeconds", NaN);
     expect(() => {
-      createAutoPollOptions("APIKEY", { pollIntervalSeconds: myConfig.get("pollIntervalSeconds") });
-    }).to.throw("Invalid 'pollIntervalSeconds' value");
+      createAutoPollOptions("APIKEY", { pollIntervalSeconds: NaN });
+    }).to.throw(RangeError, "Invalid property `options.pollIntervalSeconds`. Expected a value between 1 and 2147483, got NaN.");
   });
 
   it("AutoPollOptions initialization With boolean value 'pollIntervalSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("pollIntervalSeconds", true);
     expect(() => {
-      createAutoPollOptions("APIKEY", { pollIntervalSeconds: myConfig.get("pollIntervalSeconds") });
-    }).to.throw("Invalid 'pollIntervalSeconds' value");
+      createAutoPollOptions("APIKEY", { pollIntervalSeconds: true as unknown as number });
+    }).to.throw(TypeError, "Invalid property `options.pollIntervalSeconds`. Expected a value of type number, got boolean.");
   });
 
   it("AutoPollOptions initialization With whitespaces value 'pollIntervalSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("pollIntervalSeconds", " ");
     expect(() => {
-      createAutoPollOptions("APIKEY", { pollIntervalSeconds: myConfig.get("pollIntervalSeconds") });
-    }).to.throw("Invalid 'pollIntervalSeconds' value");
+      createAutoPollOptions("APIKEY", { pollIntervalSeconds: " " as unknown as number });
+    }).to.throw(TypeError, "Invalid property `options.pollIntervalSeconds`. Expected a value of type number, got string.");
   });
 
   it("AutoPollOptions initialization With new line value 'pollIntervalSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("pollIntervalSeconds", "\n");
     expect(() => {
-      createAutoPollOptions("APIKEY", { pollIntervalSeconds: myConfig.get("pollIntervalSeconds") });
-    }).to.throw("Invalid 'pollIntervalSeconds' value");
+      createAutoPollOptions("APIKEY", { pollIntervalSeconds: "\n" as unknown as number });
+    }).to.throw(TypeError, "Invalid property `options.pollIntervalSeconds`. Expected a value of type number, got string.");
   });
 
   it("AutoPollOptions initialization With 0 'pollIntervalSeconds' ShouldThrowError", () => {
     expect(() => {
       createAutoPollOptions("APIKEY", { pollIntervalSeconds: -1 });
-    }).to.throw("Invalid 'pollIntervalSeconds' value");
+    }).to.throw(RangeError, "Invalid property `options.pollIntervalSeconds`. Expected a value between 1 and 2147483, got -1.");
   });
 
   it("AutoPollOptions initialization With undefined 'defaultCacheFactory' Should set to InMemoryCache", () => {
@@ -165,35 +157,27 @@ describe("Options", () => {
   });
 
   it("AutoPollOptions initialization With NaN 'maxInitWaitTimeSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("maxInitWaitTimeSeconds", NaN);
     expect(() => {
-      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: myConfig.get("maxInitWaitTimeSeconds") });
-    }).to.throw("Invalid 'maxInitWaitTimeSeconds' value");
+      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: NaN });
+    }).to.throw(RangeError, "Invalid property `options.maxInitWaitTimeSeconds`. Expected a value less than or equal to 2147483, got NaN.");
   });
 
   it("AutoPollOptions initialization With boolean value 'maxInitWaitTimeSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("maxInitWaitTimeSeconds", true);
     expect(() => {
-      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: myConfig.get("maxInitWaitTimeSeconds") });
-    }).to.throw("Invalid 'maxInitWaitTimeSeconds' value");
+      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: true as unknown as number });
+    }).to.throw(TypeError, "Invalid property `options.maxInitWaitTimeSeconds`. Expected a value of type number, got boolean.");
   });
 
   it("AutoPollOptions initialization With whitespaces value 'maxInitWaitTimeSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("maxInitWaitTimeSeconds", " ");
     expect(() => {
-      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: myConfig.get("maxInitWaitTimeSeconds") });
-    }).to.throw("Invalid 'maxInitWaitTimeSeconds' value");
+      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: " " as unknown as number });
+    }).to.throw(TypeError, "Invalid property `options.maxInitWaitTimeSeconds`. Expected a value of type number, got string.");
   });
 
   it("AutoPollOptions initialization With new line value 'maxInitWaitTimeSeconds' ShouldThrowError", () => {
-    const myConfig = new Map();
-    myConfig.set("maxInitWaitTimeSeconds", "\n");
     expect(() => {
-      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: myConfig.get("maxInitWaitTimeSeconds") });
-    }).to.throw("Invalid 'maxInitWaitTimeSeconds' value");
+      createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds: "\n" as unknown as number });
+    }).to.throw(TypeError, "Invalid property `options.maxInitWaitTimeSeconds`. Expected a value of type number, got string.");
   });
 
   it("AutoPollOptions initialization With 0 'maxInitWaitTimeSeconds' Should create an instance with passed value", () => {
@@ -247,13 +231,13 @@ describe("Options", () => {
   it("LazyLoadOptions initialization With -1 'cacheTimeToLiveSeconds' ShouldThrowError", () => {
     expect(() => {
       createLazyLoadOptions("APIKEY", { cacheTimeToLiveSeconds: -1 });
-    }).to.throw("Invalid 'cacheTimeToLiveSeconds' value");
+    }).to.throw(RangeError, "Invalid property `options.cacheTimeToLiveSeconds`. Expected a value between 1 and 2147483647, got -1.");
   });
 
   it("LazyLoadOptions initialization With -1 requestTimeoutMs ShouldThrowError", () => {
     expect(() => {
       createLazyLoadOptions("APIKEY", { requestTimeoutMs: -1 });
-    }).to.throw("Invalid 'requestTimeoutMs' value");
+    }).to.throw(RangeError, "Invalid property `options.requestTimeoutMs`. Expected a value greater than 0, got -1.");
   });
 
   it("LazyLoadOptions initialization With undefined 'defaultCacheFactory' Should set to InMemoryCache", () => {
@@ -342,6 +326,23 @@ describe("Options", () => {
     const options = createManualPollOptions("APIKEY", void 0, kernel);
     assert.equal("common/m-1.0.0", options.clientVersion);
   });
+
+  for (const [options, expectedMessage] of [
+    [{ cache: {} }, "Invalid property `options.cache`. Expected an object with method `set`."],
+    [{ cache: { set: false } }, "Invalid property `options.cache`. Expected an object with method `set`."],
+    [{ cache: { set: () => {} } }, "Invalid property `options.cache`. Expected an object with method `get`."],
+    [{ configFetcher: {} }, "Invalid property `options.configFetcher`. Expected an object with method `fetchAsync`."],
+    [{ logger: {} }, "Invalid property `options.logger`. Expected an object with method `log`."],
+    [{ flagOverrides: {} }, "Invalid property `options.flagOverrides`. Expected an object with property `dataSource`."],
+    [{ flagOverrides: { dataSource: false } }, "Invalid property `options.flagOverrides`. Expected an object with property `behaviour`."],
+    [{ flagOverrides: { dataSource: false, behaviour: false } }, "Invalid property `options.flagOverrides.behaviour`. Expected a value of type number, got boolean."],
+  ] as [IManualPollOptions, string][]) {
+    it(`Options initialization - required properties should be checked - options: ${JSON.stringify(options)}`, () => {
+      expect(() => {
+        createManualPollOptions("APIKEY", options);
+      }).to.throw(TypeError, expectedMessage);
+    });
+  }
 
   for (const [pollIntervalSecs, isValid] of [
     [-Infinity, false],

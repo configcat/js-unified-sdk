@@ -12,7 +12,7 @@ import { FetchRequest, FetchResponse, FetchResult, fetchResultFromSuccess, IConf
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { ManualPollConfigService } from "#lib/ManualPollConfigService";
 import { Config, deserializeConfig, ProjectConfig } from "#lib/ProjectConfig";
-import { AbortToken, delay, throwError } from "#lib/Utils";
+import { AbortToken, delay } from "#lib/Utils";
 
 describe("ConfigServiceBaseTests", () => {
 
@@ -968,7 +968,7 @@ describe("ConfigServiceBaseTests", () => {
     const fetchError = Error("Something went wrong.");
 
     const fakeFetcher = new FakeConfigFetcherBase(null, 1000,
-      () => throwError(fetchError));
+      () => { throw fetchError; });
 
     const lastConfig = createProjectConfig('"ETAG"', "{}");
 

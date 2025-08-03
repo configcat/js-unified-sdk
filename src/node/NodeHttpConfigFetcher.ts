@@ -6,7 +6,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
-import { hasOwnProperty, isArray, toStringSafe } from "../Utils";
+import { ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -45,8 +45,24 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   private readonly httpsAgent: https.Agent | undefined;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
-    this.httpAgent = options?.httpAgent ?? void 0;
-    this.httpsAgent = options?.httpsAgent ?? void 0;
+    let httpAgent: http.Agent | undefined, httpsAgent: https.Agent | undefined;
+
+    if (options != null) {
+      const optionsArgName = "options";
+
+      ensureObjectArg(options, optionsArgName);
+
+      if (options.httpAgent != null) {
+        httpAgent = ensureObjectArg(options.httpAgent, optionsArgName, void 0, ".httpAgent");
+      }
+
+      if (options.httpsAgent != null) {
+        httpsAgent = ensureObjectArg(options.httpsAgent, optionsArgName, void 0, ".httpsAgent");
+      }
+    }
+
+    this.httpAgent = httpAgent;
+    this.httpsAgent = httpsAgent;
   }
 
   private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {

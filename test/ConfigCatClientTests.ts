@@ -48,7 +48,7 @@ describe("ConfigCatClient", () => {
       } else {
         assert.throws(() => {
           ConfigCatClient.get(sdkKey, PollingMode.ManualPoll, options, configCatKernel).dispose();
-        }, "Invalid 'sdkKey' value");
+        }, Error, `Invalid argument \`sdkKey\`. Expected a string matching the SDK Key format, got '${sdkKey}'`);
       }
     });
   }
