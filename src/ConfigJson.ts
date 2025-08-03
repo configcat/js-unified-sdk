@@ -256,9 +256,9 @@ export const enum UserComparator {
   SensitiveTextIsOneOf = 16,
   /** IS NOT ONE OF (hashed) - Checks whether the comparison attribute is not equal to any of the comparison values (where the comparison is performed using the salted SHA256 hashes of the values). */
   SensitiveTextIsNotOneOf = 17,
-  /** BEFORE (UTC datetime) - Checks whether the comparison attribute interpreted as the seconds elapsed since <see href="https://en.wikipedia.org/wiki/Unix_time">Unix Epoch</see> is less than the comparison value. */
+  /** BEFORE (UTC datetime) - Checks whether the comparison attribute interpreted as the seconds elapsed since {@link https://en.wikipedia.org/wiki/Unix_time | Unix Epoch} is less than the comparison value. */
   DateTimeBefore = 18,
-  /** AFTER (UTC datetime) - Checks whether the comparison attribute interpreted as the seconds elapsed since <see href="https://en.wikipedia.org/wiki/Unix_time">Unix Epoch</see> is greater than the comparison value. */
+  /** AFTER (UTC datetime) - Checks whether the comparison attribute interpreted as the seconds elapsed since {@link https://en.wikipedia.org/wiki/Unix_time | Unix Epoch} is greater than the comparison value. */
   DateTimeAfter = 19,
   /** EQUALS (hashed) - Checks whether the comparison attribute is equal to the comparison value (where the comparison is performed using the salted SHA256 hashes of the values). */
   SensitiveTextEquals = 20,

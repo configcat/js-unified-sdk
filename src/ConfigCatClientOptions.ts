@@ -96,7 +96,7 @@ export interface IOptions {
    * unless absolutely necessary and you know exactly what you are doing. (Writing mock implementations for testing
    * purposes is fine, of course.)
    *
-   * If you use the SDK with a [proxy](https://configcat.com/docs/advanced/proxy/proxy-overview/) and need to set
+   * If you use the SDK with a {@link https://configcat.com/docs/advanced/proxy/proxy-overview/ | proxy } and need to set
    * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. FetchApiConfigFetcher)
    * and override the `setRequestHeaders` method.
    */
