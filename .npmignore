@@ -9,6 +9,7 @@ coverage/
 CONTRIBUTING.md
 DEPENDENCIES.md
 DEPLOY.md
+bun.*
 deno.*
 deno.*.*
 eslint.config.mjs
