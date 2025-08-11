@@ -6,9 +6,9 @@ import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "../FlagOverrides";
 import { createFlagOverridesFromQueryParams as createFlagOverridesFromQueryParamsCommon, getClient as getClientInternal } from "../index.pubternals.core";
 import { ServerSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+import { isBoolean } from "../Utils";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { CloudflareConfigCache } from "./CloudflareConfigCache";
-import { isBoolean } from "../Utils";
 
 /* Package public API for Cloudflare Workers */
 
