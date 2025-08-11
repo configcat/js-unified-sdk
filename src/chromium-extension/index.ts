@@ -3,15 +3,12 @@ import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "
 import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientInternal } from "../index.pubternals.core";
-import { setupPolyfills } from "../Polyfills";
-import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+import { ClientSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { ChromeLocalStorageConfigCache } from "./ChromeLocalStorageConfigCache";
 
 /* Package public API for Chromium-based browser extensions */
-
-setupPolyfills();
 
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.
@@ -29,7 +26,7 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
     defaultCacheFactory: ChromeLocalStorageConfigCache["tryGetFactory"]() ?? IndexedDBConfigCache["tryGetFactory"](),
-    configFetcherFactory: FetchApiConfigFetcher["getFactory"](),
+    configFetcherFactory: ClientSideFetchApiConfigFetcher["getFactory"](),
   });
 }
 
@@ -50,16 +47,16 @@ export interface IJSManualPollOptions extends IManualPollOptions {
 }
 
 export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
-    TMode extends PollingMode.AutoPoll ? IJSAutoPollOptions :
-    TMode extends PollingMode.ManualPoll ? IJSManualPollOptions :
-    TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
-    TMode extends undefined ? IJSAutoPollOptions :
-    never;
+  TMode extends PollingMode.AutoPoll ? IJSAutoPollOptions :
+  TMode extends PollingMode.ManualPoll ? IJSManualPollOptions :
+  TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
+  TMode extends undefined ? IJSAutoPollOptions :
+  never;
 
 export { ChromeLocalStorageConfigCache };
 
 export { IndexedDBConfigCache };
 
-export { FetchApiConfigFetcher };
+export { ClientSideFetchApiConfigFetcher };
 
 export * from "..";

@@ -4,17 +4,12 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
 
-export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
-  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
-    return options => {
-      const configFetcher = new FetchApiConfigFetcher();
-      configFetcher.logger = options.logger;
-      return configFetcher;
-    };
-  }
+export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
+  private logger: LoggerWrapper | null = null;
 
-  private logger?: LoggerWrapper;
-  protected readonly runsOnServerSide?: boolean;
+  protected constructor(private readonly runsOnServerSide?: boolean) {
+  }
 
   async fetchAsync(request: FetchRequest): Promise<FetchResponse> {
     this.logger?.debug("FetchApiConfigFetcher.fetchAsync() called.");
@@ -23,7 +18,9 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     const isCustomUrl = !isCdnUrl(url);
     const { lastETag, timeoutMs } = request;
 
-    const requestInit: RequestInit & { headers?: [string, string][] } = { method: "GET" };
+    const requestInit = Object.create(null) as RequestInit & { headers?: [string, string][] };
+    requestInit.method = "GET";
+
     if (isCustomUrl) {
       this.setRequestHeaders(requestInit, request.headers);
     } else if (this.runsOnServerSide) {
@@ -44,7 +41,7 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     let cleanup: (() => void) | undefined;
 
     // NOTE: Older Chromium versions (e.g. the one used in our tests) may not support AbortController.
-    if (typeof AbortController !== "undefined") {
+    if (typeof AbortController === "function") {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       requestInit.signal = controller.signal;
@@ -73,16 +70,16 @@ export class FetchApiConfigFetcher implements IConfigCatConfigFetcher {
     }
   }
 
-  protected setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<readonly [string, string]>): void {
     if (this.runsOnServerSide) {
       setRequestHeadersDefault(requestInit, headers);
     }
   }
 }
 
-function setRequestHeadersDefault(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<[string, string]>): void {
-  for (const header of headers) {
-    (requestInit.headers ??= []).push(header);
+function setRequestHeadersDefault(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<readonly [string, string]>): void {
+  for (const [name, value] of headers) {
+    (requestInit.headers ??= []).push([name, value]);
   }
 }
 
@@ -97,5 +94,29 @@ function getResponseHeadersDefault(httpResponse: Response): [string, string][] {
     if (value != null) {
       headers.push([name, value]);
     }
+  }
+}
+
+export class ClientSideFetchApiConfigFetcher extends FetchApiConfigFetcherBase {
+  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
+    return options => {
+      const configFetcher = new ClientSideFetchApiConfigFetcher();
+      configFetcher["logger"] = options.logger;
+      return configFetcher;
+    };
+  }
+}
+
+export class ServerSideFetchApiConfigFetcher extends FetchApiConfigFetcherBase {
+  private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
+    return options => {
+      const configFetcher = new ServerSideFetchApiConfigFetcher();
+      configFetcher["logger"] = options.logger;
+      return configFetcher;
+    };
+  }
+
+  constructor() {
+    super(true);
   }
 }

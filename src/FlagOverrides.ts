@@ -1,6 +1,6 @@
 import type { Setting, SettingValue } from "./ProjectConfig";
 import { createSettingFromValue } from "./ProjectConfig";
-import { isArray, parseFloatStrict } from "./Utils";
+import { hasOwnProperty, isArray, isString, parseFloatStrict } from "./Utils";
 
 export type FlagOverrides = {
   dataSource: IOverrideDataSource;
@@ -43,13 +43,11 @@ export interface IOverrideDataSource {
 
 export class MapOverrideDataSource implements IOverrideDataSource {
   private readonly initialSettings: Record<string, Setting>;
-  private readonly map?: Record<string, NonNullable<SettingValue>>;
+  private readonly map: Record<string, NonNullable<SettingValue>> | null;
 
   constructor(map: Record<string, NonNullable<SettingValue>>, watchChanges?: boolean) {
     this.initialSettings = getSettingsFromMap(map);
-    if (watchChanges) {
-      this.map = map;
-    }
+    this.map = watchChanges ? map : null;
   }
 
   getOverrides(): Record<string, Setting> {
@@ -63,7 +61,7 @@ function getSettingsFromMap(map: Record<string, NonNullable<SettingValue>>) {
   const settings: Record<string, Setting> = {};
 
   for (const key in map) {
-    if (Object.prototype.hasOwnProperty.call(map, key)) {
+    if (hasOwnProperty(map, key)) {
       settings[key] = createSettingFromValue(map[key]);
     }
   }
@@ -77,12 +75,12 @@ const DEFAULT_PARAM_PREFIX = "cc-";
 const FORCE_STRING_VALUE_SUFFIX = ";str";
 
 export interface IQueryStringProvider {
-  readonly currentValue?: string | Record<string, string | ReadonlyArray<string>>;
+  readonly currentValue: string | Record<string, string | ReadonlyArray<string>> | null | undefined;
 }
 
 class DefaultQueryStringProvider implements IQueryStringProvider {
   get currentValue() {
-    if (typeof location === "undefined") return;
+    if (typeof location === "undefined" || location === null) return;
     return location.search;
   }
 }
@@ -90,14 +88,14 @@ class DefaultQueryStringProvider implements IQueryStringProvider {
 let defaultQueryStringProvider: DefaultQueryStringProvider | undefined;
 
 export class QueryParamsOverrideDataSource implements IOverrideDataSource {
-  private readonly watchChanges?: boolean;
+  private readonly watchChanges: boolean;
   private readonly paramPrefix: string;
   private readonly queryStringProvider: IQueryStringProvider;
   private queryString: string | undefined;
   private settings: Record<string, Setting>;
 
   constructor(watchChanges?: boolean, paramPrefix?: string, queryStringProvider?: IQueryStringProvider) {
-    this.watchChanges = watchChanges;
+    this.watchChanges = !!watchChanges;
     this.paramPrefix = paramPrefix ?? DEFAULT_PARAM_PREFIX;
 
     queryStringProvider ??= defaultQueryStringProvider ??= new DefaultQueryStringProvider();
@@ -122,19 +120,19 @@ export class QueryParamsOverrideDataSource implements IOverrideDataSource {
   }
 }
 
-function getQueryString(queryStringOrParams: string | Record<string, string | ReadonlyArray<string>> | undefined) {
+function getQueryString(queryStringOrParams: string | Record<string, string | ReadonlyArray<string>> | null | undefined) {
   if (queryStringOrParams == null) {
     return "";
   }
 
-  if (typeof queryStringOrParams === "string") {
+  if (isString(queryStringOrParams)) {
     return queryStringOrParams;
   }
 
   let queryString = "", separator = "?";
 
   for (const key in queryStringOrParams) {
-    if (!Object.prototype.hasOwnProperty.call(queryStringOrParams, key)) continue;
+    if (!hasOwnProperty(queryStringOrParams, key)) continue;
 
     const values = queryStringOrParams[key];
     let value: string, length: number;
@@ -154,10 +152,10 @@ function getQueryString(queryStringOrParams: string | Record<string, string | Re
   return queryString;
 }
 
-function getSettingsFromQueryString(queryStringOrParams: string | Record<string, string | ReadonlyArray<string>> | undefined, paramPrefix: string) {
+function getSettingsFromQueryString(queryStringOrParams: string | Record<string, string | ReadonlyArray<string>> | null | undefined, paramPrefix: string) {
   const settings: Record<string, Setting> = {};
 
-  if (typeof queryStringOrParams === "string") {
+  if (isString(queryStringOrParams)) {
     extractSettingFromQueryString(queryStringOrParams, paramPrefix, settings);
   } else if (queryStringOrParams != null) {
     extractSettingsFromQueryParams(queryStringOrParams, paramPrefix, settings);
@@ -168,7 +166,7 @@ function getSettingsFromQueryString(queryStringOrParams: string | Record<string,
 
 function extractSettingsFromQueryParams(queryParams: Record<string, string | ReadonlyArray<string>> | undefined, paramPrefix: string, settings: Record<string, Setting>) {
   for (const key in queryParams) {
-    if (!Object.prototype.hasOwnProperty.call(queryParams, key)) continue;
+    if (!hasOwnProperty(queryParams, key)) continue;
 
     const values = queryParams[key];
     let value: string, length: number;

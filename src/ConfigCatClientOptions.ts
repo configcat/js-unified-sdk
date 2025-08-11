@@ -1,17 +1,22 @@
+import { AutoPollConfigService } from "./AutoPollConfigService";
 import type { IConfigCache, IConfigCatCache } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { IConfigCatLogger, LogFilterCallback } from "./ConfigCatLogger";
 import { ConfigCatConsoleLogger, LoggerWrapper } from "./ConfigCatLogger";
 import type { IConfigCatConfigFetcher } from "./ConfigFetcher";
+import type { IConfigService } from "./ConfigServiceBase";
 import type { IEventEmitter } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
-import type { FlagOverrides } from "./FlagOverrides";
+import type { FlagOverrides, IOverrideDataSource } from "./FlagOverrides";
+import { nameOfOverrideBehaviour } from "./FlagOverrides";
 import { sha1 } from "./Hash";
 import type { HookEvents, IProvidesHooks, SafeHooksWrapper } from "./Hooks";
 import { Hooks } from "./Hooks";
+import { LazyLoadConfigService } from "./LazyLoadConfigService";
+import { ManualPollConfigService } from "./ManualPollConfigService";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
-import { createWeakRef } from "./Utils";
+import { createMap, createWeakRef, ensureBooleanArg, ensureEnumArg, ensureFunctionArg, ensureNumberArgInRange, ensureObjectArg, ensureStringArg, isNumberInRange } from "./Utils";
 
 export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
@@ -31,6 +36,11 @@ export const enum DataGovernance {
   Global = 0,
   /** Choose this option if your config JSON files are published to CDN nodes only in the EU. */
   EuOnly = 1,
+}
+
+function nameOfDataGovernance(value: DataGovernance): string {
+  /// @ts-expect-error Reverse mapping does work because of `preserveConstEnums`.
+  return DataGovernance[value] as string;
 }
 
 /** Options used to configure the ConfigCat SDK. */
@@ -86,7 +96,7 @@ export interface IOptions {
    * unless absolutely necessary and you know exactly what you are doing. (Writing mock implementations for testing
    * purposes is fine, of course.)
    *
-   * If you use the SDK with a [proxy](https://configcat.com/docs/advanced/proxy/proxy-overview/) and need to set
+   * If you use the SDK with a {@link https://configcat.com/docs/advanced/proxy/proxy-overview/ | proxy } and need to set
    * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. FetchApiConfigFetcher)
    * and override the `setRequestHeaders` method.
    */
@@ -155,12 +165,10 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
 export interface IConfigCatKernel {
   sdkType: string;
   sdkVersion: string;
-  eventEmitterFactory?: () => IEventEmitter;
-  defaultCacheFactory?: (options: OptionsBase) => IConfigCache;
+  eventEmitterFactory: (() => IEventEmitter) | null | undefined;
+  defaultCacheFactory: ((options: OptionsBase) => IConfigCache) | null | undefined;
   configFetcherFactory: (options: OptionsBase) => IConfigCatConfigFetcher;
 }
-
-/* eslint-disable @typescript-eslint/no-inferrable-types */
 
 export abstract class OptionsBase {
 
@@ -172,113 +180,137 @@ export abstract class OptionsBase {
 
   clientVersion: string;
 
-  requestTimeoutMs: number = 30000;
+  requestTimeoutMs = 30000;
 
   baseUrl: string;
 
-  baseUrlOverriden: boolean = false;
+  baseUrlOverriden;
 
-  dataGovernance: DataGovernance;
+  dataGovernance = DataGovernance.Global;
 
   cache: IConfigCache;
 
   configFetcher: IConfigCatConfigFetcher;
 
-  flagOverrides?: FlagOverrides;
+  flagOverrides: FlagOverrides | null = null;
 
-  defaultUser?: IUser;
+  defaultUser: IUser | undefined = void 0;
 
-  offline: boolean = false;
+  offline = false;
 
   hooks: SafeHooksWrapper;
 
   constructor(sdkKey: string, kernel: IConfigCatKernel, clientVersion: string, options?: IOptions | null) {
-
-    if (!sdkKey) {
-      throw Error("Invalid 'sdkKey' value");
-    }
-
     this.sdkKey = sdkKey;
     this.clientVersion = clientVersion;
-    this.dataGovernance = options?.dataGovernance ?? DataGovernance.Global;
-
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-    switch (this.dataGovernance) {
-      case DataGovernance.EuOnly:
-        this.baseUrl = "https://cdn-eu.configcat.com";
-        break;
-      default:
-        this.baseUrl = "https://cdn-global.configcat.com";
-        break;
-    }
 
     const eventEmitter = kernel.eventEmitterFactory?.() ?? new NullEventEmitter();
     const hooks = new Hooks(eventEmitter);
-    const hooksWeakRef = createWeakRef(hooks) as WeakRef<Hooks>;
-    this.hooks = <SafeHooksWrapper & { hooksWeakRef: WeakRef<Hooks> }>{
-      hooks, // stored only temporarily, will be deleted by `yieldHooks()`
-      hooksWeakRef,
+    this.hooks = {
+      hooks, // stored only temporarily to keep alive the object, will be unreferenced by `yieldHooks()`
+      unwrap() { return this.hooks; },
       emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean {
-        return this.hooksWeakRef.deref()?.emit(eventName, ...args) ?? false;
+        return this.unwrap()?.emit(eventName, ...args) ?? false;
       },
-    };
+    } as SafeHooksWrapper & { hooks: Hooks };
 
     let logFilter: LogFilterCallback | undefined;
-    let logger: IConfigCatLogger | null | undefined;
-    let cache: IConfigCatCache | null | undefined;
-    let configFetcher: IConfigCatConfigFetcher | null | undefined;
+    let logger: IConfigCatLogger | undefined;
+    let cache: IConfigCatCache | undefined;
+    let configFetcher: IConfigCatConfigFetcher | undefined;
+    let baseUrl: string | undefined;
 
     if (options) {
-      if (options.logFilter) {
-        logFilter = options.logFilter;
+      const optionsArgName = "options";
+
+      if (options.logFilter != null) {
+        logFilter = ensureFunctionArg(options.logFilter, optionsArgName, ".logFilter");
       }
 
-      logger = options.logger;
-      cache = options.cache;
-      configFetcher = options.configFetcher;
-
-      if (options.requestTimeoutMs) {
-        if (options.requestTimeoutMs < 0) {
-          throw Error("Invalid 'requestTimeoutMs' value");
-        }
-
-        this.requestTimeoutMs = options.requestTimeoutMs;
+      if (options.logger != null) {
+        const requiredProps = createMap<keyof IConfigCatLogger, boolean>();
+        requiredProps.log = true;
+        logger = ensureObjectArg(options.logger, optionsArgName, requiredProps, ".logger");
       }
 
-      if (options.baseUrl) {
-        this.baseUrl = options.baseUrl;
-        this.baseUrlOverriden = true;
+      if (options.cache != null) {
+        const requiredProps = createMap<keyof IConfigCatCache, boolean>();
+        requiredProps.get = requiredProps.set = true;
+        cache = ensureObjectArg(options.cache, optionsArgName, requiredProps, ".cache");
       }
 
-      if (options.flagOverrides) {
-        this.flagOverrides = options.flagOverrides;
+      if (options.configFetcher != null) {
+        const requiredProps = createMap<keyof IConfigCatConfigFetcher, boolean>();
+        requiredProps.fetchAsync = true;
+        configFetcher = ensureObjectArg(options.configFetcher, optionsArgName, requiredProps, ".configFetcher");
       }
 
-      if (options.defaultUser) {
-        this.defaultUser = options.defaultUser;
+      if (options.requestTimeoutMs != null) {
+        this.requestTimeoutMs = ensureNumberArgInRange(options.requestTimeoutMs, optionsArgName,
+          "greater than 0", value => value > 0, ".requestTimeoutMs");
       }
 
-      if (options.offline) {
-        this.offline = options.offline;
+      if (options.dataGovernance != null) {
+        this.dataGovernance = ensureEnumArg(options.dataGovernance, optionsArgName, "DataGovernance",
+          value => nameOfDataGovernance(value) !== void 0, ".dataGovernance");
       }
 
-      options.setupHooks?.(hooks);
+      if (options.baseUrl != null) {
+        baseUrl = ensureStringArg(options.baseUrl, optionsArgName, true, ".baseUrl");
+      }
+
+      if (options.flagOverrides != null) {
+        const requiredProps = createMap<keyof FlagOverrides, boolean>();
+        requiredProps.behaviour = requiredProps.dataSource = false;
+        const flagOverrides = ensureObjectArg(options.flagOverrides, optionsArgName, requiredProps, ".flagOverrides");
+
+        ensureEnumArg(flagOverrides.behaviour, optionsArgName, "OverrideBehaviour",
+          value => nameOfOverrideBehaviour(value) !== void 0, ".flagOverrides.behaviour");
+
+        const dataSourceRequiredProps = createMap<keyof IOverrideDataSource, boolean>();
+        dataSourceRequiredProps.getOverrides = true;
+        ensureObjectArg(flagOverrides.dataSource, optionsArgName, dataSourceRequiredProps, ".flagOverrides.dataSource");
+
+        this.flagOverrides = flagOverrides;
+      }
+
+      if (options.defaultUser != null) {
+        this.defaultUser = ensureObjectArg(options.defaultUser, optionsArgName, void 0, ".defaultUser");
+      }
+
+      if (options.offline != null) {
+        this.offline = ensureBooleanArg(options.offline, optionsArgName, ".offline");
+      }
+
+      if (options.setupHooks != null) {
+        const setupHooks = ensureFunctionArg(options.setupHooks, optionsArgName, ".setupHooks");
+        setupHooks(hooks);
+      }
+    }
+
+    if ((this.baseUrlOverriden = baseUrl != null)) {
+      this.baseUrl = baseUrl!;
+    } else {
+      this.baseUrl = this.dataGovernance === DataGovernance.EuOnly
+        ? "https://cdn-eu.configcat.com"
+        : "https://cdn-global.configcat.com";
     }
 
     this.logger = new LoggerWrapper(logger ?? new ConfigCatConsoleLogger(), logFilter, this.hooks);
 
     this.cache = cache
       ? new ExternalConfigCache(cache, this.logger)
-      : (kernel.defaultCacheFactory ? kernel.defaultCacheFactory(this) : new InMemoryConfigCache());
+      : (kernel.defaultCacheFactory?.(this) ?? new InMemoryConfigCache());
 
     this.configFetcher = configFetcher ?? kernel.configFetcherFactory(this);
   }
 
   yieldHooks(): Hooks {
-    const hooksWrapper = this.hooks as unknown as { hooks?: Hooks };
-    const hooks = hooksWrapper.hooks;
-    delete hooksWrapper.hooks;
-    return hooks ?? new Hooks(new NullEventEmitter());
+    const hooksWrapper = this.hooks as SafeHooksWrapper & { hooks: WeakRef<Hooks> };
+    const hooks = hooksWrapper.unwrap() ?? new Hooks(new NullEventEmitter());
+    hooksWrapper.hooks = createWeakRef(hooks) as WeakRef<Hooks>;
+    hooksWrapper.unwrap = function() { return this.hooks.deref(); };
+    return hooks;
   }
 
   getUrl(): string {
@@ -291,6 +323,8 @@ export abstract class OptionsBase {
   getCacheKey(): string {
     return sha1(`${this.sdkKey}_${OptionsBase.configFileName}_${ProjectConfig.serializationFormatVersion}`);
   }
+
+  abstract createConfigService(): IConfigService;
 }
 
 const PROXY_PATH_SEGMENT = "/" + PROXY_SDKKEY_PREFIX;
@@ -307,36 +341,37 @@ export function isCdnUrl(url: string): boolean {
 
 export class AutoPollOptions extends OptionsBase {
 
-  pollIntervalSeconds: number = 60;
+  pollIntervalSeconds = 60;
 
-  maxInitWaitTimeSeconds: number = 5;
+  maxInitWaitTimeSeconds = 5;
 
   constructor(sdkKey: string, kernel: IConfigCatKernel, options?: IAutoPollOptions | null) {
 
     super(sdkKey, kernel, kernel.sdkType + "/a-" + kernel.sdkVersion, options);
 
     if (options) {
+      const optionsArgName = "options";
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#maximum_delay_value
+      // https://stackoverflow.com/a/3468650/8656352
+      const maxSetTimeoutIntervalSecs = 2147483;
 
       if (options.pollIntervalSeconds != null) {
-        this.pollIntervalSeconds = options.pollIntervalSeconds;
+        const minValue = 1, maxValue = maxSetTimeoutIntervalSecs;
+        this.pollIntervalSeconds = ensureNumberArgInRange(options.pollIntervalSeconds, optionsArgName,
+          `between ${minValue} and ${maxValue}`, value => isNumberInRange(value, minValue, maxValue), ".pollIntervalSeconds");
       }
 
       if (options.maxInitWaitTimeSeconds != null) {
-        this.maxInitWaitTimeSeconds = options.maxInitWaitTimeSeconds;
+        const maxValue = maxSetTimeoutIntervalSecs;
+        this.maxInitWaitTimeSeconds = ensureNumberArgInRange(options.maxInitWaitTimeSeconds, optionsArgName,
+          `less than or equal to ${maxValue}`, value => value <= maxValue, ".maxInitWaitTimeSeconds");
       }
     }
+  }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#maximum_delay_value
-    // https://stackoverflow.com/a/3468650/8656352
-    const maxSetTimeoutIntervalSecs = 2147483;
-
-    if (!(typeof this.pollIntervalSeconds === "number" && 1 <= this.pollIntervalSeconds && this.pollIntervalSeconds <= maxSetTimeoutIntervalSecs)) {
-      throw Error("Invalid 'pollIntervalSeconds' value");
-    }
-
-    if (!(typeof this.maxInitWaitTimeSeconds === "number" && this.maxInitWaitTimeSeconds <= maxSetTimeoutIntervalSecs)) {
-      throw Error("Invalid 'maxInitWaitTimeSeconds' value");
-    }
+  override createConfigService(): IConfigService {
+    return new AutoPollConfigService(this);
   }
 }
 
@@ -345,25 +380,37 @@ export class ManualPollOptions extends OptionsBase {
 
     super(sdkKey, kernel, kernel.sdkType + "/m-" + kernel.sdkVersion, options);
   }
+
+  override createConfigService(): IConfigService {
+    return new ManualPollConfigService(this);
+  }
 }
 
 export class LazyLoadOptions extends OptionsBase {
 
-  cacheTimeToLiveSeconds: number = 60;
+  cacheTimeToLiveSeconds = 60;
 
   constructor(sdkKey: string, kernel: IConfigCatKernel, options?: ILazyLoadingOptions | null) {
 
     super(sdkKey, kernel, kernel.sdkType + "/l-" + kernel.sdkVersion, options);
 
     if (options) {
+      const optionsArgName = "options";
+
+      if (options.cacheTimeToLiveSeconds != null) {
+        const minValue = 1, maxValue = 2147483647;
+        this.cacheTimeToLiveSeconds = ensureNumberArgInRange(options.cacheTimeToLiveSeconds, optionsArgName,
+          `between ${minValue} and ${maxValue}`, value => isNumberInRange(value, minValue, maxValue), ".cacheTimeToLiveSeconds");
+      }
+
       if (options.cacheTimeToLiveSeconds != null) {
         this.cacheTimeToLiveSeconds = options.cacheTimeToLiveSeconds;
       }
     }
+  }
 
-    if (!(typeof this.cacheTimeToLiveSeconds === "number" && 1 <= this.cacheTimeToLiveSeconds && this.cacheTimeToLiveSeconds <= 2147483647)) {
-      throw Error("Invalid 'cacheTimeToLiveSeconds' value");
-    }
+  override createConfigService(): IConfigService {
+    return new LazyLoadConfigService(this);
   }
 }
 

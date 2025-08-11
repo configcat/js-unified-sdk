@@ -4,11 +4,11 @@
 type Events = Record<string | symbol, any[]>;
 
 /** Defines methods for subscribing to/unsubscribing from events. */
-export interface IEventProvider<TEvents extends Events = Events> {
+export interface IEventProvider<TEvents extends Events = Events, TListenerThis = unknown> {
   /**
    * Alias for `emitter.on(eventName, listener)`.
    */
-  addListener<TEventName extends keyof TEvents>(eventName: TEventName, listener: (...args: TEvents[TEventName]) => void): this;
+  addListener<TEventName extends keyof TEvents>(eventName: TEventName, listener: (this: TListenerThis, ...args: TEvents[TEventName]) => void): this;
 
   /**
    * Adds the `listener` function to the end of the listeners array for the
@@ -21,7 +21,7 @@ export interface IEventProvider<TEvents extends Events = Events> {
    * @param eventName The name of the event.
    * @param listener The callback function
    */
-  on<TEventName extends keyof TEvents>(eventName: TEventName, listener: (...args: TEvents[TEventName]) => void): this;
+  on<TEventName extends keyof TEvents>(eventName: TEventName, listener: (this: TListenerThis, ...args: TEvents[TEventName]) => void): this;
 
   /**
    * Adds a **one-time** `listener` function for the event named `eventName`. The
@@ -32,7 +32,7 @@ export interface IEventProvider<TEvents extends Events = Events> {
    * @param eventName The name of the event.
    * @param listener The callback function
    */
-  once<TEventName extends keyof TEvents>(eventName: TEventName, listener: (...args: TEvents[TEventName]) => void): this;
+  once<TEventName extends keyof TEvents>(eventName: TEventName, listener: (this: TListenerThis, ...args: TEvents[TEventName]) => void): this;
 
   /**
    * Removes the specified `listener` from the listener array for the event named `eventName`.
@@ -59,12 +59,12 @@ export interface IEventProvider<TEvents extends Events = Events> {
    *
    * Returns a reference to the `EventEmitter`, so that calls can be chained.
    */
-  removeListener<TEventName extends keyof TEvents>(eventName: TEventName, listener: (...args: TEvents[TEventName]) => void): this;
+  removeListener<TEventName extends keyof TEvents>(eventName: TEventName, listener: (this: TListenerThis, ...args: TEvents[TEventName]) => void): this;
 
   /**
    * Alias for `emitter.removeListener()`.
    */
-  off<TEventName extends keyof TEvents>(eventName: TEventName, listener: (...args: TEvents[TEventName]) => void): this;
+  off<TEventName extends keyof TEvents>(eventName: TEventName, listener: (this: TListenerThis, ...args: TEvents[TEventName]) => void): this;
 
   /**
    * Removes all listeners, or those of the specified `eventName`.
@@ -96,7 +96,7 @@ export interface IEventProvider<TEvents extends Events = Events> {
 }
 
 /** Defines methods for emitting events. */
-export interface IEventEmitter<TEvents extends Events = Events> extends IEventProvider<TEvents> {
+export interface IEventEmitter<TEvents extends Events = Events, TListenerThis = unknown> extends IEventProvider<TEvents, TListenerThis> {
   /**
    * Synchronously calls each of the listeners registered for the event named `eventName`,
    * in the order they were registered, passing the supplied arguments to each.
@@ -107,9 +107,7 @@ export interface IEventEmitter<TEvents extends Events = Events> extends IEventPr
 }
 
 export class NullEventEmitter implements IEventEmitter {
-  addListener: () => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.on;
+  addListener!: () => this;
 
   on(): this { return this; }
 
@@ -117,9 +115,7 @@ export class NullEventEmitter implements IEventEmitter {
 
   removeListener(): this { return this; }
 
-  off: () => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.removeListener;
+  off!: () => this;
 
   removeAllListeners(): this { return this; }
 
@@ -131,3 +127,9 @@ export class NullEventEmitter implements IEventEmitter {
 
   emit(): boolean { return false; }
 }
+
+/* eslint-disable @typescript-eslint/unbound-method */
+const nullEventEmitterPrototype = NullEventEmitter.prototype;
+nullEventEmitterPrototype.addListener = nullEventEmitterPrototype.on;
+nullEventEmitterPrototype.off = nullEventEmitterPrototype.removeListener;
+/* eslint-enabled @typescript-eslint/unbound-method */

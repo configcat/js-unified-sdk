@@ -1,7 +1,7 @@
 import type { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
-import { ensurePrototype } from "./Utils";
+import { ensurePrototype, toStringSafe } from "./Utils";
 
 export const enum FetchStatus {
   Fetched = 0,
@@ -9,26 +9,34 @@ export const enum FetchStatus {
   Errored = 2,
 }
 
-export class FetchResult {
-  private constructor(
-    readonly status: FetchStatus,
-    readonly config: ProjectConfig,
-    readonly errorCode: RefreshErrorCode,
-    readonly errorMessage?: Message,
-    readonly errorException?: any) {
+export type FetchResult =
+  { readonly config: ProjectConfig }
+  & ({
+    readonly status: FetchStatus.Fetched | FetchStatus.NotModified;
+    readonly errorCode: RefreshErrorCode.None;
+    readonly errorMessage?: undefined;
+    readonly errorException?: undefined;
   }
+  | {
+    readonly status: FetchStatus.Errored;
+    readonly errorCode: Exclude<RefreshErrorCode, RefreshErrorCode.None>;
+    readonly errorMessage: Message;
+    readonly errorException?: any;
+  });
 
-  static success(config: ProjectConfig, errorCode: RefreshErrorCode.None): FetchResult {
-    return new FetchResult(FetchStatus.Fetched, config, errorCode);
-  }
+export function fetchResultFromSuccess(config: ProjectConfig): FetchResult {
+  return { status: FetchStatus.Fetched, config, errorCode: 0 satisfies RefreshErrorCode.None };
+}
 
-  static notModified(config: ProjectConfig, errorCode: RefreshErrorCode.None): FetchResult {
-    return new FetchResult(FetchStatus.NotModified, config, errorCode);
-  }
+export function fetchResultFromNotModified(config: ProjectConfig): FetchResult {
+  return { status: FetchStatus.NotModified, config, errorCode: 0 satisfies RefreshErrorCode.None };
+}
 
-  static error(config: ProjectConfig, errorCode: RefreshErrorCode, errorMessage?: Message, errorException?: any): FetchResult {
-    return new FetchResult(FetchStatus.Errored, config, errorCode, errorMessage ?? "Unknown error.", errorException);
-  }
+export function fetchResultFromError(config: ProjectConfig,
+  errorCode: Exclude<RefreshErrorCode, RefreshErrorCode.None>, errorMessage: Message, errorException?: any
+): FetchResult {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  return { status: FetchStatus.Errored, config, errorCode, errorMessage, errorException };
 }
 
 /** The request parameters for a ConfigCat config fetch operation. */
@@ -44,7 +52,7 @@ export class FetchRequest {
      */
     readonly lastETag: string | undefined,
     /** Additional HTTP request headers. Should be included in every HTTP request. */
-    readonly headers: ReadonlyArray<[name: string, value: string]>,
+    readonly headers: ReadonlyArray<readonly [name: string, value: string]>,
     /** The request timeout to apply, configured via `IOptions.requestTimeoutMs`. */
     readonly timeoutMs: number
   ) {
@@ -54,9 +62,9 @@ export class FetchRequest {
 /** The response data of a ConfigCat config fetch operation. */
 export class FetchResponse {
   /** The value of the `ETag` HTTP response header. */
-  readonly eTag?: string;
+  readonly eTag?: string = void 0;
 
-  private readonly rayId?: string;
+  private readonly rayId?: string = void 0;
 
   constructor(
     /** The HTTP status code. */
@@ -64,7 +72,7 @@ export class FetchResponse {
     /** The HTTP reason phrase. */
     readonly reasonPhrase: string,
     /** The HTTP response headers. */
-    headers: ReadonlyArray<[name: string, value: string]>,
+    headers: ReadonlyArray<readonly [name: string, value: string]>,
     /** The response body. */
     readonly body?: string
   ) {
@@ -90,7 +98,7 @@ export type FetchErrorCauses = {
 };
 
 export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchErrorCauses> extends Error {
-  readonly name = FetchError.name;
+  override readonly name = FetchError.name;
   readonly args: FetchErrorCauses[TCause];
 
   constructor(public cause: TCause, ...args: FetchErrorCauses[TCause]) {
@@ -106,7 +114,7 @@ export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchError
           const [err] = args as FetchErrorCauses["failure"];
           const message = "Request failed due to a network or protocol error.";
           return err
-            ? message + " " + (err instanceof Error ? err.message : err + "")
+            ? message + " " + (err instanceof Error ? err.message : toStringSafe(err))
             : message;
       }
     })(cause, args));

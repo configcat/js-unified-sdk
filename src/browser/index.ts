@@ -3,15 +3,12 @@ import type { IAutoPollOptions, ILazyLoadingOptions, IManualPollOptions } from "
 import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import { getClient as getClientInternal } from "../index.pubternals.core";
-import { setupPolyfills } from "../Polyfills";
 import { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { LocalStorageConfigCache } from "./LocalStorageConfigCache";
 import { XmlHttpRequestConfigFetcher } from "./XmlHttpRequestConfigFetcher";
 
 /* Package public API for browsers */
-
-setupPolyfills();
 
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.
@@ -54,11 +51,11 @@ export interface IJSManualPollOptions extends IManualPollOptions {
 }
 
 export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
-    TMode extends PollingMode.AutoPoll ? IJSAutoPollOptions :
-    TMode extends PollingMode.ManualPoll ? IJSManualPollOptions :
-    TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
-    TMode extends undefined ? IJSAutoPollOptions :
-    never;
+  TMode extends PollingMode.AutoPoll ? IJSAutoPollOptions :
+  TMode extends PollingMode.ManualPoll ? IJSManualPollOptions :
+  TMode extends PollingMode.LazyLoad ? IJSLazyLoadingOptions :
+  TMode extends undefined ? IJSAutoPollOptions :
+  never;
 
 export { LocalStorageConfigCache };
 
@@ -66,6 +63,6 @@ export { IndexedDBConfigCache };
 
 export { XmlHttpRequestConfigFetcher };
 
-export { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+export { ClientSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export * from "..";

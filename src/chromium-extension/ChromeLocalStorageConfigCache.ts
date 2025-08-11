@@ -4,6 +4,11 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 
 /* eslint-disable @typescript-eslint/no-deprecated */
 
+interface ILocalStorage {
+  set<T = { [key: string]: any }>(items: Partial<T>): Promise<void>;
+  get<T = { [key: string]: any }>(keys: string): Promise<T>;
+}
+
 export class ChromeLocalStorageConfigCache implements IConfigCatCache {
   private static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const localStorage = getChromeLocalStorage();
@@ -12,7 +17,7 @@ export class ChromeLocalStorageConfigCache implements IConfigCatCache {
     }
   }
 
-  constructor(private readonly storage: chrome.storage.LocalStorageArea) {
+  constructor(private readonly storage: ILocalStorage) {
   }
 
   async set(key: string, value: string): Promise<void> {
@@ -28,9 +33,9 @@ export class ChromeLocalStorageConfigCache implements IConfigCatCache {
   }
 }
 
-export function getChromeLocalStorage(): chrome.storage.LocalStorageArea | undefined {
+export function getChromeLocalStorage(): ILocalStorage | undefined {
   if (typeof chrome !== "undefined") {
-    return chrome.storage?.local;
+    return chrome?.storage?.local;
   }
 }
 

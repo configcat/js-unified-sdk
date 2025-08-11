@@ -1,6 +1,6 @@
 import type { SafeHooksWrapper } from "./Hooks";
 import type { Message } from "./Utils";
-import { errorToString, LazyString } from "./Utils";
+import { errorToString, isString, LazyString, toStringSafe } from "./Utils";
 
 /**
  * Specifies event severity levels for the `IConfigCatLogger` interface.
@@ -33,7 +33,7 @@ export class FormattableLogMessage {
       new FormattableLogMessage(strings, argNames, argValues);
   }
 
-  private cachedDefaultFormattedMessage?: string;
+  private cachedDefaultFormattedMessage: string | undefined = void 0;
 
   constructor(
     readonly strings: ReadonlyArray<string>,
@@ -44,14 +44,14 @@ export class FormattableLogMessage {
   get defaultFormattedMessage(): string {
     let cachedMessage = this.cachedDefaultFormattedMessage;
 
-    if (cachedMessage === void 0) {
+    if (!isString(cachedMessage)) {
       // This logic should give exactly the same result as string interpolation.
       cachedMessage = "";
       const { strings, argValues } = this;
       let i = 0;
       for (; i < strings.length - 1; i++) {
         cachedMessage += strings[i];
-        cachedMessage += argValues[i];
+        cachedMessage += toStringSafe(argValues[i]);
       }
       cachedMessage += strings[i];
       this.cachedDefaultFormattedMessage = cachedMessage;
@@ -66,7 +66,7 @@ export class FormattableLogMessage {
 export type LogMessage = string | FormattableLogMessage;
 
 export function toMessage(logMessage: LogMessage): Message {
-  if (typeof logMessage === "string") {
+  if (isString(logMessage)) {
     return logMessage;
   }
   return logMessage["cachedDefaultFormattedMessage"]
@@ -85,7 +85,7 @@ export type LogFilterCallback = (level: LogLevel, eventId: LogEventId, message: 
 
 /** Defines the interface used by the ConfigCat SDK to perform logging. */
 export interface IConfigCatLogger {
-  /** Gets the log level (the minimum level to use for filtering log events). */
+  /** Gets the log level (the minimum level to use for filtering log events). Defaults to `LogLevel.Warn`. */
   readonly level?: LogLevel;
 
   /** Gets the character sequence to use for line breaks in log messages. Defaults to "\n". */

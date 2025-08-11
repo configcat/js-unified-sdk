@@ -26,6 +26,8 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     // cache expiration in the polling loop, otherwise some fetch operations may be missed.
     this.pollExpirationMs = this.pollIntervalMs - POLL_EXPIRATION_TOLERANCE_MS;
 
+    this.prepareClientForEvents();
+
     const initialCacheSyncUp = this.syncUpWithCache();
 
     if (options.maxInitWaitTimeSeconds !== 0) {
@@ -92,12 +94,12 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     return cachedConfig;
   }
 
-  refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
+  override refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
     this.options.logger.debug("AutoPollConfigService.refreshConfigAsync() called.");
     return super.refreshConfigAsync();
   }
 
-  dispose(): void {
+  override dispose(): void {
     this.options.logger.debug("AutoPollConfigService.dispose() called.");
     super.dispose();
     if (!this.stopToken.aborted) {
@@ -105,12 +107,12 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     }
   }
 
-  protected onConfigFetched(fetchResult: FetchResult, isInitiatedByUser: boolean): void {
+  protected override onConfigFetched(fetchResult: FetchResult, isInitiatedByUser: boolean): void {
     this.signalInitialization();
     super.onConfigFetched(fetchResult, isInitiatedByUser);
   }
 
-  protected goOnline(): void {
+  protected override goOnline(): void {
     // We need to restart the polling loop because going from offline to online should trigger a refresh operation
     // immediately instead of waiting for the next tick (which might not happen until much later).
     this.stopRefreshWorker();

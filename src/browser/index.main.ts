@@ -20,6 +20,8 @@ export const getClient: <TMode extends PollingMode | undefined>(
 
 export { createConsoleLogger, createFlagOverridesFromMap, createFlagOverridesFromQueryParams, disposeAllClients } from "../index.pubternals.core";
 
+export type { IQueryStringProvider } from "../index.pubternals.core";
+
 export type { INodeAutoPollOptions, INodeLazyLoadingOptions, INodeManualPollOptions } from "../node";
 
 export type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from ".";
@@ -32,7 +34,9 @@ export { IndexedDBConfigCache } from "../shared/IndexedDBConfigCache";
 
 export { XmlHttpRequestConfigFetcher } from "./XmlHttpRequestConfigFetcher";
 
-export { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+export { ClientSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+
+export type { ServerSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 
 export type { NodeHttpConfigFetcher } from "../node/NodeHttpConfigFetcher";
 

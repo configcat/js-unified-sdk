@@ -5,14 +5,12 @@ import { PollingMode } from "../ConfigCatClientOptions";
 import { DefaultEventEmitter } from "../DefaultEventEmitter";
 import type { FlagOverrides, IQueryStringProvider, OverrideBehaviour } from "../FlagOverrides";
 import { createFlagOverridesFromQueryParams as createFlagOverridesFromQueryParamsCommon, getClient as getClientInternal } from "../index.pubternals.core";
-import { setupPolyfills } from "../Polyfills";
-import { FetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
+import { ServerSideFetchApiConfigFetcher } from "../shared/FetchApiConfigFetcher";
 import CONFIGCAT_SDK_VERSION from "../Version";
 import { CloudflareConfigCache } from "./CloudflareConfigCache";
+import { isBoolean } from "../Utils";
 
 /* Package public API for Cloudflare Workers */
-
-setupPolyfills();
 
 /**
  * Returns an instance of `ConfigCatClient` for the specified SDK Key.
@@ -30,11 +28,15 @@ export function getClient<TMode extends PollingMode | undefined>(sdkKey: string,
     sdkVersion: CONFIGCAT_SDK_VERSION,
     eventEmitterFactory: () => new DefaultEventEmitter(),
     defaultCacheFactory: CloudflareConfigCache["tryGetFactory"](),
-    configFetcherFactory: FetchApiConfigFetcher["getFactory"](),
+    configFetcherFactory: ServerSideFetchApiConfigFetcher["getFactory"](),
   });
 }
 
 export { createConsoleLogger, createFlagOverridesFromMap, disposeAllClients } from "../index.pubternals.core";
+
+interface ICloudflareRequest {
+  url: string;
+}
 
 declare const URL: typeof cloudflare.URL;
 
@@ -51,7 +53,7 @@ declare const URL: typeof cloudflare.URL;
  * prefix will be ignored. Defaults to `cc-`.
  */
 export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
-  request: cloudflare.Request, paramPrefix?: string
+  request: ICloudflareRequest, paramPrefix?: string
 ): FlagOverrides;
 /**
  * Creates an instance of `FlagOverrides` that uses query string parameters as data source.
@@ -70,9 +72,9 @@ export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
   watchChanges?: boolean, paramPrefix?: string, queryStringProvider?: IQueryStringProvider
 ): FlagOverrides;
 export function createFlagOverridesFromQueryParams(behaviour: OverrideBehaviour,
-  requestOrWatchChanges?: boolean | cloudflare.Request, paramPrefix?: string, queryStringProvider?: IQueryStringProvider
+  requestOrWatchChanges?: boolean | ICloudflareRequest, paramPrefix?: string, queryStringProvider?: IQueryStringProvider
 ): FlagOverrides {
-  if (!requestOrWatchChanges || typeof requestOrWatchChanges === "boolean") {
+  if (!requestOrWatchChanges || isBoolean(requestOrWatchChanges)) {
     return createFlagOverridesFromQueryParamsCommon(behaviour, requestOrWatchChanges, paramPrefix, queryStringProvider);
   }
 
@@ -108,6 +110,6 @@ export type OptionsForPollingMode<TMode extends PollingMode | undefined> =
 
 export { CloudflareConfigCache };
 
-export { FetchApiConfigFetcher };
+export { ServerSideFetchApiConfigFetcher };
 
 export * from "..";

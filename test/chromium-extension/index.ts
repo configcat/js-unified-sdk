@@ -4,7 +4,7 @@ import { getClient } from "#lib/chromium-extension";
 import { ChromeLocalStorageConfigCache } from "#lib/chromium-extension/ChromeLocalStorageConfigCache";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
 import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";
-import { FetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
+import { ClientSideFetchApiConfigFetcher } from "#lib/shared/FetchApiConfigFetcher";
 import sdkVersion from "#lib/Version";
 
 const sdkType = "ConfigCat-UnifiedJS-ChromiumExtension";
@@ -23,13 +23,14 @@ class ChromiumExtensionPlatform extends PlatformAbstractions<IJSAutoPollOptions,
     }
   }
 
-  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return FetchApiConfigFetcher["getFactory"]()(options); }
+  createConfigFetcher(options: OptionsBase, platformOptions?: IJSOptions) { return ClientSideFetchApiConfigFetcher["getFactory"]()(options); }
 
   createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: IJSOptions) {
     const kernel: IConfigCatKernel = {
       sdkType,
       sdkVersion,
       eventEmitterFactory: () => new DefaultEventEmitter(),
+      defaultCacheFactory: null,
       configFetcherFactory: o => this.createConfigFetcher(o, options),
     };
     setupKernel ??= kernel => {

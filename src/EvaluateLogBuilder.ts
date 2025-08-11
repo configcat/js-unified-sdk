@@ -1,8 +1,8 @@
 import type { SettingType } from "./ConfigJson";
 import { PrerequisiteFlagComparator, SegmentComparator, UserComparator } from "./ConfigJson";
 import type { PrerequisiteFlagCondition, Segment, SegmentCondition, SettingMap, SettingValue, SettingValueModel, TargetingRule, UserCondition } from "./ProjectConfig";
-import { hasPercentageOptions, isAllowedValue, unwrapValue } from "./RolloutEvaluator";
-import { formatStringList, isNumberInRange } from "./Utils";
+import { hasPercentageOptions, isAllowedValue, unwrapValue } from "./ProjectConfig";
+import { formatStringList, hasOwnProperty, isIntegerInRange, isNumber, isString } from "./Utils";
 
 const invalidValuePlaceholder = "<invalid value>";
 const invalidNamePlaceholder = "<invalid name>";
@@ -150,9 +150,9 @@ export class EvaluateLogBuilder {
 
       default: {
         const comparisonValue = inferUserConditionComparisonValue(condition);
-        if (typeof comparisonValue === "string") {
+        if (isString(comparisonValue)) {
           return this.appendUserConditionString(comparisonAttribute, comparator, comparisonValue, false);
-        } else if (typeof comparisonValue === "number") {
+        } else if (isNumber(comparisonValue)) {
           return this.appendUserConditionNumber(comparisonAttribute, comparator, comparisonValue);
         } else if (!comparisonValue) {
           return this.appendUserConditionStringList(comparisonAttribute, comparator, comparisonValue, false);
@@ -164,7 +164,7 @@ export class EvaluateLogBuilder {
   }
 
   appendPrerequisiteFlagCondition(condition: PrerequisiteFlagCondition, settings: SettingMap): this {
-    const prerequisiteFlagKey = Object.prototype.hasOwnProperty.call(settings, condition.f)
+    const prerequisiteFlagKey = hasOwnProperty(settings, condition.f)
       ? condition.f
       : invalidReferencePlaceholder;
 
@@ -178,7 +178,7 @@ export class EvaluateLogBuilder {
     const segmentIndex = condition.s;
 
     let segmentName: string;
-    if (segments && isNumberInRange(segmentIndex, 0, segments.length - 1)) {
+    if (segments && isIntegerInRange(segmentIndex, 0, segments.length - 1)) {
       segmentName = segments[segmentIndex].n;
       if (!segmentName.length) {
         segmentName = invalidNamePlaceholder;

@@ -4,7 +4,8 @@ import { createClientWithManualPoll, FakeLogger } from "./helpers/fakes";
 import { IManualPollOptions, OverrideBehaviour, SettingValue, User, UserAttributeValue } from "#lib";
 import { LoggerWrapper, LogLevel } from "#lib/ConfigCatLogger";
 import { MapOverrideDataSource } from "#lib/FlagOverrides";
-import { evaluate, isAllowedValue, RolloutEvaluator } from "#lib/RolloutEvaluator";
+import { isAllowedValue } from "#lib/ProjectConfig";
+import { evaluate, RolloutEvaluator } from "#lib/RolloutEvaluator";
 import { errorToString } from "#lib/Utils";
 
 describe("Setting evaluation (config v2)", () => {
@@ -134,7 +135,7 @@ describe("Setting evaluation (config v2)", () => {
       };
 
       const options: IManualPollOptions = {
-        flagOverrides: { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour },
+        flagOverrides: overrideBehaviour != null ? { dataSource: new MapOverrideDataSource(overrideMap), behaviour: overrideBehaviour } : null,
       };
 
       // eslint-disable-next-line @stylistic/max-len
@@ -167,7 +168,7 @@ describe("Setting evaluation (config v2)", () => {
       ["configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/P4e3fAz_1ky2-Zg2e4cbkw", "stringMatchedTargetingRuleAndOrPercentageOption", "12345", "b@configcat.com", "", "Falcon", false, true],
       ["configcat-sdk-1/JcPbCGl_1E-K9M-fJOyKyQ/P4e3fAz_1ky2-Zg2e4cbkw", "stringMatchedTargetingRuleAndOrPercentageOption", "12345", "b@configcat.com", "US", "Spider", false, true],
     ]) {
-    it(`IEvaluationDetails.matchedTargetingRule/matchedTargetingOption - sdkKey: ${sdkKey} | key: ${key} | userId: ${userId} | email: ${email} | percentageBase: ${percentageBase}`, async () => {
+    it(`EvaluationDetails.matchedTargetingRule/matchedTargetingOption - sdkKey: ${sdkKey} | key: ${key} | userId: ${userId} | email: ${email} | percentageBase: ${percentageBase}`, async () => {
       const configLocation = new CdnConfigLocation(sdkKey);
       const config = await configLocation.fetchConfigAsync();
       const settings = config.f ?? {};

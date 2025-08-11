@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, View, Button } from "react-native";
-import * as configCat from "@configcat/sdk";
-import { LogLevel, PollingMode } from "@configcat/sdk";
+import * as configCat from "@configcat/sdk/browser";
+import { LogLevel, PollingMode } from "@configcat/sdk/browser";
 
 export default function App() {
   // Setting log level to Info to show detailed feature flag evaluation
   const logger = configCat.createConsoleLogger(LogLevel.Info);
-  const configcatClient = configCat.getClient("zVPVCO5_LS9VnDcpIDE84g/zVPVCBScEzDn-VNq0dnYog", PollingMode.AutoPoll, {
+  const configcatClient = configCat.getClient("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw", PollingMode.AutoPoll, {
     pollIntervalSeconds: 2,
     logger: logger,
     configChanged: function() { console.log("Your config has been changed!"); }

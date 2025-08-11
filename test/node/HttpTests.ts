@@ -6,7 +6,7 @@ import type { Duplex } from "stream";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel, RefreshErrorCode } from "#lib";
-import { getMonotonicTimeMs, throwError } from "#lib/Utils";
+import { getMonotonicTimeMs } from "#lib/Utils";
 
 // If the tests are failing with strange https or proxy errors, it is most likely that the local .key and .pem files are expired.
 // You can regenerate them anytime (./test/cert/regenerate.md).
@@ -116,7 +116,6 @@ describe("HTTP tests", () => {
   });
 
   it("HTTP proxy", async () => {
-    let agentProviderCallCount = 0;
     let proxyCallCount = 0;
 
     server.forAnyRequest().forHost("cdn-global.configcat.com:443").thenPassThrough({
@@ -126,7 +125,7 @@ describe("HTTP tests", () => {
     });
 
     const client = platform.createClientWithManualPoll(sdkKey, {
-      httpsAgent: new MockttpProxyAgent(server.url)
+      httpsAgent: new MockttpProxyAgent(server.url),
     });
 
     const refreshResult = await client.forceRefreshAsync();
@@ -159,7 +158,7 @@ class MockttpProxyAgent extends https.Agent {
     this.proxyUrl = new URL(proxyUrl);
   }
 
-  createConnection(options: ClientRequestArgs, callback: Function): Duplex {
+  override createConnection(options: ClientRequestArgs, callback: Function): Duplex {
     const proxyOptions = {
       ...options,
       host: this.proxyUrl.hostname,

@@ -9,9 +9,9 @@ coverage/
 CONTRIBUTING.md
 DEPENDENCIES.md
 DEPLOY.md
+bun.*
 deno.*
 deno.*.*
-deploy.sh
 eslint.config.mjs
 extra-checks/
 gulpfile.js

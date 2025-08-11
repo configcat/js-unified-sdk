@@ -8,11 +8,11 @@ import { ClientCacheState, RefreshErrorCode, RefreshResult } from "#lib";
 import { AutoPollConfigService, POLL_EXPIRATION_TOLERANCE_MS } from "#lib/AutoPollConfigService";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { LoggerWrapper } from "#lib/ConfigCatLogger";
-import { FetchRequest, FetchResponse, FetchResult, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
+import { FetchRequest, FetchResponse, FetchResult, fetchResultFromSuccess, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import { LazyLoadConfigService } from "#lib/LazyLoadConfigService";
 import { ManualPollConfigService } from "#lib/ManualPollConfigService";
 import { Config, deserializeConfig, ProjectConfig } from "#lib/ProjectConfig";
-import { AbortToken, delay, throwError } from "#lib/Utils";
+import { AbortToken, delay } from "#lib/Utils";
 
 describe("ConfigServiceBaseTests", () => {
 
@@ -968,7 +968,7 @@ describe("ConfigServiceBaseTests", () => {
     const fetchError = Error("Something went wrong.");
 
     const fakeFetcher = new FakeConfigFetcherBase(null, 1000,
-      () => throwError(fetchError));
+      () => { throw fetchError; });
 
     const lastConfig = createProjectConfig('"ETAG"', "{}");
 
@@ -1034,7 +1034,7 @@ function createProjectConfig(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JS
 }
 
 function createFetchResult(eTag = DEFAULT_ETAG, configJson = DEFAULT_CONFIG_JSON): FetchResult {
-  return FetchResult.success(createProjectConfig(eTag, configJson), RefreshErrorCode.None);
+  return fetchResultFromSuccess(createProjectConfig(eTag, configJson));
 }
 
 function createConfigFromFetchResult(result: FetchResult): ProjectConfig {

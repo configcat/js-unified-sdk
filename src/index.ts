@@ -21,9 +21,11 @@ export { FetchError, FetchRequest, FetchResponse } from "./ConfigFetcher";
 
 export { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 
-export { ClientCacheState, RefreshErrorCode, RefreshResult } from "./ConfigServiceBase";
+export type { RefreshResult } from "./ConfigServiceBase";
 
-export type { FlagOverrides } from "./FlagOverrides";
+export { ClientCacheState, RefreshErrorCode } from "./ConfigServiceBase";
+
+export type { FlagOverrides, IOverrideDataSource } from "./FlagOverrides";
 
 export { OverrideBehaviour } from "./FlagOverrides";
 
@@ -34,9 +36,7 @@ export type {
 
 export { ConfigJson, deserializeConfig, prepareConfig, createSettingFromValue } from "./ProjectConfig";
 
-export type { IOverrideDataSource } from "./FlagOverrides";
-
-export type { IEvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
+export type { IEvaluationDetails, EvaluationDetails, SettingKeyValue, SettingTypeOf } from "./RolloutEvaluator";
 
 export { EvaluationErrorCode } from "./RolloutEvaluator";
 
@@ -44,6 +44,6 @@ export type { IUser, UserAttributeValue } from "./User";
 
 export { User } from "./User";
 
-export type { HookEvents, IProvidesHooks } from "./Hooks";
+export type { HookEvents, IProvidesConfigCatClient, IProvidesHooks } from "./Hooks";
 
 export type { Message } from "./Utils";

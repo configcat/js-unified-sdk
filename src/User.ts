@@ -1,3 +1,6 @@
+import type { ObjectMap } from "./Utils";
+import { createMap, hasOwnProperty } from "./Utils";
+
 export type WellKnownUserObjectAttribute = "Identifier" | "Email" | "Country";
 
 export type UserAttributeValue = string | number | Date | ReadonlyArray<string>;
@@ -43,7 +46,7 @@ export interface IUser {
    * * accept `string` values containing a valid JSON string which can be deserialized to an array of `string`,
    * * all other values are considered invalid (a warning will be logged and the currently evaluated targeting rule will be skipped).
    **/
-  custom: Record<string, UserAttributeValue>;
+  custom?: Record<string, UserAttributeValue>;
 }
 
 /**
@@ -79,12 +82,12 @@ export function getUserAttribute(user: IUser, name: string): UserAttributeValue 
     case "Identifier" satisfies WellKnownUserObjectAttribute: return getUserIdentifier(user);
     case "Email" satisfies WellKnownUserObjectAttribute: return user.email;
     case "Country" satisfies WellKnownUserObjectAttribute: return user.country;
-    default: return user.custom?.[name];
+    default: return user.custom && hasOwnProperty(user.custom, name) ? user.custom[name] : void 0;
   }
 }
 
-export function getUserAttributes(user: IUser): Record<string, UserAttributeValue> {
-  const result: Record<string, UserAttributeValue> = {};
+export function getUserAttributes(user: IUser): ObjectMap<string, UserAttributeValue> {
+  const result = createMap<string, UserAttributeValue>();
 
   const identifierAttribute: WellKnownUserObjectAttribute = "Identifier";
   const emailAttribute: WellKnownUserObjectAttribute = "Email";
@@ -102,8 +105,11 @@ export function getUserAttributes(user: IUser): Record<string, UserAttributeValu
 
   if (user.custom != null) {
     const wellKnownAttributes: string[] = [identifierAttribute, emailAttribute, countryAttribute];
-    for (const [attributeName, attributeValue] of Object.entries(user.custom)) {
-      if (attributeValue != null && wellKnownAttributes.indexOf(attributeName) < 0) {
+    for (const attributeName in user.custom) {
+      let attributeValue: UserAttributeValue;
+      if (hasOwnProperty(user.custom, attributeName)
+        && (attributeValue = user.custom[attributeName]) != null
+        && wellKnownAttributes.indexOf(attributeName) < 0) {
         result[attributeName] = attributeValue;
       }
     }

@@ -6,6 +6,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, FetchResponse } from "../ConfigFetcher";
+import { ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -16,7 +17,7 @@ export interface INodeHttpConfigFetcherOptions {
    *
    * This option applies when the SDK connects to a custom `http://...` URL you specified via `baseUrl`.
    */
-  httpAgent?: http.Agent;
+  httpAgent?: http.Agent | null;
 
   /**
    * The {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent} instance to use for secure HTTP communication.
@@ -26,7 +27,7 @@ export interface INodeHttpConfigFetcherOptions {
    *
    * This option applies when the SDK connects to the ConfigCat CDN or a custom `https://...` URL you specified via `baseUrl`.
    */
-  httpsAgent?: https.Agent;
+  httpsAgent?: https.Agent | null;
 }
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
@@ -38,14 +39,30 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     };
   }
 
-  private logger?: LoggerWrapper;
+  private logger: LoggerWrapper | null = null;
 
-  private readonly httpAgent?: http.Agent;
-  private readonly httpsAgent?: https.Agent;
+  private readonly httpAgent: http.Agent | undefined;
+  private readonly httpsAgent: https.Agent | undefined;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
-    this.httpAgent = options?.httpAgent;
-    this.httpsAgent = options?.httpsAgent;
+    let httpAgent: http.Agent | undefined, httpsAgent: https.Agent | undefined;
+
+    if (options != null) {
+      const optionsArgName = "options";
+
+      ensureObjectArg(options, optionsArgName);
+
+      if (options.httpAgent != null) {
+        httpAgent = ensureObjectArg(options.httpAgent, optionsArgName, void 0, ".httpAgent");
+      }
+
+      if (options.httpsAgent != null) {
+        httpsAgent = ensureObjectArg(options.httpsAgent, optionsArgName, void 0, ".httpsAgent");
+      }
+    }
+
+    this.httpAgent = httpAgent;
+    this.httpsAgent = httpsAgent;
   }
 
   private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
@@ -88,10 +105,9 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
         const { lastETag, timeoutMs } = request;
 
-        const requestOptions: (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> } = {
-          agent: isHttpsUrl ? this.httpsAgent : this.httpAgent,
-          timeout: timeoutMs,
-        };
+        const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
+        requestOptions.agent = isHttpsUrl ? this.httpsAgent : this.httpAgent;
+        requestOptions.timeout = timeoutMs;
 
         if (isCustomUrl) {
           this.setRequestHeaders(requestOptions, request.headers);
@@ -104,8 +120,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         }
 
         if (this.logger?.isEnabled(LogLevel.Debug)) {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: requestOptions.agent?.toString() });
+          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
           this.logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
         }
 
@@ -128,20 +143,20 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     });
   }
 
-  protected setRequestHeaders(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
+  protected setRequestHeaders(requestOptions: { headers?: Record<string, number | string | string[]> }, headers: ReadonlyArray<readonly [string, string]>): void {
     setRequestHeadersDefault(requestOptions, headers);
   }
 }
 
-function setRequestHeadersDefault(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<[string, string]>): void {
+function setRequestHeadersDefault(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<readonly [string, string]>): void {
   if (headers.length) {
     const currentHeaders = requestOptions.headers ??= {};
     for (const [name, value] of headers) {
-      const currentValue = currentHeaders[name];
-      if (currentValue == null) {
+      let currentValue: http.OutgoingHttpHeader;
+      if (!hasOwnProperty(currentHeaders, name)) {
         currentHeaders[name] = value;
-      } else if (!Array.isArray(currentValue)) {
-        currentHeaders[name] = [currentValue + "", value];
+      } else if (!isArray(currentValue = currentHeaders[name])) {
+        currentHeaders[name] = [String(currentValue), value];
       } else {
         currentValue.push(value);
       }
@@ -156,9 +171,9 @@ function getResponseHeadersDefault(httpResponse: http.IncomingMessage): [string,
   return headers;
 
   function extractHeader(name: string, httpResponse: http.IncomingMessage, headers: [string, string][]) {
-    const value = httpResponse.headers[name];
-    if (value != null) {
-      headers.push([name, !Array.isArray(value) ? value : value[0]]);
+    let value: string | string[] | undefined;
+    if (hasOwnProperty(httpResponse.headers, name) && (value = httpResponse.headers[name]) != null) {
+      headers.push([name, !isArray(value) ? value : value[0]]);
     }
   }
 }

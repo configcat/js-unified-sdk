@@ -6,8 +6,7 @@
     "moduleResolution": "Node",
     "lib": [
       "DOM", // APIs used: setTimeout, clearTimeout
-      "ES2015", // APIs used: Promise (.race) (polyfilled)
-      "ES2017.Object", // APIs used: Object.values (polyfilled), Object.entries (polyfilled)
+      "ES2015", // APIs used: Promise (.race) (polyfilled in ES5 builds)
       "ES2021.WeakRef", // APIs used: WeakRef (only used if available)
       "ES2021.Promise" // APIs used: AggregateError (only used if available)
     ],
@@ -29,7 +28,10 @@
     // We only use const enums internally (to reduce build output size) but we want to provide
     // normal enums for consumers, so we strip const from enums during build (see gulpfile.js).
     "preserveConstEnums": true,
-    "strict": true
+    "strict": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noImplicitOverride": true,
   },
   "exclude": [
     "node_modules/",

@@ -15,6 +15,8 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
 
     this.cacheTimeToLiveMs = options.cacheTimeToLiveSeconds * 1000;
 
+    this.prepareClientForEvents();
+
     const initialCacheSyncUp = this.syncUpWithCache();
     this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
   }
@@ -42,7 +44,7 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
     return cachedConfig;
   }
 
-  refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
+  override refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
     this.options.logger.debug("LazyLoadConfigService.refreshConfigAsync() called.");
     return super.refreshConfigAsync();
   }

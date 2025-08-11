@@ -398,6 +398,10 @@ export default [
               "camelCase",
               "UPPER_CASE",
             ],
+            "modifiers": [
+              "private",
+            ],
+            "leadingUnderscore": "allow",
           },
           {
             "selector": [
@@ -410,10 +414,6 @@ export default [
               "camelCase",
               "UPPER_CASE",
             ],
-            "modifiers": [
-              "private",
-            ],
-            "leadingUnderscore": "allow",
           },
           {
             "selector": "memberLike",
@@ -446,6 +446,7 @@ export default [
           {
             "prefer": "type-imports",
             "fixStyle": "separate-type-imports",
+            "disallowTypeAnnotations": false,
           },
         ],
         "@typescript-eslint/no-import-type-side-effects": "warn",

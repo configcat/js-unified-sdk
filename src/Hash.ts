@@ -1,4 +1,4 @@
-import { utf8Encode } from "./Utils";
+import { createMap, utf8Encode } from "./Utils";
 
 export function sha1(msg: string) {
   function rotate_left(n: number, s: number) {
@@ -90,6 +90,8 @@ export function sha1(msg: string) {
   return toHexString([H0, H1, H2, H3, H4]);
 }
 
+const sha256PrecomputedData = Object.create(null) as { h?: number[], k?: number[] };
+
 // Based on: https://stackoverflow.com/a/59777755/8656352
 export function sha256(msgUtf8: string) {
   function rightRotate(value: number, amount: number) {
@@ -101,7 +103,7 @@ export function sha256(msgUtf8: string) {
   var maxWord = mathPow(2, 32);
   var i, j; // Used as a counter across the whole file
 
-  var precomputedData = sha256 as { h?: number[], k?: number[] };
+  var precomputedData = sha256PrecomputedData;
   var hash = precomputedData.h!;
   var k = precomputedData.k;
   if (!k) {
@@ -111,7 +113,7 @@ export function sha256(msgUtf8: string) {
     // Round constants: first 32 bits of the fractional parts of the cube roots of the first 64 primes
     k = [];
 
-    var isComposite: {[n: number]: number | undefined } = {};
+    var isComposite = createMap<number, number>();
     for (var candidate = 2, primeCounter = 0; primeCounter < 64; candidate++) {
       if (!isComposite[candidate]) {
         for (i = 0; i < 313; i += candidate) {

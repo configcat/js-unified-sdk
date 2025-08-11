@@ -2,6 +2,11 @@ import type { IConfigCache, IConfigCatCache } from "../ConfigCatCache";
 import { ExternalConfigCache } from "../ConfigCatCache";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 
+interface ILocalStorage {
+  setItem(key: string, value: string): void;
+  getItem(key: string): string | null;
+}
+
 export class LocalStorageConfigCache implements IConfigCatCache {
   private static tryGetFactory(): ((options: OptionsBase) => IConfigCache) | undefined {
     const localStorage = getLocalStorage();
@@ -10,7 +15,7 @@ export class LocalStorageConfigCache implements IConfigCatCache {
     }
   }
 
-  constructor(private readonly storage: Storage) {
+  constructor(private readonly storage: ILocalStorage) {
   }
 
   set(key: string, value: string): void {
@@ -25,7 +30,7 @@ export class LocalStorageConfigCache implements IConfigCatCache {
   }
 }
 
-export function getLocalStorage(): Storage | undefined {
+export function getLocalStorage(): ILocalStorage | undefined {
   if (typeof localStorage !== "undefined") {
     const testKey = "__configcat_localStorage_test";
 

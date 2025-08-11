@@ -1,8 +1,9 @@
+import type { IConfigCatClient } from "./ConfigCatClient";
 import type { ClientCacheState, RefreshResult } from "./ConfigServiceBase";
 import type { IEventEmitter, IEventProvider } from "./EventEmitter";
 import { NullEventEmitter } from "./EventEmitter";
 import type { Config } from "./ProjectConfig";
-import type { IEvaluationDetails } from "./RolloutEvaluator";
+import type { EvaluationDetails } from "./RolloutEvaluator";
 import type { Message } from "./Utils";
 
 /** Hooks (events) that can be emitted by `ConfigCatClient`. */
@@ -20,7 +21,7 @@ export type HookEvents = {
    */
   clientReady: [cacheState: ClientCacheState];
   /** Occurs after the value of a feature flag of setting has been evaluated. */
-  flagEvaluated: [evaluationDetails: IEvaluationDetails];
+  flagEvaluated: [evaluationDetails: EvaluationDetails];
   /**
    * Occurs after attempting to update the cached config by fetching the latest version from the ConfigCat CDN.
    */
@@ -35,15 +36,31 @@ export type HookEvents = {
 };
 
 /** Defines hooks (events) for providing notifications of `ConfigCatClient`'s actions. */
-export interface IProvidesHooks extends IEventProvider<HookEvents> { }
+export interface IProvidesHooks extends IEventProvider<HookEvents, IProvidesConfigCatClient> {
+}
+
+export interface IProvidesConfigCatClient {
+  /** The `IConfigCatClient` instance that emitted the event. */
+  readonly configCatClient: IConfigCatClient;
+}
 
 const disconnectedEventEmitter = new NullEventEmitter();
 
-export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
+export class Hooks implements IProvidesHooks {
   private eventEmitter: IEventEmitter;
+
+  configCatClient!: IConfigCatClient; // initialized by ConfigCatClient.constructor
 
   constructor(eventEmitter: IEventEmitter) {
     this.eventEmitter = eventEmitter;
+
+    // NOTE: Listeners are actually called by eventEmitter, that is, in listeners, `this` will be set to reference the
+    // IEventEmitter instance instead of the Hooks one. Thus, we need to augment eventEmitter with a configCatClient
+    // property to provide the promised interface for consumers.
+    const propertyDescriptor = Object.create(null) as PropertyDescriptor;
+    propertyDescriptor.get = () => this.configCatClient satisfies IProvidesConfigCatClient["configCatClient"];
+    propertyDescriptor.enumerable = true;
+    Object.defineProperty(eventEmitter, "configCatClient" satisfies keyof IProvidesConfigCatClient, propertyDescriptor);
   }
 
   tryDisconnect(): boolean {
@@ -58,32 +75,28 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 
   /** @inheritdoc */
-  addListener: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.on;
+  addListener!: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this;
 
   /** @inheritdoc */
-  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  on<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.on(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  once<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.once(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void): this {
+  removeListener<TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void): this {
     this.eventEmitter.removeListener(eventName, listener as (...args: any[]) => void);
     return this;
   }
 
   /** @inheritdoc */
-  off: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (...args: HookEvents[TEventName]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.removeListener;
+  off!: <TEventName extends keyof HookEvents>(eventName: TEventName, listener: (this: IProvidesConfigCatClient, ...args: HookEvents[TEventName]) => void) => this;
 
   /** @inheritdoc */
   removeAllListeners(eventName?: keyof HookEvents): this {
@@ -112,12 +125,16 @@ export class Hooks implements IProvidesHooks, IEventEmitter<HookEvents> {
   }
 }
 
+/* eslint-disable @typescript-eslint/unbound-method */
+const hooksPrototype = Hooks.prototype;
+hooksPrototype.addListener = hooksPrototype.on;
+hooksPrototype.off = hooksPrototype.removeListener;
+/* eslint-enabled @typescript-eslint/unbound-method */
+
 // Strong back-references to the client instance must be avoided so GC can collect it when user doesn't have references to it any more.
 // E.g. if a strong reference chain like AutoPollConfigService -> ... -> ConfigCatClient existed, the client instance could not be collected
 // because the background polling loop would keep the AutoPollConfigService alive indefinetely, which in turn would keep alive ConfigCatClient.
 // We need to break such strong reference chains with a weak reference somewhere. As consumers are free to add hook event handlers which
 // close over the client instance (e.g. `client.on("configChanged", cfg => { client.GetValue(...) }`), that is, a chain like
 // AutoPollConfigService -> Hooks -> event handler -> ConfigCatClient can be created, it is the hooks reference that we need to make weak.
-export type SafeHooksWrapper = {
-  emit<TEventName extends keyof HookEvents>(eventName: TEventName, ...args: HookEvents[TEventName]): boolean;
-};
+export type SafeHooksWrapper = Pick<Hooks, "emit"> & { unwrap(): Hooks | undefined };

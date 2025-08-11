@@ -17,6 +17,8 @@ export class ConfigCatService implements OnDestroy {
     // Setting log level to Info to show detailed feature flag evaluation
     const logger = createConsoleLogger(isDevMode() ? LogLevel.Info : LogLevel.Warn)
 
+    const self = this;
+
     // When using snapshots, it is recommended to use Auto Polling.
     // See the Docs:
     // * https://configcat.com/docs/sdk-reference/js/#polling-modes
@@ -24,7 +26,11 @@ export class ConfigCatService implements OnDestroy {
     this.client = getClient("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw", PollingMode.AutoPoll, {
       pollIntervalSeconds: 5,
       logger,
-      setupHooks: hooks => hooks.on("configChanged", () => this.snapshotSubject.next(this.client.snapshot()))
+      setupHooks: hooks => hooks.on("configChanged", function() {
+        // Please note that this event may be emitted during initialization, before `getClient` returns the client instance.
+        // However, you can safely access the client via the `this` context of the event handler callback.
+        self.snapshotSubject.next(this.configCatClient.snapshot());
+      })
     });
 
     this.client.waitForReady().then(() => this.snapshotSubject.next(this.client.snapshot()));

@@ -3,26 +3,26 @@ import { LogLevel, toMessage } from "./ConfigCatLogger";
 import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, inferValue, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
-import type { Condition, ConditionContainer, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingMap, SettingValue, SettingValueContainer, SettingValueModel, TargetingRule, UnknownSettingType, UserCondition, VariationIdValue } from "./ProjectConfig";
-import { InvalidConfigModelError, nameOfSettingType } from "./ProjectConfig";
+import type { Condition, ConditionContainer, PercentageOption, PrerequisiteFlagCondition, ProjectConfig, SegmentCondition, Setting, SettingMap, SettingValue, SettingValueContainer, TargetingRule, UnknownSettingType, UserCondition, VariationIdValue } from "./ProjectConfig";
+import { getConditionType, getSettingType, getTimestampAsDate, hasPercentageOptions, inferSettingType, InvalidConfigModelError, isCompatibleValue, nameOfSettingType, throwInvalidConfigModelError, unwrapValue } from "./ProjectConfig";
 import type { ISemVer } from "./Semver";
 import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
-import type { Message } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, isNumberInRange, isStringArray, LazyString, parseFloatStrict, parseIntStrict, utf8Encode } from "./Utils";
+import type { Message, PickWithType } from "./Utils";
+import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, toStringSafe, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
-  private _settingType?: SettingType | UnknownSettingType;
+  private _settingType: SettingType | UnknownSettingType | undefined = void 0;
   get settingType(): SettingType | UnknownSettingType { return this._settingType ??= getSettingType(this.setting); }
 
-  private _visitedFlags?: string[];
+  private _visitedFlags: string[] | undefined = void 0;
   get visitedFlags(): string[] { return this._visitedFlags ??= []; }
 
-  isMissingUserObjectLogged?: boolean;
-  isMissingUserObjectAttributeLogged?: boolean;
+  isMissingUserObjectLogged = false;
+  isMissingUserObjectAttributeLogged = false;
 
-  logBuilder?: EvaluateLogBuilder; // initialized by RolloutEvaluator.evaluate
+  logBuilder!: EvaluateLogBuilder | null; // initialized by RolloutEvaluator.evaluate
 
   constructor(
     readonly key: string,
@@ -34,23 +34,23 @@ export class EvaluateContext {
 
   static forPrerequisiteFlag(key: string, setting: Setting, dependentFlagContext: EvaluateContext): EvaluateContext {
     const context = new EvaluateContext(key, setting, dependentFlagContext.user, dependentFlagContext.settings);
-    context._visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the list is created!
+    context._visitedFlags = dependentFlagContext.visitedFlags; // crucial to use the computed property here to make sure the array is created!
     context.logBuilder = dependentFlagContext.logBuilder;
     return context;
   }
 }
 
-export interface IEvaluateResult {
+export type EvaluateResult = {
   returnValue: NonNullable<SettingValue>;
   selectedValue: SettingValueContainer;
-  matchedTargetingRule?: TargetingRule;
-  matchedPercentageOption?: PercentageOption;
-}
+  matchedTargetingRule: TargetingRule | undefined;
+  matchedPercentageOption: PercentageOption | undefined;
+};
 
-type IntermediateEvaluateResult = Omit<IEvaluateResult, "returnValue">;
+type IntermediateEvaluateResult = Omit<EvaluateResult, "returnValue">;
 
 export interface IRolloutEvaluator {
-  evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult;
+  evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult;
 }
 
 const targetingRuleIgnoredMessage = "The current targeting rule is ignored and the evaluation continues with the next rule.";
@@ -63,15 +63,15 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   constructor(private readonly logger: LoggerWrapper) {
   }
 
-  evaluate(defaultValue: SettingValue, context: EvaluateContext): IEvaluateResult {
+  evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult {
     this.logger.debug("RolloutEvaluator.evaluate() called.");
 
-    let logBuilder = context.logBuilder;
-
     // Building the evaluation log is expensive, so let's not do it if it wouldn't be logged anyway.
-    if (this.logger.isEnabled(LogLevel.Info)) {
-      context.logBuilder = logBuilder = new EvaluateLogBuilder(this.logger.eol);
+    const logBuilder = context.logBuilder = this.logger.isEnabled(LogLevel.Info)
+      ? new EvaluateLogBuilder(this.logger.eol)
+      : null;
 
+    if (logBuilder) {
       logBuilder.append(`Evaluating '${context.key}'`);
 
       if (context.user) {
@@ -102,10 +102,10 @@ export class RolloutEvaluator implements IRolloutEvaluator {
           "The type of a setting must match the type of the specified default value. "
           + `Setting's type was ${settingTypeName} but the default value's type was ${typeof defaultValue}. `
           + `Please use a default value which corresponds to the setting type ${settingTypeName}. `
-          + "Learn more: https://configcat.com/docs/sdk-reference/js/#setting-type-mapping");
+          + "Learn more: https://configcat.com/docs/sdk-reference/js/overview/#setting-type-mapping");
       }
 
-      const result = this.evaluateSetting(context) as IEvaluateResult;
+      const result = this.evaluateSetting(context) as EvaluateResult;
       result.returnValue = returnValue = unwrapValue(result.selectedValue.v, settingType);
       return result;
     } catch (err) {
@@ -135,7 +135,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       return evaluateResult;
     }
 
-    return { selectedValue: context.setting as SettingValueContainer };
+    return evaluateResultFrom(context.setting as SettingValueContainer);
   }
 
   private evaluateTargetingRules(targetingRules: ReadonlyArray<TargetingRule>, context: EvaluateContext): IntermediateEvaluateResult | undefined {
@@ -147,10 +147,10 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       const targetingRule = targetingRules[i];
       const conditions = targetingRule.c;
 
-      const isMatchOrError = this.evaluateConditions(conditions ?? [], void 0, targetingRule, context.key, context);
+      const isMatchOrError = this.evaluateConditions(conditions, void 0, targetingRule, context.key, context);
 
       if (isMatchOrError !== true) {
-        if (isEvaluationError(isMatchOrError)) {
+        if (isString(isMatchOrError)) {
           logBuilder?.increaseIndent()
             .newLine(targetingRuleIgnoredMessage)
             .decreaseIndent();
@@ -159,7 +159,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       }
 
       if (!hasPercentageOptions(targetingRule)) {
-        return { selectedValue: targetingRule.s!, matchedTargetingRule: targetingRule };
+        return evaluateResultFrom(targetingRule.s!, targetingRule);
       }
 
       const percentageOptions = targetingRule.p!;
@@ -240,13 +240,14 @@ export class RolloutEvaluator implements IRolloutEvaluator {
         logBuilder.newLine(`- Hash value ${hashValue} selects % option ${i + 1} (${percentage}%), '${valueToString(percentageOptionValue)}'.`);
       }
 
-      return { selectedValue: percentageOption, matchedTargetingRule, matchedPercentageOption: percentageOption };
+      return evaluateResultFrom(percentageOption, matchedTargetingRule, percentageOption);
     }
 
     throwInvalidConfigModelError("Sum of percentage option percentages is less than 100.");
   }
 
-  private evaluateConditions(conditions: ReadonlyArray<ConditionContainer | Condition>, conditionType: (keyof ConditionContainer) | undefined,
+  private evaluateConditions(conditions: ReadonlyArray<ConditionContainer | Condition> | null | undefined,
+    conditionType: (keyof ConditionContainer) | undefined,
     targetingRule: TargetingRule | undefined, contextSalt: string, context: EvaluateContext
   ): boolean | string {
     // The result of a condition evaluation is either match (true) / no match (false) or an error (string).
@@ -258,14 +259,14 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     logBuilder?.newLine("- ");
 
     const unwrapCondition = !conditionType;
-    for (let i = 0; i < conditions.length; i++) {
+    for (let i = 0, conditionCount = conditions?.length ?? 0; i < conditionCount; i++) {
       let condition: Condition;
       if (unwrapCondition) {
-        const container = conditions[i] as ConditionContainer;
+        const container = conditions![i] as ConditionContainer;
         conditionType = getConditionType(container)!;
         condition = container[conditionType]!;
       } else {
-        condition = conditions[i] as Condition;
+        condition = conditions![i] as Condition;
       }
 
       if (logBuilder) {
@@ -281,7 +282,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       switch (conditionType!) {
         case "u" satisfies keyof ConditionContainer:
           result = this.evaluateUserCondition(condition as UserCondition, contextSalt, context);
-          newLineBeforeThen = conditions.length > 1;
+          newLineBeforeThen = conditionCount > 1;
           break;
 
         case "p" satisfies keyof ConditionContainer:
@@ -291,7 +292,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
         case "s" satisfies keyof ConditionContainer:
           result = this.evaluateSegmentCondition(condition as SegmentCondition, context);
-          newLineBeforeThen = !isEvaluationError(result) || result !== missingUserObjectError || conditions.length > 1;
+          newLineBeforeThen = !isString(result) || result !== missingUserObjectError || conditionCount > 1;
           break;
 
         default:
@@ -301,7 +302,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       const success = result === true;
 
       if (logBuilder) {
-        if (!targetingRule || conditions.length > 1) {
+        if (!targetingRule || conditionCount > 1) {
           logBuilder.appendConditionConsequence(success);
         }
 
@@ -397,7 +398,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.SemVerIsOneOf:
       case UserComparator.SemVerIsNotOneOf:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof versionOrError !== "string"
+        return !isString(versionOrError)
           ? this.evaluateSemVerIsOneOf(versionOrError, ensureComparisonValue(condition.l), comparator === UserComparator.SemVerIsNotOneOf)
           : versionOrError;
 
@@ -406,7 +407,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.SemVerGreater:
       case UserComparator.SemVerGreaterOrEquals:
         versionOrError = getUserAttributeValueAsSemVer(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof versionOrError !== "string"
+        return !isString(versionOrError)
           ? this.evaluateSemVerRelation(versionOrError, comparator, ensureComparisonValue(condition.s))
           : versionOrError;
 
@@ -417,28 +418,28 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       case UserComparator.NumberGreater:
       case UserComparator.NumberGreaterOrEquals:
         numberOrError = getUserAttributeValueAsNumber(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof numberOrError !== "string"
+        return !isString(numberOrError)
           ? this.evaluateNumberRelation(numberOrError, comparator, ensureComparisonValue(condition.d))
           : numberOrError;
 
       case UserComparator.DateTimeBefore:
       case UserComparator.DateTimeAfter:
         numberOrError = getUserAttributeValueAsUnixTimeSeconds(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof numberOrError !== "string"
+        return !isString(numberOrError)
           ? this.evaluateDateTimeRelation(numberOrError, ensureComparisonValue(condition.d), comparator === UserComparator.DateTimeBefore)
           : numberOrError;
 
       case UserComparator.ArrayContainsAnyOf:
       case UserComparator.ArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof arrayOrError !== "string"
+        return !isString(arrayOrError)
           ? this.evaluateArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l), comparator === UserComparator.ArrayNotContainsAnyOf)
           : arrayOrError;
 
       case UserComparator.SensitiveArrayContainsAnyOf:
       case UserComparator.SensitiveArrayNotContainsAnyOf:
         arrayOrError = getUserAttributeValueAsStringArray(userAttributeName, userAttributeValue, condition, context.key, this.logger);
-        return typeof arrayOrError !== "string"
+        return !isString(arrayOrError)
           ? this.evaluateSensitiveArrayContainsAnyOf(arrayOrError, ensureComparisonValue(condition.l),
             getConfigJsonSalt(context.setting), contextSalt, comparator === UserComparator.SensitiveArrayNotContainsAnyOf)
           : arrayOrError;
@@ -633,7 +634,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     const prerequisiteFlagKey = condition.f;
 
-    const prerequisiteFlag = Object.prototype.hasOwnProperty.call(context.settings, prerequisiteFlagKey)
+    const prerequisiteFlag = hasOwnProperty(context.settings, prerequisiteFlagKey)
       ? context.settings[prerequisiteFlagKey]
       : throwInvalidConfigModelError("Prerequisite flag is missing.");
 
@@ -727,7 +728,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     }
 
     const segmentIndex = condition?.s;
-    if (!segments || !isNumberInRange(segmentIndex, 0, segments.length - 1)) {
+    if (!segments || !isIntegerInRange(segmentIndex, 0, segments.length - 1)) {
       throwInvalidConfigModelError("Segment reference is invalid.");
     }
 
@@ -744,10 +745,10 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     const conditions = segment?.r;
 
-    const segmentResult = this.evaluateConditions(conditions ?? [], "u", void 0, segmentName, context);
+    const segmentResult = this.evaluateConditions(conditions, "u", void 0, segmentName, context);
     let result = segmentResult;
 
-    if (!isEvaluationError(result)) {
+    if (!isString(result)) {
       switch (condition.c) {
         case SegmentComparator.IsIn:
           break;
@@ -761,13 +762,13 @@ export class RolloutEvaluator implements IRolloutEvaluator {
 
     if (logBuilder) {
       logBuilder.newLine("Segment evaluation result: ");
-      (!isEvaluationError(result)
+      (!isString(result)
         ? logBuilder.append(`User ${formatSegmentComparator(segmentResult ? SegmentComparator.IsIn : SegmentComparator.IsNotIn)}`)
         : logBuilder.append(result))
         .append(".");
 
       logBuilder.newLine("Condition (").appendSegmentCondition(condition, segments).append(")");
-      (!isEvaluationError(result)
+      (!isString(result)
         ? logBuilder.append(" evaluates to ").appendConditionResult(result)
         : logBuilder.append(" failed to evaluate"))
         .append(".");
@@ -781,8 +782,10 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   }
 }
 
-function isEvaluationError(isMatchOrError: boolean | string): isMatchOrError is string {
-  return typeof isMatchOrError === "string";
+function evaluateResultFrom(
+  selectedValue: SettingValueContainer, matchedTargetingRule?: TargetingRule, matchedPercentageOption?: PercentageOption
+): IntermediateEvaluateResult {
+  return { selectedValue, matchedTargetingRule, matchedPercentageOption };
 }
 
 function hashComparisonValue(value: string, configJsonSalt: string, contextSalt: string): string {
@@ -794,16 +797,16 @@ function hashComparisonValueSlice(sliceUtf8: string, configJsonSalt: string, con
 }
 
 function userAttributeValueToString(userAttributeValue: UserAttributeValue): string {
-  return typeof userAttributeValue === "string" ? userAttributeValue
-    : userAttributeValue instanceof Date ? (userAttributeValue.getTime() / 1000) + ""
+  return isString(userAttributeValue) ? userAttributeValue
+    : userAttributeValue instanceof Date ? String(userAttributeValue.getTime() / 1000)
     : isStringArray(userAttributeValue) ? JSON.stringify(userAttributeValue)
-    : userAttributeValue + "";
+    : toStringSafe(userAttributeValue);
 }
 
 function getUserAttributeValueAsText(attributeName: string, attributeValue: UserAttributeValue,
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): string {
-  if (typeof attributeValue === "string") {
+  if (isString(attributeValue)) {
     return attributeValue;
   }
 
@@ -817,24 +820,24 @@ function getUserAttributeValueAsSemVer(attributeName: string, attributeValue: Us
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): ISemVer | string {
   let version: ISemVer | null;
-  if (typeof attributeValue === "string" && (version = parseSemVer(attributeValue.trim()))) {
+  if (isString(attributeValue) && (version = parseSemVer(attributeValue.trim()))) {
     return version;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid semantic version`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid semantic version`);
 }
 
 function getUserAttributeValueAsNumber(attributeName: string, attributeValue: UserAttributeValue,
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): number | string {
-  if (typeof attributeValue === "number") {
+  if (isNumber(attributeValue)) {
     return attributeValue;
   }
   let number: number;
-  if (typeof attributeValue === "string"
+  if (isString(attributeValue)
     && (!isNaN(number = parseFloatStrict(attributeValue.replace(",", "."))) || attributeValue.trim() === "NaN")) {
     return number;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid decimal number`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid decimal number`);
 }
 
 function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attributeValue: UserAttributeValue,
@@ -843,22 +846,22 @@ function getUserAttributeValueAsUnixTimeSeconds(attributeName: string, attribute
   if (attributeValue instanceof Date) {
     return attributeValue.getTime() / 1000;
   }
-  if (typeof attributeValue === "number") {
+  if (isNumber(attributeValue)) {
     return attributeValue;
   }
   let number: number;
-  if (typeof attributeValue === "string"
+  if (isString(attributeValue)
     && (!isNaN(number = parseFloatStrict(attributeValue.replace(",", "."))) || attributeValue.trim() === "NaN")) {
     return number;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid Unix timestamp (number of seconds elapsed since Unix epoch)`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid Unix timestamp (number of seconds elapsed since Unix epoch)`);
 }
 
 function getUserAttributeValueAsStringArray(attributeName: string, attributeValue: UserAttributeValue,
   condition: UserCondition, key: string, logger: LoggerWrapper
 ): ReadonlyArray<string> | string {
   let stringArray: unknown = attributeValue;
-  if (typeof stringArray === "string") {
+  if (isString(stringArray)) {
     try {
       stringArray = JSON.parse(stringArray);
     } catch { /* intentional no-op */ }
@@ -866,145 +869,13 @@ function getUserAttributeValueAsStringArray(attributeName: string, attributeValu
   if (isStringArray(stringArray)) {
     return stringArray;
   }
-  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${attributeValue}' is not a valid string array`);
+  return handleInvalidUserAttribute(logger, condition, key, attributeName, `'${toStringSafe(attributeValue)}' is not a valid string array`);
 }
 
 function handleInvalidUserAttribute(logger: LoggerWrapper, condition: UserCondition, key: string, attributeName: string, reason: string): string {
   const conditionString = new LazyString(condition, condition => formatUserCondition(condition));
   logger.userObjectAttributeIsInvalid(conditionString, key, reason, attributeName);
   return invalidUserAttributeError(attributeName, reason);
-}
-
-export function isAllowedValue(value: unknown): value is NonNullable<SettingValue> {
-  return inferSettingType(value) !== void 0;
-}
-
-function inferSettingType(value: unknown): SettingType | undefined {
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (typeof value) {
-    case "boolean": return SettingType.Boolean;
-    case "string": return SettingType.String;
-    case "number": return SettingType.Double;
-  }
-}
-
-function isCompatibleValue(value: SettingValue, settingType: SettingType): boolean {
-  switch (settingType) {
-    case SettingType.Boolean: return typeof value === "boolean";
-    case SettingType.String: return typeof value === "string";
-    case SettingType.Int:
-    case SettingType.Double: return typeof value === "number";
-    default: return false;
-  }
-}
-
-function getSettingType(setting: Setting): SettingType | UnknownSettingType {
-  const settingType = setting.t;
-  if (isNumberInRange(settingType, SettingType.Boolean, SettingType.Double)
-    || settingType === (-1 satisfies UnknownSettingType) && isSettingWithSimpleValue(setting)) {
-    return settingType;
-  }
-
-  throwInvalidConfigModelError("Setting type is invalid.");
-}
-
-function isSettingWithSimpleValue(setting: Setting): boolean {
-  return !setting.r?.length && !setting.p?.length;
-}
-
-export function hasPercentageOptions(targetingRule: TargetingRule): boolean;
-export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid: true): boolean | undefined;
-export function hasPercentageOptions(targetingRule: TargetingRule, ignoreIfInvalid?: boolean): boolean | undefined {
-  const simpleValue = targetingRule.s;
-  const percentageOptions = targetingRule.p;
-  if (simpleValue != null) {
-    if (percentageOptions == null) {
-      return false;
-    }
-  } else if (percentageOptions?.length) {
-    return true;
-  }
-
-  if (!ignoreIfInvalid) {
-    throwInvalidConfigModelError("Targeting rule THEN part is missing or invalid.");
-  }
-}
-
-function getConditionType(container: ConditionContainer): keyof ConditionContainer {
-  let type: keyof ConditionContainer | undefined | false, condition: Condition | null | undefined;
-
-  condition = container.u;
-  if (condition != null) {
-    type = "u";
-  }
-
-  condition = container.p;
-  if (condition != null) {
-    type = !type ? "p" : false;
-  }
-
-  condition = container.s;
-  if (condition != null) {
-    type = !type ? "s" : false;
-  }
-
-  if (!type) {
-    throwInvalidConfigModelError("Condition is missing or invalid.");
-  }
-
-  return type;
-}
-
-export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
-  ignoreIfInvalid?: false
-): NonNullable<SettingValue>;
-export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
-  ignoreIfInvalid: true
-): NonNullable<SettingValue> | undefined;
-export function unwrapValue(settingValue: SettingValueModel | NonNullable<SettingValue>, settingType: SettingType | UnknownSettingType | null,
-  ignoreIfInvalid?: boolean
-): NonNullable<SettingValue> | undefined {
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (settingType) {
-    case SettingType.Boolean: {
-      const value = (settingValue as SettingValueModel).b;
-      if (value != null) return value;
-      break;
-    }
-    case SettingType.String: {
-      const value = (settingValue as SettingValueModel).s;
-      if (value != null) return value;
-      break;
-    }
-    case SettingType.Int: {
-      const value = (settingValue as SettingValueModel).i;
-      if (value != null) return value;
-      break;
-    }
-    case SettingType.Double: {
-      const value = (settingValue as SettingValueModel).d;
-      if (value != null) return value;
-      break;
-    }
-    case (-1 satisfies UnknownSettingType):
-      if (isAllowedValue(settingValue)) {
-        return settingValue;
-      }
-    // eslint-disable-next-line no-fallthrough
-    default: // unsupported value
-      if (!ignoreIfInvalid) {
-        throwInvalidConfigModelError(
-          settingValue === null ? "Setting value is null."
-          : settingValue === void 0 ? "Setting value is undefined."
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          : `Setting value '${settingValue}' is of an unsupported type (${typeof settingValue}).`);
-      }
-      return;
-  }
-
-  if (!ignoreIfInvalid) {
-    throwInvalidConfigModelError("Setting value is missing or invalid.");
-  }
 }
 
 function getConfigJsonSalt(setting: Setting): string {
@@ -1014,11 +885,6 @@ function getConfigJsonSalt(setting: Setting): string {
 function ensureComparisonValue<T>(comparisonValue: T | null | undefined): T {
   return comparisonValue ?? throwInvalidConfigModelError("Comparison value is missing.");
 }
-
-function throwInvalidConfigModelError(message: string): never {
-  throw new InvalidConfigModelError(message);
-}
-
 /* Evaluation details */
 
 export type SettingTypeOf<T> =
@@ -1045,50 +911,84 @@ export const enum EvaluationErrorCode {
   SettingKeyMissing = 1001,
 }
 
-/** The evaluated value and additional information about the evaluation of a feature flag or setting. */
-export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> {
+type EvaluationDetailsProps<TValue extends SettingValue> = {
   /** Key of the feature flag or setting. */
-  key: string;
+  readonly key: string;
 
   /** Evaluated value of the feature or setting flag. */
-  value: TValue;
+  readonly value: TValue;
 
   /** Variation ID of the feature or setting flag (if available). */
-  variationId?: VariationIdValue;
+  readonly variationId?: VariationIdValue;
 
   /** Time of last successful config download (if there has been a successful download already). */
-  fetchTime?: Date;
+  readonly fetchTime?: Date;
 
   /** The User object used for the evaluation (if available). */
-  user?: IUser;
+  readonly user?: IUser;
 
   /**
    * Indicates whether the default value passed to the setting evaluation methods like `IConfigCatClient.getValueAsync`, `IConfigCatClient.getValueDetailsAsync`, etc.
    * is used as the result of the evaluation.
    */
-  isDefaultValue: boolean;
+  readonly isDefaultValue: boolean;
 
   /** The code identifying the reason for the error in case evaluation failed. */
-  errorCode: EvaluationErrorCode;
+  readonly errorCode: EvaluationErrorCode;
 
   /** Error message in case evaluation failed. */
-  errorMessage?: string;
+  readonly errorMessage?: string;
 
   /** The exception object related to the error in case evaluation failed (if any). */
-  errorException?: any;
+  readonly errorException?: undefined;
 
   /** The targeting rule (if any) that matched during the evaluation and was used to return the evaluated value. */
-  matchedTargetingRule?: TargetingRule;
+  readonly matchedTargetingRule?: TargetingRule;
 
   /** The percentage option (if any) that was used to select the evaluated value. */
-  matchedPercentageOption?: PercentageOption;
+  readonly matchedPercentageOption?: PercentageOption;
+};
+
+/** @deprecated This type is kept for backward compatibility but will be removed in a future major version. Please use the more accurate `EvaluationDetails` type instead. */
+export interface IEvaluationDetails<TValue extends SettingValue = SettingValue> extends EvaluationDetailsProps<TValue> {
+  readonly errorException?: any;
 }
+
+/** The evaluated value and additional information about the evaluation of a feature flag or setting. */
+export type EvaluationDetails<TValue extends SettingValue = SettingValue> = EvaluationDetailsProps<TValue>
+  & PickWithType<EvaluationDetailsProps<TValue>, {
+    fetchTime: Date | undefined;
+    user: IUser | undefined;
+  }>
+  & (
+    // Success case
+    PickWithType<EvaluationDetailsProps<TValue>, {
+      value: NonNullable<TValue>;
+      variationId: VariationIdValue;
+      isDefaultValue: false;
+      errorCode: EvaluationErrorCode.None;
+      errorMessage?: undefined;
+      errorException?: undefined;
+      matchedTargetingRule: TargetingRule | undefined;
+      matchedPercentageOption: PercentageOption | undefined;
+    }>
+    // Error case
+    | PickWithType<EvaluationDetailsProps<TValue>, {
+      variationId?: undefined;
+      isDefaultValue: true;
+      errorCode: Exclude<EvaluationErrorCode, EvaluationErrorCode.None>;
+      errorMessage: string;
+      errorException?: any;
+      matchedTargetingRule?: undefined;
+      matchedPercentageOption?: undefined;
+    }>
+  );
 
 /* Helper functions */
 
-function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: IEvaluateResult,
-  fetchTime?: Date, user?: IUser
-): IEvaluationDetails<SettingTypeOf<T>> {
+function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string, evaluateResult: EvaluateResult,
+  fetchTime: Date | undefined, user: IUser | undefined
+): EvaluationDetails<SettingTypeOf<T>> {
   return {
     key,
     value: evaluateResult.returnValue as SettingTypeOf<T>,
@@ -1103,29 +1003,26 @@ function evaluationDetailsFromEvaluateResult<T extends SettingValue>(key: string
 }
 
 export function evaluationDetailsFromDefaultValue<T extends SettingValue>(key: string, defaultValue: T,
-  fetchTime?: Date, user?: IUser, errorMessage?: Message, errorException?: any, errorCode = EvaluationErrorCode.UnexpectedError
-): IEvaluationDetails<SettingTypeOf<T>> {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const evaluationDetails: IEvaluationDetails<SettingTypeOf<T>> & { _errorMessage?: Message } = {
+  fetchTime: Date | undefined, user: IUser | undefined, errorMessage: Message, errorException?: any,
+  errorCode: Exclude<EvaluationErrorCode, EvaluationErrorCode.None> = EvaluationErrorCode.UnexpectedError
+): EvaluationDetails<SettingTypeOf<T>> {
+  return {
     key,
     value: defaultValue as SettingTypeOf<T>,
     fetchTime,
     user,
     isDefaultValue: true,
     errorCode,
+    ["_errorMessage"]: errorMessage,
     get errorMessage() { return this._errorMessage?.toString(); },
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     errorException,
-  };
-  if (errorMessage != null) {
-    evaluationDetails._errorMessage = errorMessage;
-  }
-  return evaluationDetails;
+  } as EvaluationDetails<SettingTypeOf<T>> & { ["_errorMessage"]: Message };
 }
 
 export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, settings: SettingMap | null,
   key: string, defaultValue: T, user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper
-): IEvaluationDetails<SettingTypeOf<T>> {
+): EvaluationDetails<SettingTypeOf<T>> {
 
   let errorMessage: LogMessage;
   if (!settings) {
@@ -1134,7 +1031,7 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
       toMessage(errorMessage), void 0, EvaluationErrorCode.ConfigJsonNotAvailable);
   }
 
-  if (!Object.prototype.hasOwnProperty.call(settings, key)) {
+  if (!hasOwnProperty(settings, key)) {
     const availableKeys = new LazyString(settings, settings => formatStringList(Object.keys(settings)));
     errorMessage = logger.settingEvaluationFailedDueToMissingKey(key, "defaultValue", defaultValue, availableKeys);
     return evaluationDetailsFromDefaultValue(key, defaultValue, getTimestampAsDate(remoteConfig), user,
@@ -1148,7 +1045,7 @@ export function evaluate<T extends SettingValue>(evaluator: IRolloutEvaluator, s
 
 export function evaluateAll(evaluator: IRolloutEvaluator, settings: SettingMap | null,
   user: IUser | undefined, remoteConfig: ProjectConfig | null, logger: LoggerWrapper, defaultReturnValue: string
-): [IEvaluationDetails[], any[] | undefined] {
+): [EvaluationDetails[], any[] | undefined] {
 
   let errors: any[] | undefined;
 
@@ -1156,10 +1053,12 @@ export function evaluateAll(evaluator: IRolloutEvaluator, settings: SettingMap |
     return [[], errors];
   }
 
-  const evaluationDetailsArray: IEvaluationDetails[] = [];
+  const evaluationDetailsArray: EvaluationDetails[] = [];
 
-  for (const [key, setting] of Object.entries(settings)) {
-    let evaluationDetails: IEvaluationDetails;
+  for (const key in settings) {
+    if (!hasOwnProperty(settings, key)) continue;
+    const setting = settings[key];
+    let evaluationDetails: EvaluationDetails;
     try {
       const evaluateResult = evaluator.evaluate(null, new EvaluateContext(key, setting, user, settings));
       evaluationDetails = evaluationDetailsFromEvaluateResult(key, evaluateResult, getTimestampAsDate(remoteConfig), user);
@@ -1200,7 +1099,9 @@ export function findKeyAndValue(settings: SettingMap | null,
     return null;
   }
 
-  for (const [settingKey, setting] of Object.entries(settings)) {
+  for (const settingKey in settings) {
+    if (!hasOwnProperty(settings, settingKey)) continue;
+    const setting = settings[settingKey];
     const settingType = getSettingType(setting);
 
     if (variationId === setting.i) {
@@ -1243,23 +1144,19 @@ export function findKeyAndValue(settings: SettingMap | null,
   return null;
 }
 
-export function getTimestampAsDate(projectConfig: ProjectConfig | null): Date | undefined {
-  return projectConfig ? new Date(projectConfig.timestamp) : void 0;
-}
-
 export class EvaluationError extends Error {
-  readonly name = EvaluationError.name;
+  override readonly name = EvaluationError.name;
 
   constructor(
-    readonly errorCode: EvaluationErrorCode,
-    readonly message: string
+    readonly errorCode: Exclude<EvaluationErrorCode, EvaluationErrorCode.None>,
+    override readonly message: string
   ) {
     super(message);
     ensurePrototype(this, EvaluationError);
   }
 }
 
-export function getEvaluationErrorCode(err: any): EvaluationErrorCode {
+export function getEvaluationErrorCode(err: any): Exclude<EvaluationErrorCode, EvaluationErrorCode.None> {
   return !(err instanceof Error) ? EvaluationErrorCode.UnexpectedError
     : err instanceof EvaluationError ? err.errorCode
     : err instanceof InvalidConfigModelError ? EvaluationErrorCode.InvalidConfigModel

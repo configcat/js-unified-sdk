@@ -1,11 +1,8 @@
 import type { IEventEmitter } from "./EventEmitter";
+import { createMap, isArray, isFunction } from "./Utils";
 
-type Listener = { fn: (...args: any[]) => void; once?: boolean };
-type Listeners = Listener | Listener[] & { fn?: never };
-
-function isSingle(listeners: Listeners): listeners is Listener {
-  return !!listeners.fn;
-}
+type Listener = { fn: (...args: any[]) => void; once: boolean };
+type Listeners = Listener | Listener[];
 
 // NOTE: It's better to place this class into a separate module so
 // it can be omitted from the final bundle in case it's not used.
@@ -14,11 +11,11 @@ function isSingle(listeners: Listeners): listeners is Listener {
 
 /** A platform-independent implementation of `IEventEmitter`. */
 export class DefaultEventEmitter implements IEventEmitter {
-  private events: Record<string | symbol, Listeners> = {};
+  private events = createMap<string | symbol, Listeners>();
   private eventCount = 0;
 
   private addListenerCore(eventName: string | symbol, fn: (...args: any[]) => void, once: boolean) {
-    if (typeof fn !== "function") {
+    if (!isFunction(fn)) {
       throw TypeError("Listener must be a function");
     }
 
@@ -28,7 +25,7 @@ export class DefaultEventEmitter implements IEventEmitter {
     if (!listeners) {
       this.events[eventName] = listener;
       this.eventCount++;
-    } else if (isSingle(listeners)) {
+    } else if (!isArray(listeners)) {
       this.events[eventName] = [listeners, listener];
     } else {
       listeners.push(listener);
@@ -44,7 +41,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       return this;
     }
 
-    if (!isSingle(listeners)) {
+    if (isArray(listeners)) {
       for (let i = listeners.length - 1; i >= 0; i--) {
         if (isMatch(listeners[i], state)) {
           listeners.splice(i, 1);
@@ -65,15 +62,13 @@ export class DefaultEventEmitter implements IEventEmitter {
 
   private removeEvent(eventName: string | symbol) {
     if (--this.eventCount === 0) {
-      this.events = {};
+      this.events = createMap();
     } else {
       delete this.events[eventName];
     }
   }
 
-  addListener: (eventName: string | symbol, listener: (...args: any[]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.on;
+  addListener!: (eventName: string | symbol, listener: (...args: any[]) => void) => this;
 
   on(eventName: string | symbol, listener: (...args: any[]) => void): this {
     return this.addListenerCore(eventName, listener, false);
@@ -84,23 +79,21 @@ export class DefaultEventEmitter implements IEventEmitter {
   }
 
   removeListener(eventName: string | symbol, listener: (...args: any[]) => void): this {
-    if (typeof listener !== "function") {
+    if (!isFunction(listener)) {
       throw TypeError("Listener must be a function");
     }
 
     return this.removeListenerCore(eventName, listener, (listener, fn) => listener.fn === fn);
   }
 
-  off: (eventName: string | symbol, listener: (...args: any[]) => void) => this =
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    this.removeListener;
+  off!: (eventName: string | symbol, listener: (...args: any[]) => void) => this;
 
   removeAllListeners(eventName?: string | symbol): this {
-    if (!eventName) {
-      this.events = {};
+    if (!arguments.length) {
+      this.events = createMap();
       this.eventCount = 0;
-    } else if (this.events[eventName]) {
-      this.removeEvent(eventName);
+    } else if (this.events[eventName!]) {
+      this.removeEvent(eventName!);
     }
 
     return this;
@@ -113,7 +106,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       return [];
     }
 
-    if (isSingle(listeners)) {
+    if (!isArray(listeners)) {
       return [listeners.fn];
     }
 
@@ -131,7 +124,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       return 0;
     }
 
-    if (isSingle(listeners)) {
+    if (!isArray(listeners)) {
       return 1;
     }
 
@@ -147,12 +140,10 @@ export class DefaultEventEmitter implements IEventEmitter {
 
     const events = this.events;
     for (const name in events) {
-      if (Object.prototype.hasOwnProperty.call(events, name)) {
-        names.push(name);
-      }
+      names.push(name);
     }
 
-    if (Object.getOwnPropertySymbols) {
+    if (isFunction(Object.getOwnPropertySymbols)) {
       return names.concat(Object.getOwnPropertySymbols(events));
     }
 
@@ -168,7 +159,7 @@ export class DefaultEventEmitter implements IEventEmitter {
 
     let listener: Listener, length: number;
 
-    if (isSingle(listeners)) {
+    if (!isArray(listeners)) {
       [listener, length] = [listeners, 1];
     } else {
       // According to the specification, potential removes during emit should not change the list of notified listeners,
@@ -210,3 +201,9 @@ export class DefaultEventEmitter implements IEventEmitter {
     return true;
   }
 }
+
+/* eslint-disable @typescript-eslint/unbound-method */
+const defaultEventEmitterPrototype = DefaultEventEmitter.prototype;
+defaultEventEmitterPrototype.addListener = defaultEventEmitterPrototype.on;
+defaultEventEmitterPrototype.off = defaultEventEmitterPrototype.removeListener;
+/* eslint-enabled @typescript-eslint/unbound-method */
