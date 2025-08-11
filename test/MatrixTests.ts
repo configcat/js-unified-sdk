@@ -100,7 +100,7 @@ function describeMatrixTest(title: string, configLocation: ConfigLocation, matri
 
 function* getMatrixTestCases(matrixFileData: string): Generator<MatrixTestCase> {
 
-  const lines: string[] = matrixFileData.toString().split(/\r\n?|\n/);
+  const lines: string[] = matrixFileData.split(/\r\n?|\n/);
   const header: string[] = lines.shift()?.split(";") ?? [];
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {

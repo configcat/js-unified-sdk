@@ -4,7 +4,7 @@ import { EqualMatchingInjectorConfig, It, Mock, RejectedPromiseFactory, Resolved
 import { MimicsRejectedAsyncPresetFactory, MimicsResolvedAsyncPresetFactory, Presets, ReturnsAsyncPresetFactory, RootMockProvider, ThrowsAsyncPresetFactory } from "moq.ts/internal";
 /* eslint-enable import/no-duplicates */
 import { createAutoPollOptions, createKernel, createLazyLoadOptions, createManualPollOptions, FakeCache, FakeConfigFetcherBase, FakeExternalAsyncCache, FakeExternalCache, FakeLogger } from "./helpers/fakes";
-import { ClientCacheState, RefreshErrorCode, RefreshResult } from "#lib";
+import { ClientCacheState, RefreshResult } from "#lib";
 import { AutoPollConfigService, POLL_EXPIRATION_TOLERANCE_MS } from "#lib/AutoPollConfigService";
 import { ExternalConfigCache, IConfigCache, InMemoryConfigCache } from "#lib/ConfigCatCache";
 import { LoggerWrapper } from "#lib/ConfigCatLogger";

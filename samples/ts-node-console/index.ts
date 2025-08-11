@@ -7,13 +7,13 @@ import * as configcat from "@configcat/sdk";
 (async () => {
   const logger = configcat.createConsoleLogger(configcat.LogLevel.Info); // Setting log level to Info to show detailed feature flag evaluation
 
-  // You can instantiate the client with different polling modes. See the Docs: https://configcat.com/docs/sdk-reference/js/#polling-modes
+  // You can instantiate the client with different polling modes. See the Docs: https://configcat.com/docs/sdk-reference/js/overview/#polling-modes
   const configCatClient = configcat.getClient("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw", configcat.PollingMode.AutoPoll, { pollIntervalSeconds: 2, logger: logger });
 
   const value = await configCatClient.getValueAsync("isAwesomeFeatureEnabled", false);
   console.log("isAwesomeFeatureEnabled: " + value);
 
-  // Read more about the User Object: https://configcat.com/docs/sdk-reference/js/#user-object
+  // Read more about the User Object: https://configcat.com/docs/sdk-reference/js/overview/#user-object
   const userObject = new configcat.User("#SOME-USER-ID#", "configcat@example.com");
 
   const value2 = await configCatClient.getValueAsync("isPOCFeatureEnabled", false, userObject);

@@ -35,7 +35,7 @@ export function fetchResultFromNotModified(config: ProjectConfig): FetchResult {
 export function fetchResultFromError(config: ProjectConfig,
   errorCode: Exclude<RefreshErrorCode, RefreshErrorCode.None>, errorMessage: Message, errorException?: any
 ): FetchResult {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
   return { status: FetchStatus.Errored, config, errorCode, errorMessage, errorException };
 }
 
