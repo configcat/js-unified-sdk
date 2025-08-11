@@ -215,7 +215,7 @@ export function ensureNumberArg(value: number, argName: string, memberPath?: str
 export function ensureNumberArgInRange(value: number, argName: string,
   rangeDescription: string, isInRange: (value: number) => boolean, memberPath?: string
 ): number {
-  isNumber(value) || throwUnexpectedArgType(value, argName, "number", memberPath);
+  ensureNumberArg(value, argName, memberPath);
   isInRange(value) || throwInvalidArg(argName, `Expected a value ${rangeDescription}, got ${value}.`, memberPath, RangeError);
   return value;
 }
