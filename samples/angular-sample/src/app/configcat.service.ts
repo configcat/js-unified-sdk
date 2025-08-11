@@ -21,8 +21,8 @@ export class ConfigCatService implements OnDestroy {
 
     // When using snapshots, it is recommended to use Auto Polling.
     // See the Docs:
-    // * https://configcat.com/docs/sdk-reference/js/#polling-modes
-    // * https://configcat.com/docs/sdk-reference/js/#snapshots-and-synchronous-feature-flag-evaluation
+    // * https://configcat.com/docs/sdk-reference/js/overview/#polling-modes
+    // * https://configcat.com/docs/sdk-reference/js/overview/#snapshots-and-synchronous-feature-flag-evaluation
     this.client = getClient("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw", PollingMode.AutoPoll, {
       pollIntervalSeconds: 5,
       logger,

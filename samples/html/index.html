@@ -14,14 +14,14 @@
       pollIntervalSeconds: 2,
       logger: logger
     });
-    // You can instantiate the client with different polling modes. See the Docs: https://configcat.com/docs/sdk-reference/js/#polling-modes
+    // You can instantiate the client with different polling modes. See the Docs: https://configcat.com/docs/sdk-reference/js/overview/#polling-modes
 
     configCatClient.getValueAsync("isAwesomeFeatureEnabled", false).then(function (value) {
       console.log("isAwesomeFeatureEnabled: " + value);
     });
 
     var userObject = new configcat.User("#SOME-USER-ID#", "configcat@example.com");
-    // Read more about the User Object: https://configcat.com/docs/sdk-reference/js/#user-object
+    // Read more about the User Object: https://configcat.com/docs/sdk-reference/js/overview/#user-object
     configCatClient.getValueAsync("isPOCFeatureEnabled", false, userObject).then(function (value) {
       console.log("isPOCFeatureEnabled: " + value);
     });

@@ -7,7 +7,7 @@ import * as configcat from "@configcat/sdk/chromium-extension";
   // Setting log level Info to show detailed feature flag evaluation
   const logger = configcat.createConsoleLogger(LogLevel.Info);
 
-  // You can instantiate the client with different polling modes. See the Docs: https://configcat.com/docs/sdk-reference/js/#polling-modes
+  // You can instantiate the client with different polling modes. See the Docs: https://configcat.com/docs/sdk-reference/js/overview/#polling-modes
   const configCatClient = configcat.getClient("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw", PollingMode.AutoPoll, {
     pollIntervalSeconds: 2,
     logger: logger
