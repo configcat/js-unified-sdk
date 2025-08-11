@@ -50,8 +50,7 @@ Then import it into your application:
   import * as configcat from "npm:@configcat/sdk/deno";
   ```
 
-  > [!NOTE]
-  > To make this work, you may need to enable the [unstable-byonm](https://deno.com/blog/node-to-deno-challenge#what-are-all-these-unstable-node-compatibility-settings) feature or adjust your [import map](https://docs.deno.com/runtime/fundamentals/modules/#differentiating-between-imports-or-importmap-in-deno.json-and---import-map-option).
+  To make this work, you may need to enable the [unstable-byonm](https://deno.com/blog/node-to-deno-challenge#what-are-all-these-unstable-node-compatibility-settings) feature or adjust your [import map](https://docs.deno.com/runtime/fundamentals/modules/#differentiating-between-imports-or-importmap-in-deno.json-and---import-map-option).
 
 * Bun backend applications:
   ```js
@@ -142,7 +141,7 @@ configCatClient.getValueAsync('isMyAwesomeFeatureEnabled', false)
 
 ## Getting user-specific setting values with targeting
 
-This feature allows you to get different setting values for different users in your application by passing a `User Object` to `getValueAsync()`.
+This feature allows you to get different setting values for different users in your application by passing a [User Object](https://configcat.com/docs/targeting/user-object/) to `getValueAsync()`.
 
 Read more about targeting [here](https://configcat.com/docs/advanced/targeting/).
 
@@ -182,11 +181,11 @@ The ConfigCat SDK supports 3 different polling strategies to fetch feature flags
 
 ## Sensitive information handling
 
-The frontend/mobile SDKs run in your users' browsers/devices. They download a [config JSON](https://configcat.com/docs/requests/) file from ConfigCat's CDN servers. Since the SDK Key is included in the URL path of this file, your users can access both the SDK Key and the contents of the config JSON (including feature flag keys, feature flag values, targeting rules, percentage options, etc.)
+Frontend/mobile SDKs run in your users' browsers/devices. They download a [config JSON](https://configcat.com/docs/requests/) file from ConfigCat's CDN servers. Since the SDK Key is included in the URL path of this file, your users can access both the SDK Key and the contents of the config JSON (including feature flag keys, feature flag values, targeting rules, percentage options, etc.)
 
 However, the SDK Key provides read-only access: it only allows downloading your config JSON file, but it cannot be used to modify the corresponding config in your ConfigCat account.
 
-If you want to prevent your users from obtaining your SDK Key or the contents of your config JSON file, we recommend using the SDK in your backend services only. You can then provide a secure API endpoint for your frontend/mobile applications to evaluate feature flags and settings for your users.
+If you want to prevent your users from accessing your SDK Key and the contents of your config JSON file, we recommend using the SDK in your backend services only. You can then provide a secure API endpoint for your frontend/mobile applications to evaluate feature flags and settings for your users.
 
 Also, we suggest using [confidential text comparators](https://configcat.com/docs/targeting/targeting-rule/user-condition/#confidential-text-comparators) in the targeting rules of the feature flags and settings that are used in frontend/mobile SDKs.
 
