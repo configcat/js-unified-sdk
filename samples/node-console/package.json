@@ -4,6 +4,6 @@
   "description": "Sample application for ConfigCat JS SDK",
   "main": "index.js",
   "dependencies": {
-    "@configcat/sdk": "^0.1.0"
+    "@configcat/sdk": "^1.0.0"
   }
 }
