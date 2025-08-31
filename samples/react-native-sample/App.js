@@ -7,7 +7,7 @@ export default function App() {
   // Setting log level to Info to show detailed feature flag evaluation
   const logger = configCat.createConsoleLogger(LogLevel.Info);
   const configcatClient = configCat.getClient(
-    "configcat-sdk-1/C-HdCN7xrUmB6kDjUpl3Rw/Vh6BkatYSUqLKGFP_rVHWA",
+    "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw",
     PollingMode.AutoPoll,
     {
       pollIntervalSeconds: 2,
