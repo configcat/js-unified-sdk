@@ -6,11 +6,19 @@ import { LogLevel, PollingMode } from "@configcat/sdk/browser";
 export default function App() {
   // Setting log level to Info to show detailed feature flag evaluation
   const logger = configCat.createConsoleLogger(LogLevel.Info);
-  const configcatClient = configCat.getClient("configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw", PollingMode.AutoPoll, {
-    pollIntervalSeconds: 2,
-    logger: logger,
-    configChanged: function() { console.log("Your config has been changed!"); }
-  });
+  const configcatClient = configCat.getClient(
+    "configcat-sdk-1/C-HdCN7xrUmB6kDjUpl3Rw/Vh6BkatYSUqLKGFP_rVHWA",
+    PollingMode.AutoPoll,
+    {
+      pollIntervalSeconds: 2,
+      logger: logger,
+      setupHooks: (hooks) => {
+        hooks.on("configChanged", function () {
+          console.log("Your config has been changed!");
+        });
+      },
+    },
+  );
 
   return (
     <View style={styles.container}>
@@ -22,7 +30,7 @@ export default function App() {
 
 function Demo(props) {
   const [awesomeValue, setAwesomeValue] = useState(false);
-  props.client.getValueAsync("isAwesomeFeatureEnabled", false).then(value => {
+  props.client.getValueAsync("isAwesomeFeatureEnabled", false).then((value) => {
     setAwesomeValue(value);
   });
   return (
@@ -30,9 +38,11 @@ function Demo(props) {
       <Text style={styles.value}>{awesomeValue ? "yes" : "no"}</Text>
       <Button
         onPress={() => {
-          props.client.getValueAsync("isAwesomeFeatureEnabled", false).then(value => {
-            setAwesomeValue(value);
-          });
+          props.client
+            .getValueAsync("isAwesomeFeatureEnabled", false)
+            .then((value) => {
+              setAwesomeValue(value);
+            });
         }}
         title={"Check feature flag"}
       />
@@ -49,12 +59,12 @@ const styles = StyleSheet.create({
   },
 
   value: {
-    margin: 20
+    margin: 20,
   },
 
   demo: {
     display: "flex",
     flexDirection: "column",
-    alignItems: "center"
-  }
+    alignItems: "center",
+  },
 });
