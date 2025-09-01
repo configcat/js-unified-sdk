@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, View, Button } from "react-native";
-import * as configCat from "@configcat/sdk/browser";
-import { LogLevel, PollingMode } from "@configcat/sdk/browser";
+import * as configCat from "@configcat/sdk";
+import { LogLevel, PollingMode } from "@configcat/sdk";
 
 export default function App() {
   // Setting log level to Info to show detailed feature flag evaluation

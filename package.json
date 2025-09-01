@@ -1,16 +1,18 @@
 {
   "name": "@configcat/sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ConfigCat is a configuration as a service that lets you manage your features and configurations without actually deploying new code.",
   "main": "lib/cjs/node/index.main.js",
   "types": "lib/cjs/node/index.main.d.ts",
   "browser": "lib/cjs/browser/index.main.js",
+  "react-native": "lib/cjs/browser/index.main.js",
   "exports": {
     ".": {
       "types": {
         "bun": "./lib/esm/bun/index.d.ts",
         "deno": "./lib/esm/deno/index.d.ts",
         "workerd": "./lib/esm/cloudflare-worker/index.d.ts",
+        "react-native": "./lib/esm/browser/index.main.d.ts",
         "browser": "./lib/esm/browser/index.main.d.ts",
         "import": "./lib/esm/node/index.main.d.ts",
         "require": "./lib/cjs/node/index.main.d.ts"
@@ -18,6 +20,7 @@
       "bun": "./lib/esm/bun/index.js",
       "deno": "./lib/esm/deno/index.js",
       "workerd": "./lib/esm/cloudflare-worker/index.js",
+      "react-native": "./lib/esm/browser/index.main.js",
       "browser": "./lib/esm/browser/index.main.js",
       "import": "./lib/esm/node/index.main.js",
       "require": "./lib/cjs/node/index.main.js"
@@ -84,10 +87,10 @@
     "coverage:browser": "cross-env TEST_BROWSER_COVERAGE=true npm run test:browser:chrome",
     "coverage:chromium-extension": "cross-env TEST_CHROMIUM_EXTENSION_COVERAGE=true npm run test:chromium-extension:chrome",
     "coverage:node": "nyc --include 'src/**' --include 'lib/cjs/**' --exclude 'lib/cjs/**/*.d.ts' --source-map --relative=true --report-dir coverage/node npm run test:node",
-    "coverage": "npm run coverage:node && npm run coverage:browser && npm run coverage:chromium-extension && lcov-result-merger './coverage/*/**/lcov.info' './coverage/lcov.info'",
+    "coverage": "npm run build && npm run coverage:node && npm run coverage:browser && npm run coverage:chromium-extension && lcov-result-merger './coverage/*/**/lcov.info' './coverage/lcov.info'",
     "lint:fix": "eslint . --fix",
     "lint": "eslint .",
-    "prepare": "npm run build",
+    "prepare": "npm run build -- --for-publish",
     "pretest": "npm run build",
     "test:browser:chrome": "karma start karma.browser.chrome.conf.js",
     "test:browser:chromium": "karma start karma.browser.chromium.conf.js",

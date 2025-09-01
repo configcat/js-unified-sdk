@@ -62,32 +62,52 @@
 
         const isStarted = toggleButton.innerText !== "Start";
         if (!isStarted) {
+          const sdkKey = document.getElementById('sdkkey').value;
           toggleButton.disabled = true;
 
-          const sdkKey = document.getElementById('sdkkey').value;
+          let configCatClient;
+          try {
+            const clientOptions = {
+              pollIntervalSeconds: 2,
+              setupHooks: hooks => hooks
+                .on('configFetched', function(result) {
+                  if (!result.isSuccess) {
+                    this.configCatClient.dispose();
+                    delete window.configCatClient;
+                    transitionToStarted(false);
+                    alert('Failed to fetch ConfigCat config.\n' + result.errorMessage);
+                  }
+                })
+                .on('configChanged', function() {
+                  if (toggleButton.disabled) {
+                    transitionToStarted(true);
+                  }
+                  updateFlagsTable(this.configCatClient);
+                })
+            };
 
-          const clientOptions = {
-            pollIntervalSeconds: 2,
-            setupHooks: hooks => hooks.on('configChanged', function() {
-              if (toggleButton.disabled) {
-                toggleButton.innerText = "Stop";
-                toggleButton.disabled = false;
-              }
-              updateFlagsTable(this.configCatClient);
-            })
-          };
-          
+            configCatClient = configcat.getClient(sdkKey, configcat.PollingMode.AutoPoll, clientOptions);
+          } catch (err) {
+            transitionToStarted(false);
+            alert('Failed to create ConfigCat client.\n' + err);
+            return;
+          }
+
           // A long-lived reference to the returned client instance must be maintained,
           // otherwise the GC may reclaim it, stopping the polling process.
-          window.configCatClient = configcat.getClient(sdkKey, configcat.PollingMode.AutoPoll, clientOptions);
+          window.configCatClient = configCatClient;
         } else {
           window.configCatClient.dispose();
           delete window.configCatClient;
-          toggleButton.innerText = "Start";
+          transitionToStarted(false);
         }
 
-        document.getElementById('sdkkey').disabled = !isStarted;
-        document.querySelector('.container1').style.display = !isStarted ? "block" : "none";
+        function transitionToStarted(isStarted) {
+          toggleButton.disabled = false;
+          toggleButton.innerText = isStarted ? "Stop" : "Start";
+          document.getElementById('sdkkey').disabled = isStarted;
+          document.querySelector('.container1').style.display = isStarted ? "block" : "none";
+        }
       });
     });
 

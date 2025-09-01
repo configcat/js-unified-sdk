@@ -77,12 +77,12 @@ async function clean() {
   }
 }
 
-function compile(targetId, { useWebpack, config }) {
+function compile(targetId, { useWebpack, config }, buildForPublish) {
   console.log(`* Compiling target '${targetId}'...`);
   return new Promise((resolve, reject) => {
     const [command, args] = useWebpack
       ? ["node_modules/.bin/webpack", ["-c", path.normalize(config)]]
-      : ["node_modules/.bin/tsc", ["-p", path.normalize(config)]];
+      : ["node_modules/.bin/tsc", ["-p", path.normalize(config), "--sourceMap", !buildForPublish]];
 
     const childProcess = child_process.spawn(path.normalize(command), args, { shell: true });
     childProcess.stdout.on("data", data => console.log(data.toString()));
@@ -209,8 +209,11 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
 
 /* Build pipeline configuration */
 
+const args = process.argv.slice(2);
+const buildForPublish = args.some(arg => arg == "--for-publish");
+
 exports.default = gulp.series(
   clean,
-  gulp.parallel(TARGETS.map(({ id, compileArgs }) => compile.bind(global, id, compileArgs ?? {}))),
+  gulp.parallel(TARGETS.map(({ id, compileArgs }) => compile.bind(global, id, compileArgs ?? {}, buildForPublish))),
   gulp.parallel(TARGETS.map(({ id, outFile, outDir, postProcessArgs }) => postProcess.bind(global, id, outFile, outDir, postProcessArgs ?? {}, packageJson.version)))
 );
