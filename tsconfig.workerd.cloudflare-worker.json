@@ -1,5 +1,5 @@
 {
-   /* TS compiler settings for Cloudflare Workers (workerd) */
+   /* TS compiler settings for Cloudflare Worker tests (workerd) */
   "extends": "./tsconfig.build.esm.json",
   "compilerOptions": {
     "lib": ["DOM", "ES2020", "ES2021.WeakRef", "ES2021.Promise"],
