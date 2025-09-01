@@ -9,7 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@configcat/sdk": "^1.0.0",
+    "@configcat/sdk": "^1.0.1",
     "@expo/metro-runtime": "~5.0.4",
     "expo": "~53.0.20",
     "expo-status-bar": "~2.2.3",

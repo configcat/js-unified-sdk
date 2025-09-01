@@ -5,12 +5,14 @@
   "main": "lib/cjs/node/index.main.js",
   "types": "lib/cjs/node/index.main.d.ts",
   "browser": "lib/cjs/browser/index.main.js",
+  "react-native": "lib/cjs/browser/index.main.js",
   "exports": {
     ".": {
       "types": {
         "bun": "./lib/esm/bun/index.d.ts",
         "deno": "./lib/esm/deno/index.d.ts",
         "workerd": "./lib/esm/cloudflare-worker/index.d.ts",
+        "react-native": "./lib/esm/browser/index.main.d.ts",
         "browser": "./lib/esm/browser/index.main.d.ts",
         "import": "./lib/esm/node/index.main.d.ts",
         "require": "./lib/cjs/node/index.main.d.ts"
@@ -18,6 +20,7 @@
       "bun": "./lib/esm/bun/index.js",
       "deno": "./lib/esm/deno/index.js",
       "workerd": "./lib/esm/cloudflare-worker/index.js",
+      "react-native": "./lib/esm/browser/index.main.js",
       "browser": "./lib/esm/browser/index.main.js",
       "import": "./lib/esm/node/index.main.js",
       "require": "./lib/cjs/node/index.main.js"
