@@ -8,7 +8,7 @@
     "build": "webpack --mode=production --config config/webpack.config.js"
   },
   "dependencies": {
-    "@configcat/sdk": "^0.1.0"
+    "@configcat/sdk": "^1.0.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^10.2.4",
