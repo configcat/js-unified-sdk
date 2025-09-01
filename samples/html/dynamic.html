@@ -2,87 +2,127 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>ConfigCat Sample Page</title>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@configcat/sdk@latest/dist/configcat.browser.umd.min.js">
-    </script>
-    <script
-            src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
-            integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8="
-            crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <script>
-        $(document).ready(function () {
-            $('#start').click(function () {
-                var configCatClient = configcat.getClient(
-                    $('#sdkkey').val(), configcat.PollingMode.AutoPoll, {
-                        pollIntervalSeconds: 4,
-                        setupHooks: function(hooks) {
-                            hooks.on('configChanged', function () {
-                                // Please note that this event may be emitted during initialization, before `getClient` returns the client instance.
-                                // However, you can safely access the client via the `this` context of the event handler callback.
-                                updateFeatureFlagValue(this.configCatClient);
-                            });
-                        }
-                    }
-                );
-
-                $('#sdkkey').prop("disabled", true);
-                $('#flagkey').prop("disabled", true);
-                $('#start').prop("disabled", true);
-
-                function updateFeatureFlagValue(configCatClient) {
-                    configCatClient.getValueAsync($('#flagkey').val(), false).then(function (value) {
-                        $('#unknown').prop('hidden', true);
-                        $('#flip').prop('hidden', false);
-                        if (value) {
-                            $('#on').prop('hidden', false);
-                            $('#off').prop('hidden', true);
-                        } else {
-                            $('#on').prop('hidden', true);
-                            $('#off').prop('hidden', false);
-                        }
-                    });
-                }
-
-                updateFeatureFlagValue(configCatClient);
-            });
-        });
-    </script>
-    <style type="text/css">
-        html,
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 2em;
-            height: 100%;
-            width: 100%;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>ConfigCat Sample Page</title>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@configcat/sdk@latest/dist/configcat.browser.umd.min.js">
+  </script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <style type="text/css">
+    html,
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 2em;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
 </head>
 
 <body>
-    <h2 class="mb-5">ConfigCat Sample Page</h2>
-    <div>
-        <p><a href="https://app.configcat.com/sdkkey"
-            target="_blank" rel="noopener noreferrer">Login</a>  and copy your SDK Key and Feature Flag Key from ConfigCat. Or <a href="https://app.configcat.com/startnow" target="_blank" rel="noopener noreferrer">Get an SDK Key and Feature Flag Key without
-                    registering.</a></p>
-        <label for="sdkkey">SDK Key:</label>
-        <input type="text" class="form-control mb-3" name="sdkkey" id="sdkkey" size="47" value="configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw">
-        <label for="flagkey">Feature Flag Key:</label>
-        <input type="text" class="form-control" name="flagkey" id="flagkey" value="isAwesomeFeatureEnabled">
-        <button id="start" class="btn btn-primary mt-3">Start</button>
+  <h2 class="mb-5">ConfigCat Sample Page</h2>
+  <div>
+    <p>
+      <a href="https://app.configcat.com/sdkkey" target="_blank" rel="noopener noreferrer">Log in</a> and copy-paste
+      your SDK Key from ConfigCat here.
+    </p>
+    <label for="sdkkey">SDK Key:</label>
+    <input type="text" class="form-control mb-3" name="sdkkey" id="sdkkey" size="47"
+      value="configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/tiOvFw5gkky9LFu1Duuvzw">
+    <button id="toggle" class="btn btn-primary mt-3">Start</button>
+  </div>
+  <div class="container container1" style="display: none;">
+    <br/>
+    <p class="ml-4">
+      Flip the switches like <img src="switch.png" alt="switch"> on the <a href="https://app.configcat.com" target="_blank"
+        rel="noopener noreferrer">ConfigCat Dashboard</a> to see flag states update dynamically below
+    </p>
+    <div class="container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Key</th>
+            <th scope="col">State</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
     </div>
-    <p id="flip" hidden>Flip the switch <img src="switch.png" alt="switch"> under <a href="https://app.configcat.com"
-           target="_blank" rel="noopener noreferrer">Feature Flags & Settings</a> to see the page update dynamically.</p>
-    <h5>The current state of your Feature Flag is:</h5>
-    <h1 id="unknown"><span class="badge badge-secondary">Unknown</span></h1>
-    <h1 id="on" hidden><span class="badge badge-success">ON</span></h1>
-    <h1 id="off" hidden><span class="badge badge-danger">OFF</span></h1>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('toggle').addEventListener('click', function() {
+        const toggleButton = this;
+
+        const isStarted = toggleButton.innerText !== "Start";
+        if (!isStarted) {
+          toggleButton.disabled = true;
+
+          const sdkKey = document.getElementById('sdkkey').value;
+
+          const clientOptions = {
+            pollIntervalSeconds: 2,
+            setupHooks: hooks => hooks.on('configChanged', function() {
+              if (toggleButton.disabled) {
+                toggleButton.innerText = "Stop";
+                toggleButton.disabled = false;
+              }
+              updateFlagsTable(this.configCatClient);
+            })
+          };
+          
+          // A long-lived reference to the returned client instance must be maintained,
+          // otherwise the GC may reclaim it, stopping the polling process.
+          window.configCatClient = configcat.getClient(sdkKey, configcat.PollingMode.AutoPoll, clientOptions);
+        } else {
+          window.configCatClient.dispose();
+          delete window.configCatClient;
+          toggleButton.innerText = "Start";
+        }
+
+        document.getElementById('sdkkey').disabled = !isStarted;
+        document.querySelector('.container1').style.display = !isStarted ? "block" : "none";
+      });
+    });
+
+    async function updateFlagsTable(configCatClient) {
+      const snapshot = configCatClient.snapshot();
+      const settingValues = snapshot.getAllKeys()
+        .map(settingKey => ({ settingKey, settingValue: snapshot.getValue(settingKey) }));
+      console.log('settingValues: ', settingValues);
+      const tableRowsHtml = settingValues.map(sv => getTableRow(sv)).join('');
+      document.querySelector('tbody').innerHTML = tableRowsHtml;
+    }
+
+    function getTableRow(sv) {
+      const { settingKey, settingValue } = sv;
+      let svUI = '<span class="badge badge-secondary">Unknown</span>';
+      if (settingValue === true) {
+        svUI = '<span class="badge badge-success">ON</span>';
+      } else if (settingValue === false) {
+        svUI = '<span class="badge badge-danger">OFF</span>';
+      } 
+
+      return `
+        <tr>
+          <td>${htmlEncode(settingKey)}</td>
+          <td>${svUI}</td>
+        </tr>
+      `;
+    }
+
+    function htmlEncode(text) {
+      const textArea = document.createElement('textarea');
+      textArea.innerText = text;
+      return textArea.innerHTML;
+    }
+  </script>
 </body>
 
 </html>
