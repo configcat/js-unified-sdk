@@ -146,7 +146,7 @@ This feature allows you to get different setting values for different users in y
 Read more about targeting [here](https://configcat.com/docs/advanced/targeting/).
 
 ```js
-const userObject = new configcat.User("#USER-IDENTIFIER#");
+const userObject = { identifier: "#USER-IDENTIFIER#" };
 const value = await configCatClient.getValueAsync('isMyAwesomeFeatureEnabled', false, userObject);
 
 if (value) {
@@ -177,7 +177,7 @@ if (value) {
 
 ## Polling modes
 
-The ConfigCat SDK supports 3 different polling strategies to fetch feature flags and settings from the ConfigCat CDN. Once the latest data is downloaded, it is stored in the cache, then calls to `getValueAsync()` use the cached data to evaluate feature flags and settings. Read more about polling modes and how to use them at [ConfigCat Docs](https://configcat.com/docs/sdk-reference/js/overview/#polling-modes).
+The ConfigCat SDK supports 3 different polling strategies to fetch feature flags and settings from the ConfigCat CDN. Once the latest data is downloaded, it is stored in the cache, then the SDK uses the cached data to evaluate feature flags and settings. Read more about polling modes and how to use them at [ConfigCat Docs](https://configcat.com/docs/sdk-reference/js/overview/#polling-modes).
 
 ## Sensitive information handling
 
