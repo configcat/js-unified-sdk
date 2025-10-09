@@ -110,7 +110,7 @@ const configCatClient = configcat.getClient("#YOUR-SDK-KEY#");
 
 > [!NOTE]
 > You can acquire singleton client instances for your SDK Keys using the `getClient("<sdkKey>")` factory function.
-(However, please keep in mind that subsequent calls to `getClient()` with the _same SDK Key_ return a _shared_ client instance, which was set up by the first call.)
+> (However, please keep in mind that subsequent calls to `getClient()` with the _same SDK Key_ return a _shared_ client instance, which was set up by the first call.)
 
 ### 4. Get your setting value:
 

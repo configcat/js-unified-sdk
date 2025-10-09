@@ -10,6 +10,6 @@
   "license": "MIT",
   "dependencies": {
     "@configcat/sdk": "^1.0.0",
-    "pubnub": "^4.32.1"
+    "pubnub": "^7.4.0"
   }
 }
