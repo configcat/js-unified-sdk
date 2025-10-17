@@ -306,8 +306,11 @@ jobs:
 
   publish:
     needs: coverage
-    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC (see also https://docs.npmjs.com/trusted-publishers)
+      contents: read
     steps:
       - uses: actions/checkout@v5
 
@@ -316,10 +319,12 @@ jobs:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install dependencies
+      # Ensure npm 11.5.1 or later is installed
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies & build
         run: npm install
 
       - name: 🚀Publish
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_API_KEY }}
