@@ -440,7 +440,7 @@ describe("Local Overrides", () => {
     });
     const client: IConfigCatClient = new ConfigCatClient(options);
 
-    const keys = await client.snapshot().getAllKeys();
+    const keys = client.snapshot().getAllKeys();
     expect(keys).to.have.members(["isInSegment", "isNotInSegment"]);
 
     const user = new User("12345", "jane@example.com");

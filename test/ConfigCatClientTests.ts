@@ -1204,7 +1204,7 @@ describe("ConfigCatClient", () => {
 
     if (isFinalizationRegistryAvailable) {
       // We need to allow the finalizer callbacks to execute.
-      await allowEventLoop(10);
+      await allowEventLoop(50);
     }
 
     const instanceCount2 = ConfigCatClient["instanceCache"].getAliveCount();
@@ -1248,7 +1248,7 @@ describe("ConfigCatClient", () => {
     await gc();
 
     // We need to allow the finalizer callbacks to execute.
-    await allowEventLoop(10);
+    await allowEventLoop(50);
 
     const instanceCount2 = ConfigCatClient["instanceCache"].getAliveCount();
 
