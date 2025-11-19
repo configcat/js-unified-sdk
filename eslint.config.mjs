@@ -396,7 +396,6 @@ export default [
             ],
             "format": [
               "camelCase",
-              "UPPER_CASE",
             ],
             "modifiers": [
               "private",
