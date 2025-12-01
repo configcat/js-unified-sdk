@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     name: TypeScript v4.0.2 compatibility check
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -37,7 +37,7 @@ jobs:
         chrome: ["beta", "stable"]
     name: Browser - Chrome ${{ matrix.chrome }} test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -61,7 +61,7 @@ jobs:
         chrome: ["592002", "612439", "722274"]
     name: Browser - Chromium ${{ matrix.chrome }} test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -89,7 +89,7 @@ jobs:
         firefox: ["84.0", "latest", "latest-beta"]
     name: Browser - Firefox ${{ matrix.firefox }} test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -110,7 +110,7 @@ jobs:
     runs-on: macos-latest
     name: Browser - Safari latest test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -136,7 +136,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     name: Bun ${{ matrix.bun-version }} (${{ matrix.os }}) test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -157,7 +157,7 @@ jobs:
         chrome: ["beta", "stable"]
     name: Chromium Extension - Chrome ${{ matrix.chrome }} test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -181,7 +181,7 @@ jobs:
         chrome: ["612439", "722274"]
     name: Chromium Extension - Chromium ${{ matrix.chrome }} test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -207,7 +207,7 @@ jobs:
         os: [ubuntu-latest]
     name: Cloudflare Worker (${{ matrix.os }}) test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -232,7 +232,7 @@ jobs:
             os: windows-latest
     name: Deno ${{ matrix.deno-version }} (${{ matrix.os }}) test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: denoland/setup-deno@v2
         with:
@@ -255,7 +255,7 @@ jobs:
             os: macOS-latest
     name: Node.js ${{ matrix.node-version }} (${{ matrix.os }}) test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -279,7 +279,7 @@ jobs:
     ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v6
@@ -312,7 +312,7 @@ jobs:
       id-token: write # Required for OIDC (see also https://docs.npmjs.com/trusted-publishers)
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
