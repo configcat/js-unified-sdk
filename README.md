@@ -4,9 +4,9 @@
 [![Quality Gate Status](https://img.shields.io/sonar/quality_gate/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
 [![SonarCloud Coverage](https://img.shields.io/sonar/coverage/configcat_js-unified-sdk?logo=SonarCloud&server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/project/overview?id=configcat_js-unified-sdk)
 [![Known Vulnerabilities](https://snyk.io/test/github/configcat/js-unified-sdk/badge.svg?targetFile=package.json)](https://snyk.io/test/github/configcat/js-unified-sdk?targetFile=package.json) 
-![License](https://img.shields.io/github/license/configcat/js-unified-sdk.svg) 
-[![](https://data.jsdelivr.com/v1/package/npm/@configcat/sdk/badge)](https://www.jsdelivr.com/package/npm/@configcat/sdk)
-[![NPM](https://nodei.co/npm/@configcat/sdk.png)](https://nodei.co/npm/@configcat/sdk/)
+[![License](https://img.shields.io/github/license/configcat/js-unified-sdk.svg)](https://github.com/configcat/js-unified-sdk/blob/master/LICENSE)
+[![JSDELIVR](https://data.jsdelivr.com/v1/package/npm/@configcat/sdk/badge)](https://www.jsdelivr.com/package/npm/@configcat/sdk)
+[![NPM](https://nodei.co/npm/@configcat/sdk.png)](https://www.npmjs.com/package/@configcat/sdk)
 
 ConfigCat SDK for JavaScript provides easy integration for your application to [ConfigCat](https://configcat.com).
 
@@ -19,7 +19,7 @@ The new SDK combines and, thus, supersedes these packages:
 * [configcat-js-chromium-extension](https://www.npmjs.com/package/configcat-js-chromium-extension)
 * [configcat-node](https://www.npmjs.com/package/configcat-node)
 
-The new SDK maintains strong backward compatibility, making it a drop-in replacement for the packages listed above. In most cases you just need to replace the old package with the new one and adjust the import specifiers (as shown [here](#1-install-and-import-package)).
+The new SDK maintains strong backward compatibility, making it a drop-in replacement for the packages listed above. In most cases you just need to replace the old package with the new one and adjust the import specifiers, as shown [here](#1-install-and-import-package).
 
 ## Getting started
 
