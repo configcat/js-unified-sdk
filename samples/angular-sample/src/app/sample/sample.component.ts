@@ -6,11 +6,10 @@ import { BehaviorSubject, distinctUntilChanged, Observable, switchMap } from "rx
 import { ConfigCatService } from "../configcat.service";
 
 @Component({
-  selector: "app-sample",
-  standalone: true,
-  templateUrl: "./sample.component.html",
-  styleUrls: ["./sample.component.scss"],
-  imports: [AsyncPipe, FormsModule]
+    selector: "app-sample",
+    templateUrl: "./sample.component.html",
+    styleUrls: ["./sample.component.scss"],
+    imports: [AsyncPipe, FormsModule]
 })
 export class SampleComponent {
   isAwesomeEnabled$: Observable<boolean>;
