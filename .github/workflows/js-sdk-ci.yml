@@ -293,7 +293,7 @@ jobs:
         run: npm run coverage
 
       - name: Upload coverage folder
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage
