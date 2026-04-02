@@ -1,5 +1,4 @@
 import { assert } from "chai";
-import type { AugmentedOptions } from "./helpers/platform";
 import { DataGovernance, IConfigCatKernel, OptionsBase } from "#lib/ConfigCatClientOptions";
 import { FetchRequest, FetchResponse, FetchResult, fetchResultFromSuccess, IConfigCatConfigFetcher as IConfigFetcher } from "#lib/ConfigFetcher";
 import type * as ConfigJson from "#lib/ConfigJson";
@@ -271,12 +270,12 @@ export class FakeConfigFetcher implements IConfigFetcher {
 
   fetchAsync(request: FetchRequest): Promise<FetchResponse> {
     const { options } = this;
-    const getUrl = ((options as Partial<AugmentedOptions<OptionsBase>>).getRealUrl ?? options.getUrl).bind(options);
-    const projectConfig = this.responses[getUrl()];
+    const url = options.getUrl();
+    const projectConfig = this.responses[url];
     if (!projectConfig) {
-      assert.fail("ConfigFetcher not prepared for " + getUrl());
+      assert.fail("ConfigFetcher not prepared for " + url);
     }
-    this.calls.push(getUrl());
+    this.calls.push(url);
     return Promise.resolve<FetchResponse>({ statusCode: 200, reasonPhrase: "OK", eTag: projectConfig.config.httpETag, body: projectConfig.config.configJson });
   }
 }

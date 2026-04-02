@@ -122,7 +122,7 @@
   "homepage": "https://configcat.com",
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
-    "@cloudflare/workers-types": "^4.20241106.0",
+    "@cloudflare/workers-types": "^4.20260402.1",
     "@stylistic/eslint-plugin": "^4.4.1",
     "@types/bun": "^1.1.13",
     "@types/chai": "~4.3.4",
@@ -167,7 +167,7 @@
     "typescript-eslint": "^8.34.0",
     "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4",
-    "workerd": "^1.20241112.0"
+    "workerd": "^1.20260402.1"
   },
   "repository": {
     "type": "git",
