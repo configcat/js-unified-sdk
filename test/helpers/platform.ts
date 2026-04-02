@@ -15,10 +15,6 @@ type OptionsForPollingMode<
   TMode extends undefined ? TAutoPollOptions :
   never;
 
-export type AugmentedOptions<TOptions extends OptionsBase> = TOptions & {
-  getRealUrl(): string;
-};
-
 export abstract class PlatformAbstractions<
   TAutoPollOptions extends IAutoPollOptions = IAutoPollOptions,
   TManualPollOptions extends IManualPollOptions = IManualPollOptions,
@@ -34,25 +30,19 @@ export abstract class PlatformAbstractions<
 
   abstract createKernel(setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel, options?: TAutoPollOptions | TManualPollOptions | TLazyLoadingOptions): IConfigCatKernel;
 
-  createAutoPollOptions(sdkKey: string, options?: TAutoPollOptions, kernel?: IConfigCatKernel): AugmentedOptions<AutoPollOptions> {
+  createAutoPollOptions(sdkKey: string, options?: TAutoPollOptions, kernel?: IConfigCatKernel): AutoPollOptions {
     kernel ??= this.createKernel(void 0, options);
-    return this.augmentOptions(
-      new AutoPollOptions(sdkKey, kernel, this.adjustOptions(options))
-    );
+    return new AutoPollOptions(sdkKey, kernel, options);
   }
 
-  createManualPollOptions(sdkKey: string, options?: TManualPollOptions, kernel?: IConfigCatKernel): AugmentedOptions<ManualPollOptions> {
+  createManualPollOptions(sdkKey: string, options?: TManualPollOptions, kernel?: IConfigCatKernel): ManualPollOptions {
     kernel ??= this.createKernel(void 0, options);
-    return this.augmentOptions(
-      new ManualPollOptions(sdkKey, kernel, this.adjustOptions(options))
-    );
+    return new ManualPollOptions(sdkKey, kernel, options);
   }
 
-  createLazyLoadOptions(sdkKey: string, options?: TLazyLoadingOptions, kernel?: IConfigCatKernel): AugmentedOptions<LazyLoadOptions> {
+  createLazyLoadOptions(sdkKey: string, options?: TLazyLoadingOptions, kernel?: IConfigCatKernel): LazyLoadOptions {
     kernel ??= this.createKernel(void 0, options);
-    return this.augmentOptions(
-      new LazyLoadOptions(sdkKey, kernel, this.adjustOptions(options))
-    );
+    return new LazyLoadOptions(sdkKey, kernel, options);
   }
 
   createClientWithAutoPoll = (sdkKey: string, options?: TAutoPollOptions, setupKernel?: (kernel: IConfigCatKernel) => IConfigCatKernel): IConfigCatClient => {
@@ -73,22 +63,12 @@ export abstract class PlatformAbstractions<
   getClient<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode,
     options?: OptionsForPollingMode<TMode, TAutoPollOptions, TManualPollOptions, TLazyLoadingOptions>
   ): IConfigCatClient {
-    return this.getClientImpl(sdkKey, pollingMode, this.adjustOptions(options));
+    return this.getClientImpl(sdkKey, pollingMode, options);
   }
 
   protected abstract getClientImpl<TMode extends PollingMode | undefined>(sdkKey: string, pollingMode?: TMode,
     options?: OptionsForPollingMode<TMode, TAutoPollOptions, TManualPollOptions, TLazyLoadingOptions>
   ): IConfigCatClient;
-
-  protected adjustOptions<TOptions extends IOptions>(options?: TOptions): TOptions | undefined {
-    return options;
-  }
-
-  protected augmentOptions<TOptions extends OptionsBase>(options: TOptions): AugmentedOptions<TOptions> {
-    const augmentedOptions = options as AugmentedOptions<TOptions>;
-    augmentedOptions.getRealUrl = function() { return this.getUrl(); };
-    return augmentedOptions;
-  }
 }
 
 let currentPlatform: PlatformAbstractions | undefined;

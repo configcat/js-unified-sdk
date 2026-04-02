@@ -8,8 +8,7 @@ using Workerd = import "/workerd/workerd.capnp";
 const configcatSdkTestConfig :Workerd.Config = (
   services = [
     (name = "main", worker = .configcatSdkTest),
-    # NOTE: There are unresolvable issues with HTTPS in workerd currently, so we use a HTTP proxy running on localhost for now.
-    (name = "internet", network = (allow = ["private"])),
+    (name = "internet", network = (allow = ["private", "public"], tlsOptions = (trustBrowserCas = true))),
     (name = "cache", external = "localhost:9061"), # see also: test/cloudflare-worker/test-run-helper/server.mjs
     # NOTE: The disk path must not point outside the directory where this config file resides, otherwise it won't work...
     (name = "files", disk = "test/data"),

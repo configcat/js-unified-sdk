@@ -1,8 +1,7 @@
 import "mocha/mocha.js";
-import * as cloudflare from "@cloudflare/workers-types/2023-03-01";
-import { CdnConfigLocation } from "../helpers/ConfigLocation";
-import { AugmentedOptions, initPlatform, PlatformAbstractions } from "../helpers/platform";
-import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions, IOptions } from "#lib/cloudflare-worker";
+import * as cloudflare from "@cloudflare/workers-types";
+import { initPlatform, PlatformAbstractions } from "../helpers/platform";
+import type { IJSAutoPollOptions, IJSLazyLoadingOptions, IJSManualPollOptions } from "#lib/cloudflare-worker";
 import { getClient } from "#lib/cloudflare-worker";
 import { CloudflareConfigCache } from "#lib/cloudflare-worker/CloudflareConfigCache";
 import { DefaultEventEmitter } from "#lib/DefaultEventEmitter";
@@ -45,7 +44,8 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
     const workerEnv = await workerEnvPromise;
     const response = await workerEnv.data.fetch("http://dummy" + path, { method: "GET" });
     if (response.status === 200) {
-      return await response.text();
+      const blob = await response.blob();
+      return await blob.text();
     } else {
       throw Error(`unexpected response: ${response.status} ${response.statusText}`);
     }
@@ -69,28 +69,6 @@ class CloudflareWorkerPlatform extends PlatformAbstractions<IJSAutoPollOptions, 
   }
 
   protected getClientImpl = getClient;
-
-  protected override adjustOptions<TOptions extends IOptions>(options?: TOptions) {
-    options = { ...options } as TOptions;
-    options.baseUrl ??= CdnConfigLocation.getDefaultCdnUrl(options);
-    // HACK: There are issues with HTTPS in workerd (see e.g. https://github.com/cloudflare/workers-sdk/issues/4257),
-    // so, as a workaround, we make requests to the ConfigCat CDN through a Node.js proxy server for now.
-    // See also: see also: test-run-helper/server.mjs
-    options.baseUrl = "http://localhost:9060/" + encodeURIComponent(options.baseUrl);
-    return options;
-  }
-
-  protected override augmentOptions<TOptions extends OptionsBase>(options: TOptions) {
-    const augmentedOptions = options as AugmentedOptions<TOptions>;
-    augmentedOptions.getRealUrl = function() {
-      const url = new URL(this.getUrl());
-      const path = url.pathname + url.search;
-      let index = path.indexOf("/", 1);
-      if (index < 0) index = path.length;
-      return decodeURIComponent(path.substring(1, index)) + path.substring(index);
-    };
-    return augmentedOptions;
-  }
 }
 
 export const platform = new CloudflareWorkerPlatform();

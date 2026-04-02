@@ -233,7 +233,7 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
 - @configcat/sdk/node:
   - Node.js (v14.x, v16.x, v18.x, v20.x, v22.x) on Windows / Ubuntu / macOS
 - @configcat/sdk/cloudflare-worker:
-  - Workerd (2023-02-28)
+  - Workerd (2026-04-02)
 - @configcat/sdk/chromium-extension:
   - Chrome (stable, latest, beta)
   - Chromium (72.0.3626.0, 80.0.3987.0)
