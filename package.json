@@ -139,7 +139,7 @@
     "eslint": "^9.28.0",
     "eslint-plugin-import": "^2.31.0",
     "fetch-mock": "^11.1.5",
-    "glob": "^11.0.3",
+    "glob": "^10.0.0",
     "globals": "^16.3.0",
     "gulp": "^5.0.1",
     "karma": "^6.4.4",
@@ -168,6 +168,9 @@
     "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4",
     "workerd": "^1.20260402.1"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
   },
   "repository": {
     "type": "git",

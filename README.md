@@ -231,7 +231,7 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
 - @configcat/sdk/deno:
   - Deno (v1.31, v1.46, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/node:
-  - Node.js (v14.x, v16.x, v18.x, v20.x, v22.x) on Windows / Ubuntu / macOS
+  - Node.js (v14.x, v16.x, v18.x, v20.x, v22.x, v24.x) on Windows / Ubuntu / macOS
 - @configcat/sdk/cloudflare-worker:
   - Workerd (2026-04-02)
 - @configcat/sdk/chromium-extension:
