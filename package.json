@@ -169,6 +169,9 @@
     "webpack-cli": "^5.1.4",
     "workerd": "^1.20260402.1"
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/configcat/js-unified-sdk"
