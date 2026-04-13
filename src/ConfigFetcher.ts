@@ -42,6 +42,8 @@ export function fetchResultFromError(config: ProjectConfig,
 
 /** The request parameters for a ConfigCat config fetch operation. */
 export class FetchRequest {
+  private readonly _guard: unknown; // prevents structural compatibility with arbitrary objects
+
   constructor(
     /** The URL of the config. */
     readonly url: string,
@@ -90,6 +92,18 @@ export class FetchResponse {
       }
     }
   }
+
+  isExpected(): boolean {
+    switch (this.statusCode) {
+      case 200: // OK
+      case 304: // Not Modified
+      case 403: // Forbidden
+      case 404: // Not Found
+        return true;
+    }
+
+    return false;
+  }
 }
 
 export type FetchErrorCauses = {
@@ -137,3 +151,8 @@ export interface IConfigCatConfigFetcher {
 }
 
 export const fetchInternalAsyncMethodName = "fetchInternalAsync";
+export type FetchInternalAsyncMethodType<TFetcher extends IConfigCatConfigFetcher> =
+  (this: TFetcher, request: FetchRequest, logger?: LoggerWrapper) => Promise<FetchResponse>;
+
+export const fetchRetryLimit = 1;
+export const fetchRetryDelayMs = 50;
