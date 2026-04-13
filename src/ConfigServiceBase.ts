@@ -2,10 +2,10 @@ import type { CacheSyncResult } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { ConfigCatClient } from "./ConfigCatClient";
 import type { OptionsBase } from "./ConfigCatClientOptions";
-import type { LogMessage } from "./ConfigCatLogger";
+import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
 import { toMessage } from "./ConfigCatLogger";
 import type { FetchErrorCauses, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
-import { FetchError, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus } from "./ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import type { Config } from "./ProjectConfig";
 import { deserializeConfig, prepareConfig, ProjectConfig } from "./ProjectConfig";
@@ -306,7 +306,16 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}.`);
 
       const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
-      const response = await this.configFetcher.fetchAsync(request);
+
+      interface IConfigFetcherInternal {
+        [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse>;
+      }
+
+      const response = await (
+        (this.configFetcher as Partial<IConfigFetcherInternal>)[fetchInternalAsyncMethodName]
+          ? (this.configFetcher as unknown as IConfigFetcherInternal)[fetchInternalAsyncMethodName](request, this.options.logger)
+          : this.configFetcher.fetchAsync(request)
+      );
 
       if (response.statusCode !== 200) {
         return [response];

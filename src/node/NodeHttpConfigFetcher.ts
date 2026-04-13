@@ -5,7 +5,7 @@ import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { FetchError, FetchResponse } from "../ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchResponse } from "../ConfigFetcher";
 import { ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
@@ -32,14 +32,8 @@ export interface INodeHttpConfigFetcherOptions {
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   private static getFactory(fetcherOptions?: INodeHttpConfigFetcherOptions): (options: OptionsBase) => IConfigCatConfigFetcher {
-    return options => {
-      const configFetcher = new NodeHttpConfigFetcher(fetcherOptions);
-      configFetcher.logger = options.logger;
-      return configFetcher;
-    };
+    return () => new NodeHttpConfigFetcher(fetcherOptions);
   }
-
-  private logger: LoggerWrapper | null = null;
 
   private readonly httpAgent: http.Agent | undefined;
   private readonly httpsAgent: https.Agent | undefined;
@@ -95,9 +89,13 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   fetchAsync(request: FetchRequest): Promise<FetchResponse> {
+    return this[fetchInternalAsyncMethodName](request);
+  }
+
+  private [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
       try {
-        this.logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
+        logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
 
         const { url } = request;
         const isCustomUrl = !isCdnUrl(url);
@@ -119,9 +117,9 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
           (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
         }
 
-        if (this.logger?.isEnabled(LogLevel.Debug)) {
+        if (logger?.isEnabled(LogLevel.Debug)) {
           const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
-          this.logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
+          logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
         }
 
         const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))

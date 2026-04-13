@@ -2,17 +2,18 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { FetchError, FetchResponse } from "../ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchResponse } from "../ConfigFetcher";
 
 export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly
-  private logger: LoggerWrapper | null = null;
-
   protected constructor(private readonly runsOnServerSide?: boolean) {
   }
 
-  async fetchAsync(request: FetchRequest): Promise<FetchResponse> {
-    this.logger?.debug("FetchApiConfigFetcher.fetchAsync() called.");
+  fetchAsync(request: FetchRequest): Promise<FetchResponse> {
+    return this[fetchInternalAsyncMethodName](request);
+  }
+
+  private async [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
+    logger?.debug("FetchApiConfigFetcher.fetchAsync() called.");
 
     let { url } = request;
     const isCustomUrl = !isCdnUrl(url);
@@ -99,21 +100,13 @@ function getResponseHeadersDefault(httpResponse: Response): [string, string][] {
 
 export class ClientSideFetchApiConfigFetcher extends FetchApiConfigFetcherBase {
   private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
-    return options => {
-      const configFetcher = new ClientSideFetchApiConfigFetcher();
-      configFetcher["logger"] = options.logger;
-      return configFetcher;
-    };
+    return options => new ClientSideFetchApiConfigFetcher();
   }
 }
 
 export class ServerSideFetchApiConfigFetcher extends FetchApiConfigFetcherBase {
   private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
-    return options => {
-      const configFetcher = new ServerSideFetchApiConfigFetcher();
-      configFetcher["logger"] = options.logger;
-      return configFetcher;
-    };
+    return options => new ServerSideFetchApiConfigFetcher();
   }
 
   constructor() {
