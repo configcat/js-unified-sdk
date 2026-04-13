@@ -276,7 +276,7 @@ export class FakeConfigFetcher implements IConfigFetcher {
       assert.fail("ConfigFetcher not prepared for " + url);
     }
     this.calls.push(url);
-    return Promise.resolve<FetchResponse>({ statusCode: 200, reasonPhrase: "OK", eTag: projectConfig.config.httpETag, body: projectConfig.config.configJson });
+    return Promise.resolve({ statusCode: 200, reasonPhrase: "OK", eTag: projectConfig.config.httpETag, body: projectConfig.config.configJson } as FetchResponse);
   }
 }
 

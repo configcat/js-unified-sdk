@@ -4,9 +4,9 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
-import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { FetchError, fetchInternalAsyncMethodName, FetchResponse } from "../ConfigFetcher";
-import { ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
+import type { FetchInternalAsyncMethodType, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
+import { delay, ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -92,10 +92,11 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     return this[fetchInternalAsyncMethodName](request);
   }
 
-  private [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
-    return new Promise<FetchResponse>((resolve, reject) => {
-      logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
+  // Defined directly on the prototype, see below.
+  private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethodType<NodeHttpConfigFetcher>;
 
+  private fetchCoreAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
+    return new Promise<FetchResponse>((resolve, reject) => {
       const { url } = request;
       const isCustomUrl = !isCdnUrl(url);
       const isHttpsUrl = url.startsWith("https:");
@@ -140,6 +141,27 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     setRequestHeadersDefault(requestOptions, headers);
   }
 }
+
+NodeHttpConfigFetcher.prototype[fetchInternalAsyncMethodName] = async function(request: FetchRequest, logger?: LoggerWrapper) {
+  logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
+
+  for (let retryNumber = 0; ; retryNumber++) {
+    try {
+      const fetchResponse = await this["fetchCoreAsync"](request, logger);
+      if (FetchResponse.prototype.isExpected.call(fetchResponse) || retryNumber >= fetchRetryLimit) {
+        return fetchResponse;
+      }
+    } catch (err) {
+      if (retryNumber >= fetchRetryLimit
+        || !(err instanceof FetchError)
+        || (err as FetchError).cause !== "timeout" && (err as FetchError).cause !== "failure") {
+        throw err;
+      }
+    }
+
+    await delay(fetchRetryDelayMs);
+  }
+};
 
 function setRequestHeadersDefault(requestOptions: { headers?: Record<string, http.OutgoingHttpHeader> }, headers: ReadonlyArray<readonly [string, string]>): void {
   if (headers.length) {

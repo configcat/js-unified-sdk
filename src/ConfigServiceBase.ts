@@ -289,7 +289,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
     } catch (err) {
       let errorCode: RefreshErrorCode;
-      [errorCode, errorMessage] = err instanceof FetchError && err.cause === "timeout"
+      [errorCode, errorMessage] = err instanceof FetchError && (err as FetchError).cause === "timeout"
         ? [RefreshErrorCode.HttpRequestTimeout, options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err)]
         : [RefreshErrorCode.HttpRequestFailure, options.logger.fetchFailedDueToUnexpectedError(err)];
 
