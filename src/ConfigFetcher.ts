@@ -1,3 +1,4 @@
+import type { LoggerWrapper } from "./ConfigCatLogger";
 import type { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
@@ -134,3 +135,5 @@ export interface IConfigCatConfigFetcher {
    */
   fetchAsync(request: FetchRequest): Promise<FetchResponse>;
 }
+
+export const fetchInternalAsyncMethodName = "fetchInternalAsync";

@@ -2,7 +2,7 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import type { FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { FetchError, FetchResponse } from "../ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchResponse } from "../ConfigFetcher";
 
 interface IHttpRequest {
   setRequestHeader(name: string, value: string): void;
@@ -10,14 +10,8 @@ interface IHttpRequest {
 
 export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
-    return options => {
-      const configFetcher = new XmlHttpRequestConfigFetcher();
-      configFetcher.logger = options.logger;
-      return configFetcher;
-    };
+    return () => new XmlHttpRequestConfigFetcher();
   }
-
-  private logger: LoggerWrapper | null = null;
 
   private handleStateChange(httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {
@@ -38,9 +32,13 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   fetchAsync(request: FetchRequest): Promise<FetchResponse> {
+    return this[fetchInternalAsyncMethodName](request);
+  }
+
+  private [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
       try {
-        this.logger?.debug("XmlHttpRequestConfigFetcher.fetchAsync() called.");
+        logger?.debug("XmlHttpRequestConfigFetcher.fetchAsync() called.");
 
         let { url } = request;
         const isCustomUrl = !isCdnUrl(url);
