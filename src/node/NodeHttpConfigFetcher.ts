@@ -94,50 +94,45 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   private [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
-      try {
-        logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
+      logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
 
-        const { url } = request;
-        const isCustomUrl = !isCdnUrl(url);
-        const isHttpsUrl = url.startsWith("https:");
+      const { url } = request;
+      const isCustomUrl = !isCdnUrl(url);
+      const isHttpsUrl = url.startsWith("https:");
 
-        const { lastETag, timeoutMs } = request;
+      const { lastETag, timeoutMs } = request;
 
-        const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
-        requestOptions.agent = isHttpsUrl ? this.httpsAgent : this.httpAgent;
-        requestOptions.timeout = timeoutMs;
+      const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
+      requestOptions.agent = isHttpsUrl ? this.httpsAgent : this.httpAgent;
+      requestOptions.timeout = timeoutMs;
 
-        if (isCustomUrl) {
-          this.setRequestHeaders(requestOptions, request.headers);
-        } else {
-          setRequestHeadersDefault(requestOptions, request.headers);
-        }
-
-        if (lastETag) {
-          (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
-        }
-
-        if (logger?.isEnabled(LogLevel.Debug)) {
-          const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
-          logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
-        }
-
-        const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))
-          .on("timeout", () => {
-            try {
-              clientRequest.destroy();
-            } finally {
-              reject(new FetchError("timeout", timeoutMs));
-            }
-          })
-          .on("error", err => {
-            reject(new FetchError("failure", err));
-          })
-          .end();
-      } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-        reject(err);
+      if (isCustomUrl) {
+        this.setRequestHeaders(requestOptions, request.headers);
+      } else {
+        setRequestHeadersDefault(requestOptions, request.headers);
       }
+
+      if (lastETag) {
+        (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
+      }
+
+      if (logger?.isEnabled(LogLevel.Debug)) {
+        const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
+        logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
+      }
+
+      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))
+        .on("timeout", () => {
+          try {
+            clientRequest.destroy();
+          } finally {
+            reject(new FetchError("timeout", timeoutMs));
+          }
+        })
+        .on("error", err => {
+          reject(new FetchError("failure", err));
+        })
+        .end();
     });
   }
 

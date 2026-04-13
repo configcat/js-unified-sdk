@@ -37,37 +37,32 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
   private [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
-      try {
-        logger?.debug("XmlHttpRequestConfigFetcher.fetchAsync() called.");
+      logger?.debug("XmlHttpRequestConfigFetcher.fetchAsync() called.");
 
-        let { url } = request;
-        const isCustomUrl = !isCdnUrl(url);
-        const { lastETag, timeoutMs } = request;
+      let { url } = request;
+      const isCustomUrl = !isCdnUrl(url);
+      const { lastETag, timeoutMs } = request;
 
-        if (lastETag) {
-          // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
-          // we can transform this query param to the header in our CDN provider.
-          // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
-          url += "&ccetag=" + encodeURIComponent(lastETag);
-        }
-
-        const httpRequest: XMLHttpRequest = new XMLHttpRequest();
-
-        httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject);
-        httpRequest.ontimeout = () => reject(new FetchError("timeout", timeoutMs));
-        httpRequest.onabort = () => reject(new FetchError("abort"));
-        httpRequest.onerror = () => reject(new FetchError("failure"));
-
-        httpRequest.open("GET", url, true);
-        httpRequest.timeout = timeoutMs;
-        if (isCustomUrl) {
-          this.setRequestHeaders(httpRequest, request.headers);
-        }
-        httpRequest.send(null);
-      } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-        reject(err);
+      if (lastETag) {
+        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
+        // we can transform this query param to the header in our CDN provider.
+        // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
+        url += "&ccetag=" + encodeURIComponent(lastETag);
       }
+
+      const httpRequest: XMLHttpRequest = new XMLHttpRequest();
+
+      httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject);
+      httpRequest.ontimeout = () => reject(new FetchError("timeout", timeoutMs));
+      httpRequest.onabort = () => reject(new FetchError("abort"));
+      httpRequest.onerror = () => reject(new FetchError("failure"));
+
+      httpRequest.open("GET", url, true);
+      httpRequest.timeout = timeoutMs;
+      if (isCustomUrl) {
+        this.setRequestHeaders(httpRequest, request.headers);
+      }
+      httpRequest.send(null);
     });
   }
 
