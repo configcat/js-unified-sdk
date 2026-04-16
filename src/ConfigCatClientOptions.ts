@@ -91,13 +91,15 @@ export interface IOptions {
    * If not set, a default implementation will be used depending on the current platform.
    * If you want to use custom a config fetcher, you can provide an implementation of `IConfigCatConfigFetcher`.
    *
-   * @remarks Implementing a config fetcher that makes HTTP requests to the ConfigCat CDN is tricky, especially when the
-   * SDK runs in a browser. Therefore, please **avoid writing actual config fetcher implementations from scratch**
+   * @remarks Please note that the SDK does not dispose externally created config fetcher instances.
+   *
+   * Also be aware that implementing a config fetcher that makes HTTP requests to the ConfigCat CDN is tricky, especially when
+   * the SDK runs in a browser. Therefore, please **avoid writing actual config fetcher implementations from scratch**
    * unless absolutely necessary and you know exactly what you are doing. (Writing mock implementations for testing
    * purposes is fine, of course.)
    *
-   * If you use the SDK with a {@link https://configcat.com/docs/advanced/proxy/proxy-overview/ | proxy } and need to set
-   * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. FetchApiConfigFetcher)
+   * If you use the SDK with {@link https://configcat.com/docs/advanced/proxy/proxy-overview/ | ConfigCat Proxy } and need to set
+   * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. `ServerSideFetchApiConfigFetcher`)
    * and override the `setRequestHeaders` method.
    */
   configFetcher?: IConfigCatConfigFetcher | null;
@@ -184,13 +186,14 @@ export abstract class OptionsBase {
 
   baseUrl: string;
 
-  baseUrlOverriden;
+  baseUrlOverriden: boolean;
 
   dataGovernance = DataGovernance.Global;
 
   cache: IConfigCache;
 
   configFetcher: IConfigCatConfigFetcher;
+  ownsConfigFetcher: boolean;
 
   flagOverrides: FlagOverrides | null = null;
 
@@ -303,6 +306,7 @@ export abstract class OptionsBase {
       : (kernel.defaultCacheFactory?.(this) ?? new InMemoryConfigCache());
 
     this.configFetcher = configFetcher ?? kernel.configFetcherFactory(this);
+    this.ownsConfigFetcher = !configFetcher;
   }
 
   yieldHooks(): Hooks {

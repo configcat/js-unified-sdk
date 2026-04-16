@@ -1,7 +1,7 @@
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
-import type { FetchInternalAsyncMethodType, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
 import { delay } from "../Utils";
 
@@ -37,7 +37,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   // Defined directly on the prototype, see below.
-  private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethodType<XmlHttpRequestConfigFetcher>;
+  private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethod<XmlHttpRequestConfigFetcher>;
 
   private fetchCoreAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
