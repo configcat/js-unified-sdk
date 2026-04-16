@@ -6,6 +6,12 @@ import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDela
 import { delay } from "../Utils";
 
 export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
+  private isDisposed = false;
+
+  dispose(): void {
+    this.isDisposed = true;
+  }
+
   protected constructor(private readonly runsOnServerSide?: boolean) {
   }
 
@@ -16,10 +22,15 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
   // Defined directly on the prototype, see below.
   private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethod<FetchApiConfigFetcherBase>;
 
-  private async fetchCoreAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
+  private async fetchWithRetryAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
+    const isCustomUrl = !isCdnUrl(request.url);
+
     for (let retryNumber = 0; ; retryNumber++) {
+      if (this.isDisposed) {
+        throw retryNumber > 0 ? new FetchError("abort") : Error(`${this.constructor.name} object has been disposed.`);
+      }
+
       let { url } = request;
-      const isCustomUrl = !isCdnUrl(url);
       const { lastETag, timeoutMs } = request;
 
       const requestInit = Object.create(null) as RequestInit & { headers?: [string, string][] };
@@ -80,6 +91,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
         cleanup?.();
       }
 
+      // Wait a little before trying again.
       await delay(fetchRetryDelayMs);
     }
   }
@@ -94,7 +106,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
 FetchApiConfigFetcherBase.prototype[fetchInternalAsyncMethodName] = function(request: FetchRequest, logger?: LoggerWrapper) {
   logger?.debug("FetchApiConfigFetcherBase.fetchAsync() called.");
 
-  return this["fetchCoreAsync"](request, logger);
+  return this["fetchWithRetryAsync"](request, logger);
 };
 
 function setRequestHeadersDefault(requestInit: { headers?: [string, string][] }, headers: ReadonlyArray<readonly [string, string]>): void {

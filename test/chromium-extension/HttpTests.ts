@@ -11,10 +11,10 @@ describe("HTTP tests", () => {
 
   if (typeof AbortController !== "undefined") {
     it("HTTP timeout", async () => {
-      const requestTimeoutMs = 1500;
+      const requestTimeoutMs = 750;
 
       fetchMock.get(url => url.startsWith(baseUrl),
-        new Promise(resolve => setTimeout(() => resolve({ throws: new Error("Test failed.") }), requestTimeoutMs * 2)));
+        new Promise(resolve => setTimeout(() => resolve({ throws: new Error("Test failed.") }), requestTimeoutMs * 4)));
 
       try {
         const logger = new FakeLogger();
@@ -27,6 +27,7 @@ describe("HTTP tests", () => {
         const startTime = getMonotonicTimeMs();
         const refreshResult = await client.forceRefreshAsync();
         const duration = getMonotonicTimeMs() - startTime;
+        // NOTE: Elapsed time is expected to be twice as `requestTimeoutMs` due to retry.
         assert.isTrue(duration > 1000 && duration < 2000);
 
         const defaultValue = "NOT_CAT";

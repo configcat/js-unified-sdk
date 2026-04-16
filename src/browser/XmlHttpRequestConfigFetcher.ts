@@ -14,6 +14,12 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     return () => new XmlHttpRequestConfigFetcher();
   }
 
+  private isDisposed = false;
+
+  dispose(): void {
+    this.isDisposed = true;
+  }
+
   private handleStateChange(httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
     try {
       if (httpRequest.readyState === 4) {
@@ -39,10 +45,35 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   // Defined directly on the prototype, see below.
   private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethod<XmlHttpRequestConfigFetcher>;
 
-  private fetchCoreAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
+  private async fetchWithRetryAsync(request: FetchRequest, logger?: LoggerWrapper) {
+    const isCustomUrl = !isCdnUrl(request.url);
+
+    for (let retryNumber = 0; ; retryNumber++) {
+      if (this.isDisposed) {
+        throw retryNumber > 0 ? new FetchError("abort") : Error(`${this.constructor.name} object has been disposed.`);
+      }
+
+      try {
+        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl, logger);
+        if (FetchResponse.prototype.isExpected.call(fetchResponse) || retryNumber >= fetchRetryLimit) {
+          return fetchResponse;
+        }
+      } catch (err) {
+        if (retryNumber >= fetchRetryLimit
+            || !(err instanceof FetchError)
+            || (err as FetchError).cause !== "timeout" && (err as FetchError).cause !== "failure") {
+          throw err;
+        }
+      }
+
+      // Wait a little before trying again.
+      await delay(fetchRetryDelayMs);
+    }
+  }
+
+  private fetchCoreAsync(request: FetchRequest, isCustomUrl: boolean, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
       let { url } = request;
-      const isCustomUrl = !isCdnUrl(url);
       const { lastETag, timeoutMs } = request;
 
       if (lastETag) {
@@ -72,25 +103,10 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   }
 }
 
-XmlHttpRequestConfigFetcher.prototype[fetchInternalAsyncMethodName] = async function(request: FetchRequest, logger?: LoggerWrapper) {
+XmlHttpRequestConfigFetcher.prototype[fetchInternalAsyncMethodName] = function(request: FetchRequest, logger?: LoggerWrapper) {
   logger?.debug("XmlHttpRequestConfigFetcher.fetchAsync() called.");
 
-  for (let retryNumber = 0; ; retryNumber++) {
-    try {
-      const fetchResponse = await this["fetchCoreAsync"](request, logger);
-      if (FetchResponse.prototype.isExpected.call(fetchResponse) || retryNumber >= fetchRetryLimit) {
-        return fetchResponse;
-      }
-    } catch (err) {
-      if (retryNumber >= fetchRetryLimit
-            || !(err instanceof FetchError)
-            || (err as FetchError).cause !== "timeout" && (err as FetchError).cause !== "failure") {
-        throw err;
-      }
-    }
-
-    await delay(fetchRetryDelayMs);
-  }
+  return this["fetchWithRetryAsync"](request, logger);
 };
 
 function getResponseHeadersDefault(httpRequest: XMLHttpRequest): [string, string][] {

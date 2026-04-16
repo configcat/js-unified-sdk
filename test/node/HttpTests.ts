@@ -31,13 +31,14 @@ describe("HTTP tests", () => {
     const logger = new FakeLogger();
 
     const client = platform.createClientWithManualPoll(sdkKey, {
-      requestTimeoutMs: 1000,
+      requestTimeoutMs: 750,
       baseUrl: server.url,
       logger,
     });
     const startTime = getMonotonicTimeMs();
     const refreshResult = await client.forceRefreshAsync();
     const duration = getMonotonicTimeMs() - startTime;
+    // NOTE: Elapsed time is expected to be twice as `requestTimeoutMs` due to retry.
     assert.isTrue(duration > 1000 && duration < 2000);
 
     const defaultValue = "NOT_CAT";
@@ -115,32 +116,35 @@ describe("HTTP tests", () => {
     client.dispose();
   });
 
-  it("HTTP proxy", async () => {
-    let proxyCallCount = 0;
+  for (const useAgentFactory of [false, true]) {
+    it(`HTTP proxy ${useAgentFactory ? "with" : "without"} agent factory`, async () => {
+      let proxyCallCount = 0;
 
-    server.forAnyRequest().forHost("cdn-global.configcat.com:443").thenPassThrough({
-      beforeRequest: (_: any) => {
-        proxyCallCount++;
-      },
+      server.forAnyRequest().forHost("cdn-global.configcat.com:443").thenPassThrough({
+        beforeRequest: (_: any) => {
+          proxyCallCount++;
+        },
+      });
+
+      const client = platform.createClientWithManualPoll(sdkKey, {
+        httpsAgent: !useAgentFactory ? new MockttpProxyAgent(server.url) : void 0,
+        httpsAgentFactory: useAgentFactory ? () => new MockttpProxyAgent(server.url) : void 0,
+      });
+
+      const refreshResult = await client.forceRefreshAsync();
+      assert.strictEqual(proxyCallCount, 1);
+
+      const defaultValue = "NOT_CAT";
+      assert.strictEqual("Cat", await client.getValueAsync("stringDefaultCat", defaultValue));
+
+      assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.None);
+
+      await client.forceRefreshAsync();
+      assert.strictEqual(proxyCallCount, 2);
+
+      client.dispose();
     });
-
-    const client = platform.createClientWithManualPoll(sdkKey, {
-      httpsAgent: new MockttpProxyAgent(server.url),
-    });
-
-    const refreshResult = await client.forceRefreshAsync();
-    assert.strictEqual(proxyCallCount, 1);
-
-    const defaultValue = "NOT_CAT";
-    assert.strictEqual("Cat", await client.getValueAsync("stringDefaultCat", defaultValue));
-
-    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.None);
-
-    await client.forceRefreshAsync();
-    assert.strictEqual(proxyCallCount, 2);
-
-    client.dispose();
-  });
+  }
 });
 
 // NOTE: We need to augment the https.Agent type as some necessary methods are not defined in `@types/node`.

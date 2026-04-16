@@ -10,7 +10,7 @@ describe("HTTP tests", () => {
   const baseUrl = "https://cdn-global.test.com";
 
   it("HTTP timeout", async () => {
-    const requestTimeoutMs = 1500;
+    const requestTimeoutMs = 750;
 
     const server = mockxmlhttprequest.newServer({
       get: [url => url.startsWith(baseUrl), request => setTimeout(() => request.setRequestTimeout(), requestTimeoutMs)],
@@ -29,6 +29,7 @@ describe("HTTP tests", () => {
       const startTime = getMonotonicTimeMs();
       const refreshResult = await client.forceRefreshAsync();
       const duration = getMonotonicTimeMs() - startTime;
+      // NOTE: Elapsed time is expected to be twice as `requestTimeoutMs` due to retry.
       assert.isTrue(duration > 1000 && duration < 2000);
 
       const defaultValue = "NOT_CAT";
