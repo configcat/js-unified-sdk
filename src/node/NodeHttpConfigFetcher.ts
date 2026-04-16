@@ -6,7 +6,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
 import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
-import { delay, ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
+import { delay, ensureFunctionArg, ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -17,8 +17,28 @@ export interface INodeHttpConfigFetcherOptions {
    * will be used.
    *
    * This option applies when the SDK connects to a custom `http://...` URL you specified via `baseUrl`.
+   *
+   * @deprecated This option is kept for backward compatibility but will be removed in a future major version.
+   * Please use the `httpAgentProvider` option instead.
    */
   httpAgent?: http.Agent | null;
+
+  /**
+   * An optional callback that can be used to provide an {@link https://nodejs.org/api/http.html#class-httpagent | http.Agent}
+   * instance to use for non-secure HTTP communication. For example, this option allows you to configure the SDK to
+   * route `http://...` requests through an HTTP, HTTPS or SOCKS proxy.
+   *
+   * If not set, an internally managed agent with the same options as {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent}
+   * will be used.
+   *
+   * This option applies when the SDK connects to a custom `http://...` URL you specified via `baseUrl`.
+   *
+   * @param recommendedOptions Default options (the same options that {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent}
+   * uses) for the provided agent. This object can be modified as needed.
+   * @param isRetry Indicates whether to provide an agent for a retried request.
+   * @returns The `http.Agent` instance to use for making requests.
+   */
+  httpAgentProvider?: ((recommendedOptions: http.AgentOptions, isRetry: boolean) => http.Agent) | null;
 
   /**
    * The {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent} instance to use for secure HTTP communication.
@@ -28,8 +48,28 @@ export interface INodeHttpConfigFetcherOptions {
    * will be used.
    *
    * This option applies when the SDK connects to the ConfigCat CDN or a custom `https://...` URL you specified via `baseUrl`.
-   */
+   *
+   * @deprecated This option is kept for backward compatibility but will be removed in a future major version.
+   * Please use the `httpsAgentProvider` option instead.
+  */
   httpsAgent?: https.Agent | null;
+
+  /**
+   * An optional callback that can be used to provide an {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent}
+   * instance to use for secure HTTP communication. For example, this option allows you to configure the SDK to
+   * route `https://...` requests through an HTTP, HTTPS or SOCKS proxy.
+   *
+   * If not set, an internally managed agent with the same options as {@link https://nodejs.org/api/https.html#httpsglobalagent | https.globalAgent}
+   * will be used.
+   *
+   * This option applies when the SDK connects to the ConfigCat CDN or a custom `https://...` URL you specified via `baseUrl`.
+   *
+   * @param recommendedOptions Default options (the same options that {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent}
+   * uses) for the provided agent. This object can be modified as needed.
+   * @param isRetry Indicates whether to provide an agent for a retried request.
+   * @returns The `https.Agent` instance to use for making requests.
+   */
+  httpsAgentProvider?: ((recommendedOptions: https.AgentOptions, isRetry: boolean) => https.Agent) | null;
 }
 
 export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
@@ -37,50 +77,60 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     return () => new NodeHttpConfigFetcher(fetcherOptions);
   }
 
-  private httpAgent: http.Agent | undefined;
-  private readonly ownsHttpAgent: boolean;
-
-  private httpsAgent: https.Agent | undefined;
-  private readonly ownsHttpsAgent: boolean;
+  private httpAgentState: AgentState<http.Agent>;
+  private httpsAgentState: AgentState<https.Agent>;
 
   private isDisposed = false;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
-    let httpAgent: http.Agent | undefined, httpsAgent: https.Agent | undefined;
+    let httpAgentProvider: ((options: http.AgentOptions, isRetry: boolean) => http.Agent) | undefined;
+    let httpsAgentProvider: ((options: https.AgentOptions, isRetry: boolean) => https.Agent) | undefined;
 
     if (options != null) {
       const optionsArgName = "options";
 
       ensureObjectArg(options, optionsArgName);
 
+      /* eslint-disable @typescript-eslint/no-deprecated */
       if (options.httpAgent != null) {
-        httpAgent = ensureObjectArg(options.httpAgent, optionsArgName, void 0, ".httpAgent");
+        const httpAgent = ensureObjectArg(options.httpAgent, optionsArgName, void 0, ".httpAgent");
+        httpAgentProvider = () => httpAgent;
       }
 
       if (options.httpsAgent != null) {
-        httpsAgent = ensureObjectArg(options.httpsAgent, optionsArgName, void 0, ".httpsAgent");
+        const httpsAgent = ensureObjectArg(options.httpsAgent, optionsArgName, void 0, ".httpsAgent");
+        httpsAgentProvider = () => httpsAgent;
+      }
+      /* eslint-enable @typescript-eslint/no-deprecated */
+
+      if (options.httpAgentProvider != null) {
+        httpAgentProvider = ensureFunctionArg(options.httpAgentProvider, optionsArgName, ".httpAgentProvider");
+      }
+
+      if (options.httpsAgentProvider != null) {
+        httpsAgentProvider = ensureFunctionArg(options.httpsAgentProvider, optionsArgName, ".httpsAgentProvider");
       }
     }
 
-    this.httpAgent = httpAgent;
-    this.ownsHttpAgent = !httpAgent;
-
-    this.httpsAgent = httpsAgent;
-    this.ownsHttpsAgent = !httpsAgent;
+    this.httpAgentState = new AgentState(httpAgentProvider ?? (options => new http.Agent(options)), !httpAgentProvider);
+    this.httpsAgentState = new AgentState(httpsAgentProvider ?? (options => new https.Agent(options)), !httpsAgentProvider);
   }
 
   dispose(): void {
     if (!this.isDisposed) {
       this.isDisposed = true;
 
-      if (this.ownsHttpAgent) {
-        this.httpAgent?.destroy();
-        this.httpAgent = void 0;
+      const { httpAgentState, httpsAgentState } = this;
+      // release agent objects and provider callbacks so GC can collect them
+      this.httpAgentState = (void 0)!;
+      this.httpsAgentState = (void 0)!;
+
+      if (httpAgentState.ownsAgent) {
+        httpAgentState.agent?.destroy();
       }
 
-      if (this.ownsHttpsAgent) {
-        this.httpsAgent?.destroy();
-        this.httpsAgent = void 0;
+      if (httpsAgentState.ownsAgent) {
+        httpsAgentState.agent?.destroy();
       }
     }
   }
@@ -123,11 +173,6 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   private fetchCoreAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
-      if (this.isDisposed) {
-        reject(new FetchError("abort"));
-        return;
-      }
-
       const { url } = request;
       const isCustomUrl = !isCdnUrl(url);
       const isHttpsUrl = url.startsWith("https:");
@@ -135,9 +180,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       const { lastETag, timeoutMs } = request;
 
       const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
-      requestOptions.agent = isHttpsUrl
-        ? (this.httpsAgent ??= new https.Agent(getInternalAgentOptions()))
-        : (this.httpAgent ??= new http.Agent(getInternalAgentOptions()));
+      requestOptions.agent = (isHttpsUrl ? this.httpsAgentState : this.httpAgentState).getOrCreateAgent();
       requestOptions.timeout = timeoutMs;
 
       if (isCustomUrl) {
@@ -186,6 +229,10 @@ NodeHttpConfigFetcher.prototype[fetchInternalAsyncMethodName] = async function(r
 
   for (let retryNumber = 0; ; retryNumber++) {
     try {
+      if (this["isDisposed"]) {
+        throw new FetchError("abort");
+      }
+
       const fetchResponse = await this["fetchCoreAsync"](request, logger);
       if (FetchResponse.prototype.isExpected.call(fetchResponse) || retryNumber >= fetchRetryLimit) {
         return fetchResponse;
@@ -232,11 +279,22 @@ function getResponseHeadersDefault(httpResponse: http.IncomingMessage): [string,
   }
 }
 
-function getInternalAgentOptions(): http.AgentOptions & https.AgentOptions {
-  // Use the same defaults as http.globalAgent (see https://nodejs.org/api/http.html#httpglobalagent) and
-  // https.globalAgent (see https://nodejs.org/api/https.html#httpsglobalagent).
-  return {
-    keepAlive: true,
-    timeout: 5000,
-  };
+class AgentState<TAgent extends http.Agent | https.Agent> {
+  agent: TAgent | undefined = void 0;
+
+  constructor(
+    private readonly agentProvider: (options: http.AgentOptions | https.AgentOptions, isRetry: boolean) => TAgent,
+    readonly ownsAgent: boolean) {
+  }
+
+  getOrCreateAgent() {
+    // Use the same defaults as http.globalAgent (see https://nodejs.org/api/http.html#httpglobalagent) and
+    // https.globalAgent (see https://nodejs.org/api/https.html#httpsglobalagent).
+    return this.agent ??= this.agentProvider(
+      {
+        keepAlive: true,
+        timeout: 5000,
+      },
+      false);
+  }
 }
