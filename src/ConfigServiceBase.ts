@@ -141,6 +141,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   protected readonly cacheKey: string;
 
   protected readonly configFetcher: IConfigCatConfigFetcher;
+  private readonly ownsConfigFetcher: boolean;
+
   private readonly requestHeaders: ReadonlyArray<readonly [string, string]>;
 
   abstract readonly readyPromise: Promise<ClientCacheState>;
@@ -151,6 +153,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     this.cacheKey = options.getCacheKey();
 
     this.configFetcher = options.configFetcher;
+    this.ownsConfigFetcher = options.ownsConfigFetcher;
+
     this.requestHeaders = [
       ["User-Agent", options.clientVersion],
       ["X-ConfigCat-UserAgent", options.clientVersion],
@@ -168,7 +172,13 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   }
 
   dispose(): void {
-    this.status = ConfigServiceStatus.Disposed;
+    if (this.status !== ConfigServiceStatus.Disposed) {
+      this.status = ConfigServiceStatus.Disposed;
+
+      if (this.ownsConfigFetcher) {
+        this.configFetcher.dispose?.();
+      }
+    }
   }
 
   protected get disposed(): boolean {

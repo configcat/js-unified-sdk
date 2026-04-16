@@ -146,10 +146,12 @@ export interface IConfigCatConfigFetcher {
    * @throws {FetchErrorException} The fetch operation failed.
    */
   fetchAsync(request: FetchRequest): Promise<FetchResponse>;
+
+  dispose?(): void;
 }
 
 export const fetchInternalAsyncMethodName = "fetchInternalAsync";
-export type FetchInternalAsyncMethodType<TFetcher extends IConfigCatConfigFetcher> =
+export type FetchInternalAsyncMethod<TFetcher extends IConfigCatConfigFetcher> =
   (this: TFetcher, request: FetchRequest, logger?: LoggerWrapper) => Promise<FetchResponse>;
 
 export const fetchRetryLimit = 1;

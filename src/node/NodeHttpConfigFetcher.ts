@@ -4,7 +4,7 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
-import type { FetchInternalAsyncMethodType, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
 import { delay, ensureObjectArg, hasOwnProperty, isArray, toStringSafe } from "../Utils";
 
@@ -13,7 +13,8 @@ export interface INodeHttpConfigFetcherOptions {
    * The {@link https://nodejs.org/api/http.html#class-httpagent | http.Agent} instance to use for non-secure HTTP communication.
    * For example, this option allows you to configure the SDK to route `http://...` requests through an HTTP, HTTPS or SOCKS proxy.
    *
-   * If not set, the default agent, {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent} will be used.
+   * If not set, an internally managed agent with the same options as {@link https://nodejs.org/api/http.html#httpglobalagent | http.globalAgent}
+   * will be used.
    *
    * This option applies when the SDK connects to a custom `http://...` URL you specified via `baseUrl`.
    */
@@ -23,7 +24,8 @@ export interface INodeHttpConfigFetcherOptions {
    * The {@link https://nodejs.org/api/https.html#class-httpsagent | https.Agent} instance to use for secure HTTP communication.
    * For example, this option allows you to configure the SDK to route `https://...` requests through an HTTP, HTTPS or SOCKS proxy.
    *
-   * If not set, the default agent, {@link https://nodejs.org/api/https.html#httpsglobalagent | https.globalAgent} will be used.
+   * If not set, an internally managed agent with the same options as {@link https://nodejs.org/api/https.html#httpsglobalagent | https.globalAgent}
+   * will be used.
    *
    * This option applies when the SDK connects to the ConfigCat CDN or a custom `https://...` URL you specified via `baseUrl`.
    */
@@ -35,8 +37,13 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     return () => new NodeHttpConfigFetcher(fetcherOptions);
   }
 
-  private readonly httpAgent: http.Agent | undefined;
-  private readonly httpsAgent: https.Agent | undefined;
+  private httpAgent: http.Agent | undefined;
+  private readonly ownsHttpAgent: boolean;
+
+  private httpsAgent: https.Agent | undefined;
+  private readonly ownsHttpsAgent: boolean;
+
+  private isDisposed = false;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
     let httpAgent: http.Agent | undefined, httpsAgent: https.Agent | undefined;
@@ -56,7 +63,26 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     }
 
     this.httpAgent = httpAgent;
+    this.ownsHttpAgent = !httpAgent;
+
     this.httpsAgent = httpsAgent;
+    this.ownsHttpsAgent = !httpsAgent;
+  }
+
+  dispose(): void {
+    if (!this.isDisposed) {
+      this.isDisposed = true;
+
+      if (this.ownsHttpAgent) {
+        this.httpAgent?.destroy();
+        this.httpAgent = void 0;
+      }
+
+      if (this.ownsHttpsAgent) {
+        this.httpsAgent?.destroy();
+        this.httpsAgent = void 0;
+      }
+    }
   }
 
   private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
@@ -93,10 +119,15 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   // Defined directly on the prototype, see below.
-  private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethodType<NodeHttpConfigFetcher>;
+  private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethod<NodeHttpConfigFetcher>;
 
   private fetchCoreAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
+      if (this.isDisposed) {
+        reject(new FetchError("abort"));
+        return;
+      }
+
       const { url } = request;
       const isCustomUrl = !isCdnUrl(url);
       const isHttpsUrl = url.startsWith("https:");
@@ -104,7 +135,9 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       const { lastETag, timeoutMs } = request;
 
       const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
-      requestOptions.agent = isHttpsUrl ? this.httpsAgent : this.httpAgent;
+      requestOptions.agent = isHttpsUrl
+        ? (this.httpsAgent ??= new https.Agent(getInternalAgentOptions()))
+        : (this.httpAgent ??= new http.Agent(getInternalAgentOptions()));
       requestOptions.timeout = timeoutMs;
 
       if (isCustomUrl) {
@@ -128,6 +161,12 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
             clientRequest.destroy();
           } finally {
             reject(new FetchError("timeout", timeoutMs));
+          }
+        })
+        .on("close", () => {
+          // eslint-disable-next-line @typescript-eslint/no-deprecated
+          if (clientRequest.aborted || clientRequest.destroyed) {
+            reject(new FetchError("abort"));
           }
         })
         .on("error", err => {
@@ -191,4 +230,13 @@ function getResponseHeadersDefault(httpResponse: http.IncomingMessage): [string,
       headers.push([name, !isArray(value) ? value : value[0]]);
     }
   }
+}
+
+function getInternalAgentOptions(): http.AgentOptions & https.AgentOptions {
+  // Use the same defaults as http.globalAgent (see https://nodejs.org/api/http.html#httpglobalagent) and
+  // https.globalAgent (see https://nodejs.org/api/https.html#httpsglobalagent).
+  return {
+    keepAlive: true,
+    timeout: 5000,
+  };
 }

@@ -1,7 +1,7 @@
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
-import type { FetchInternalAsyncMethodType, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
 import { delay } from "../Utils";
 
@@ -14,7 +14,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
   }
 
   // Defined directly on the prototype, see below.
-  private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethodType<FetchApiConfigFetcherBase>;
+  private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethod<FetchApiConfigFetcherBase>;
 
   private async fetchCoreAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
     for (let retryNumber = 0; ; retryNumber++) {

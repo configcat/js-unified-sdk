@@ -453,6 +453,7 @@ describe("Options", () => {
     "sdkKey": ${JSON.stringify(options.sdkKey)},
     "clientVersion": ${JSON.stringify(options.clientVersion)},
     "configFetcher": "[object Object]",
+    "ownsConfigFetcher": ${JSON.stringify(options.ownsConfigFetcher)},
     "dataGovernance": ${JSON.stringify(options.dataGovernance)},
     "baseUrl": ${JSON.stringify(options.baseUrl)},
     "hooks": "[object Object]",
