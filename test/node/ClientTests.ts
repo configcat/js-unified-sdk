@@ -34,8 +34,8 @@ describe("ConfigCatClient tests", () => {
       const configFetcher = configService["configFetcher"];
       assert.instanceOf(configFetcher, NodeHttpConfigFetcher);
 
-      assert.strictEqual(configFetcher["httpAgent"], httpAgent);
-      assert.strictEqual(configFetcher["httpsAgent"], httpsAgent);
+      assert.strictEqual(configFetcher["httpAgentState"]["agentProvider"](), httpAgent);
+      assert.strictEqual(configFetcher["httpsAgentState"]["agentProvider"](), httpsAgent);
 
       client.dispose();
     });

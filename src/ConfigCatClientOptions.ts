@@ -184,13 +184,14 @@ export abstract class OptionsBase {
 
   baseUrl: string;
 
-  baseUrlOverriden;
+  baseUrlOverriden: boolean;
 
   dataGovernance = DataGovernance.Global;
 
   cache: IConfigCache;
 
   configFetcher: IConfigCatConfigFetcher;
+  ownsConfigFetcher: boolean;
 
   flagOverrides: FlagOverrides | null = null;
 
@@ -303,6 +304,7 @@ export abstract class OptionsBase {
       : (kernel.defaultCacheFactory?.(this) ?? new InMemoryConfigCache());
 
     this.configFetcher = configFetcher ?? kernel.configFetcherFactory(this);
+    this.ownsConfigFetcher = !configFetcher;
   }
 
   yieldHooks(): Hooks {

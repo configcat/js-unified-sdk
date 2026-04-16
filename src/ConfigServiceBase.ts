@@ -2,10 +2,10 @@ import type { CacheSyncResult } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { ConfigCatClient } from "./ConfigCatClient";
 import type { OptionsBase } from "./ConfigCatClientOptions";
-import type { LogMessage } from "./ConfigCatLogger";
+import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
 import { toMessage } from "./ConfigCatLogger";
 import type { FetchErrorCauses, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
-import { FetchError, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus } from "./ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import type { Config } from "./ProjectConfig";
 import { deserializeConfig, prepareConfig, ProjectConfig } from "./ProjectConfig";
@@ -141,6 +141,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   protected readonly cacheKey: string;
 
   protected readonly configFetcher: IConfigCatConfigFetcher;
+  private readonly ownsConfigFetcher: boolean;
+
   private readonly requestHeaders: ReadonlyArray<readonly [string, string]>;
 
   abstract readonly readyPromise: Promise<ClientCacheState>;
@@ -151,6 +153,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     this.cacheKey = options.getCacheKey();
 
     this.configFetcher = options.configFetcher;
+    this.ownsConfigFetcher = options.ownsConfigFetcher;
+
     this.requestHeaders = [
       ["User-Agent", options.clientVersion],
       ["X-ConfigCat-UserAgent", options.clientVersion],
@@ -168,7 +172,13 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   }
 
   dispose(): void {
-    this.status = ConfigServiceStatus.Disposed;
+    if (this.status !== ConfigServiceStatus.Disposed) {
+      this.status = ConfigServiceStatus.Disposed;
+
+      if (this.ownsConfigFetcher) {
+        this.configFetcher.dispose?.();
+      }
+    }
   }
 
   protected get disposed(): boolean {
@@ -289,7 +299,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
     } catch (err) {
       let errorCode: RefreshErrorCode;
-      [errorCode, errorMessage] = err instanceof FetchError && err.cause === "timeout"
+      [errorCode, errorMessage] = err instanceof FetchError && (err as FetchError).cause === "timeout"
         ? [RefreshErrorCode.HttpRequestTimeout, options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err)]
         : [RefreshErrorCode.HttpRequestFailure, options.logger.fetchFailedDueToUnexpectedError(err)];
 
@@ -306,7 +316,16 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}.`);
 
       const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
-      const response = await this.configFetcher.fetchAsync(request);
+
+      interface IConfigFetcherInternal {
+        [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse>;
+      }
+
+      const response = await (
+        (this.configFetcher as Partial<IConfigFetcherInternal>)[fetchInternalAsyncMethodName]
+          ? (this.configFetcher as unknown as IConfigFetcherInternal)[fetchInternalAsyncMethodName](request, this.options.logger)
+          : this.configFetcher.fetchAsync(request)
+      );
 
       if (response.statusCode !== 200) {
         return [response];

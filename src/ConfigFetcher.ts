@@ -1,3 +1,4 @@
+import type { LoggerWrapper } from "./ConfigCatLogger";
 import type { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
@@ -89,6 +90,18 @@ export class FetchResponse {
       }
     }
   }
+
+  isExpected(): boolean {
+    switch (this.statusCode) {
+      case 200: // OK
+      case 304: // Not Modified
+      case 403: // Forbidden
+      case 404: // Not Found
+        return true;
+    }
+
+    return false;
+  }
 }
 
 export type FetchErrorCauses = {
@@ -133,4 +146,13 @@ export interface IConfigCatConfigFetcher {
    * @throws {FetchErrorException} The fetch operation failed.
    */
   fetchAsync(request: FetchRequest): Promise<FetchResponse>;
+
+  dispose?(): void;
 }
+
+export const fetchInternalAsyncMethodName = "fetchInternalAsync";
+export type FetchInternalAsyncMethod<TFetcher extends IConfigCatConfigFetcher> =
+  (this: TFetcher, request: FetchRequest, logger?: LoggerWrapper) => Promise<FetchResponse>;
+
+export const fetchRetryLimit = 1;
+export const fetchRetryDelayMs = 50;

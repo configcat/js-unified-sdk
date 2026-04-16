@@ -40,7 +40,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     let callNo = 1;
 
@@ -82,7 +82,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     let callNo = 1;
 
@@ -122,13 +122,13 @@ describe("ConfigServiceBaseTests", () => {
 
     const pc: ProjectConfig = createProjectConfig();
     const fr: FetchResult = createFetchResult();
-    let currentResp: FetchResponse = { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
+    let currentResp = { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse;
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
       .callback(() => {
         const result = Promise.resolve(currentResp);
-        currentResp = { statusCode: 500, reasonPhrase: "Internal Server Error" };
+        currentResp = { statusCode: 500, reasonPhrase: "Internal Server Error" } as FetchResponse;
         return result;
       });
 
@@ -182,7 +182,7 @@ describe("ConfigServiceBaseTests", () => {
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
       .callback(() => new Promise(resolve =>
-        setTimeout(() => resolve({ statusCode: 200, reasonPhrase: "OK", eTag: frNew.config.httpETag, body: frNew.config.configJson }), 100)));
+        setTimeout(() => resolve({ statusCode: 200, reasonPhrase: "OK", eTag: frNew.config.httpETag, body: frNew.config.configJson } as FetchResponse), 100)));
 
     const options = createAutoPollOptions(
       "APIKEY",
@@ -228,7 +228,7 @@ describe("ConfigServiceBaseTests", () => {
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
       .callback(() => new Promise(resolve =>
-        setTimeout(() => resolve({ statusCode: 200, reasonPhrase: "OK", eTag: frNew.config.httpETag, body: frNew.config.configJson }), 100)));
+        setTimeout(() => resolve({ statusCode: 200, reasonPhrase: "OK", eTag: frNew.config.httpETag, body: frNew.config.configJson } as FetchResponse), 100)));
 
     const options = createAutoPollOptions(
       "APIKEY",
@@ -273,7 +273,7 @@ describe("ConfigServiceBaseTests", () => {
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
       .callback(() => new Promise(resolve =>
-        setTimeout(() => resolve({ statusCode: 500, reasonPhrase: "Internal Server Error" }), 2000)));
+        setTimeout(() => resolve({ statusCode: 500, reasonPhrase: "Internal Server Error" } as FetchResponse), 2000)));
 
     const options = createAutoPollOptions(
       "APIKEY",
@@ -374,7 +374,7 @@ describe("ConfigServiceBaseTests", () => {
       const fr: FetchResult = createFetchResult();
       const fetcherMock = new Mock<IConfigFetcher>()
         .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-        .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+        .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
       const options = createAutoPollOptions(
         "APIKEY",
@@ -455,7 +455,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     const cacheMock = new Mock<IConfigCache>()
       .setup(m => m.get(It.IsAny<string>()))
@@ -528,7 +528,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     const cacheMock = new Mock<IConfigCache>()
       .setup(m => m.get(It.IsAny<string>()))
@@ -568,7 +568,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     const cacheMock = new Mock<IConfigCache>(asyncInjectorServiceConfig)
       .setup(m => m.get(It.IsAny<string>()))
@@ -613,7 +613,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     const options = createAutoPollOptions(
       "APIKEY",
@@ -657,7 +657,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     const options = createAutoPollOptions(
       "APIKEY",
@@ -703,7 +703,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson });
+      .returnsAsync({ statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse);
 
     const options = createLazyLoadOptions(
       "APIKEY",
@@ -743,7 +743,7 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
       .callback(async () => {
         await delay(500);
-        return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
+        return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse;
       });
 
     const options = createLazyLoadOptions(
@@ -781,7 +781,7 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
       .callback(async () => {
         await delay(100);
-        return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
+        return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse;
       });
 
     const options = createManualPollOptions(
@@ -817,7 +817,7 @@ describe("ConfigServiceBaseTests", () => {
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
       .callback(async () => {
         await delay(100);
-        return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson };
+        return { statusCode: 200, reasonPhrase: "OK", eTag: fr.config.httpETag, body: fr.config.configJson } as FetchResponse;
       });
 
     const options = createManualPollOptions(
@@ -850,7 +850,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 502, reasonPhrase: "Bad Gateway" });
+      .returnsAsync({ statusCode: 502, reasonPhrase: "Bad Gateway" } as FetchResponse);
 
     const cache = new InMemoryConfigCache();
 
@@ -880,7 +880,7 @@ describe("ConfigServiceBaseTests", () => {
 
     const fetcherMock = new Mock<IConfigFetcher>()
       .setup(m => m.fetchAsync(It.IsAny<FetchRequest>()))
-      .returnsAsync({ statusCode: 502, reasonPhrase: "Bad Gateway" });
+      .returnsAsync({ statusCode: 502, reasonPhrase: "Bad Gateway" } as FetchResponse);
 
     const cache = new InMemoryConfigCache();
 
@@ -909,7 +909,7 @@ describe("ConfigServiceBaseTests", () => {
     // Arrange
 
     const fakeFetcher = new FakeConfigFetcherBase(null, 1000,
-      () => ({ statusCode: 200, reasonPhrase: "OK", eTag: '"ETAG2"', body: '{ "p": { "s": "0" } }' }));
+      () => ({ statusCode: 200, reasonPhrase: "OK", eTag: '"ETAG2"', body: '{ "p": { "s": "0" } }' } as FetchResponse));
 
     const lastConfig = createProjectConfig('"ETAG"', "{}");
 
