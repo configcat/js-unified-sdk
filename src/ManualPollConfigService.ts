@@ -1,4 +1,5 @@
 import type { ManualPollOptions } from "./ConfigCatClientOptions";
+import { logMethodDebug } from "./ConfigCatLogger";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -26,12 +27,12 @@ export class ManualPollConfigService extends ConfigServiceBase<ManualPollOptions
   }
 
   async getConfigAsync(): Promise<ProjectConfig> {
-    this.options.logger.debug("ManualPollService.getConfigAsync() called.");
+    logMethodDebug(this.options.logger, "ManualPollService.getConfigAsync");
     return await this.syncUpWithCache();
   }
 
   override refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
-    this.options.logger.debug("ManualPollService.refreshConfigAsync() called.");
+    logMethodDebug(this.options.logger, "ManualPollService.refreshConfigAsync");
     return super.refreshConfigAsync();
   }
 }

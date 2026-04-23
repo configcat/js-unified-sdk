@@ -3,7 +3,7 @@ import * as https from "https";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
-import { FormattableLogMessage, LogLevel } from "../ConfigCatLogger";
+import { FormattableLogMessage, LogLevel, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { connectionPoolResetThresholdMs, FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
 import { delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, toStringSafe } from "../Utils";
@@ -283,8 +283,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 }
 
 NodeHttpConfigFetcher.prototype[fetchInternalAsyncMethodName] = function(request: FetchRequest, logger?: LoggerWrapper) {
-  logger?.debug("NodeHttpConfigFetcher.fetchAsync() called.");
-
+  logMethodDebug(logger, "NodeHttpConfigFetcher.fetchAsync");
   return this["fetchWithRetryAsync"](request, logger);
 };
 

@@ -1,6 +1,7 @@
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
+import { logMethodDebug } from "../ConfigCatLogger";
 import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
 import { delay } from "../Utils";
@@ -104,8 +105,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 }
 
 XmlHttpRequestConfigFetcher.prototype[fetchInternalAsyncMethodName] = function(request: FetchRequest, logger?: LoggerWrapper) {
-  logger?.debug("XmlHttpRequestConfigFetcher.fetchAsync() called.");
-
+  logMethodDebug(logger, "XmlHttpRequestConfigFetcher.fetchAsync");
   return this["fetchWithRetryAsync"](request, logger);
 };
 

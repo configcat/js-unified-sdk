@@ -1,5 +1,5 @@
 import type { LazyLoadOptions } from "./ConfigCatClientOptions";
-import type { LoggerWrapper } from "./ConfigCatLogger";
+import { logMethodDebug } from "./ConfigCatLogger";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -22,30 +22,28 @@ export class LazyLoadConfigService extends ConfigServiceBase<LazyLoadOptions> im
   }
 
   async getConfigAsync(): Promise<ProjectConfig> {
-    this.options.logger.debug("LazyLoadConfigService.getConfigAsync() called.");
-
-    function logExpired(logger: LoggerWrapper, appendix = "") {
-      logger.debug(`LazyLoadConfigService.getConfigAsync(): cache is empty or expired${appendix}.`);
-    }
+    const methodName = "LazyLoadConfigService.getConfigAsync";
+    const debugLogger = this.options.logger.ifDebug;
+    logMethodDebug(debugLogger, methodName);
 
     let cachedConfig = await this.syncUpWithCache();
 
     if (cachedConfig.isExpired(this.cacheTimeToLiveMs)) {
       if (!this.isOffline) {
-        logExpired(this.options.logger, ", calling refreshConfigCoreAsync()");
+        logMethodDebug(debugLogger, methodName, "cache is empty or expired, calling refreshConfigCoreAsync().");
         [, cachedConfig] = await this.refreshConfigCoreAsync(cachedConfig, false);
       } else {
-        logExpired(this.options.logger);
+        logMethodDebug(debugLogger, methodName, "cache is empty or expired.");
       }
       return cachedConfig;
     }
 
-    this.options.logger.debug("LazyLoadConfigService.getConfigAsync(): cache is valid, returning from cache.");
+    logMethodDebug(debugLogger, methodName, "cache is valid, returning from cache.");
     return cachedConfig;
   }
 
   override refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
-    this.options.logger.debug("LazyLoadConfigService.refreshConfigAsync() called.");
+    logMethodDebug(this.options.logger, "LazyLoadConfigService.refreshConfigAsync");
     return super.refreshConfigAsync();
   }
 

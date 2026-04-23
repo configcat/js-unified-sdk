@@ -141,6 +141,8 @@ export class LoggerWrapper implements IConfigCatLogger {
     this.log(LogLevel.Debug, 0, message, exception);
   }
 
+  get ifDebug(): LoggerWrapper | undefined { return this.isEnabled(LogLevel.Debug) ? this : void 0; }
+
   /* Common error messages (1000-1999) */
 
   configJsonIsNotPresent(defaultReturnValue: string): LogMessage {
@@ -425,6 +427,10 @@ export class LoggerWrapper implements IConfigCatLogger {
 
   /* SDK-specific info messages (6000-6999) */
 
+}
+
+export function logMethodDebug(logger: LoggerWrapper | undefined, methodName: string, message?: string): void {
+  logger?.debug(`${methodName}()${message ? ":" : ""} ${message ?? "called."}`);
 }
 
 export class ConfigCatConsoleLogger implements IConfigCatLogger {

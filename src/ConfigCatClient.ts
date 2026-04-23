@@ -1,7 +1,7 @@
 import type { ConfigCatClientOptions, IConfigCatKernel, OptionsBase, OptionsForPollingMode } from "./ConfigCatClientOptions";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions, PollingMode, PROXY_SDKKEY_PREFIX } from "./ConfigCatClientOptions";
 import type { LoggerWrapper } from "./ConfigCatLogger";
-import { FormattableLogMessage, LogLevel } from "./ConfigCatLogger";
+import { FormattableLogMessage, LogLevel, logMethodDebug } from "./ConfigCatLogger";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, RefreshErrorCode, refreshResultFromFailure } from "./ConfigServiceBase";
 import type { FlagOverrides } from "./FlagOverrides";
@@ -320,7 +320,7 @@ export class ConfigCatClient implements IConfigCatClient {
   private static finalize(data: FinalizationData) {
     // Safeguard against situations where user forgets to dispose of the client instance.
 
-    data.logger?.debug("finalize() called.");
+    logMethodDebug(data.logger, "finalize");
 
     if (data.cacheToken) {
       clientInstanceCache.remove(data.sdkKey, data.cacheToken);
@@ -330,7 +330,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   private static close(configService: IConfigService | null, logger?: LoggerWrapper, hooks?: Hooks) {
-    logger?.debug("close() called.");
+    logMethodDebug(logger, "close");
 
     hooks?.tryDisconnect();
     configService?.dispose();
@@ -338,7 +338,7 @@ export class ConfigCatClient implements IConfigCatClient {
 
   dispose(): void {
     const options = this.options;
-    options.logger.debug("dispose() called.");
+    logMethodDebug(options.logger, "dispose");
 
     if (this.cacheToken) {
       clientInstanceCache.remove(options.sdkKey, this.cacheToken);
@@ -368,7 +368,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   async getValueAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<SettingTypeOf<T>> {
-    this.options.logger.debug("getValueAsync() called.");
+    logMethodDebug(this.options.logger, "getValueAsync");
 
     validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
@@ -394,7 +394,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   async getValueDetailsAsync<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): Promise<EvaluationDetails<SettingTypeOf<T>>> {
-    this.options.logger.debug("getValueDetailsAsync() called.");
+    logMethodDebug(this.options.logger, "getValueDetailsAsync");
 
     validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
@@ -418,7 +418,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   async getAllKeysAsync(): Promise<string[]> {
-    this.options.logger.debug("getAllKeysAsync() called.");
+    logMethodDebug(this.options.logger, "getAllKeysAsync");
 
     const defaultReturnValue = "empty array";
     try {
@@ -434,7 +434,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   async getAllValuesAsync(user?: IUser): Promise<SettingKeyValue[]> {
-    this.options.logger.debug("getAllValuesAsync() called.");
+    logMethodDebug(this.options.logger, "getAllValuesAsync");
 
     validateUserObject(user);
 
@@ -463,7 +463,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   async getAllValueDetailsAsync(user?: IUser): Promise<EvaluationDetails[]> {
-    this.options.logger.debug("getAllValueDetailsAsync() called.");
+    logMethodDebug(this.options.logger, "getAllValueDetailsAsync");
 
     validateUserObject(user);
 
@@ -491,7 +491,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   async getKeyAndValueAsync(variationId: string): Promise<SettingKeyValue | null> {
-    this.options.logger.debug("getKeyAndValueAsync() called.");
+    logMethodDebug(this.options.logger, "getKeyAndValueAsync");
 
     validateVariationId(variationId);
 
@@ -506,7 +506,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   async forceRefreshAsync(): Promise<RefreshResult> {
-    this.options.logger.debug("forceRefreshAsync() called.");
+    logMethodDebug(this.options.logger, "forceRefreshAsync");
 
     if (this.configService) {
       try {
@@ -585,7 +585,7 @@ export class ConfigCatClient implements IConfigCatClient {
   }
 
   private async getSettingsAsync(): Promise<SettingsWithRemoteConfig> {
-    this.options.logger.debug("getSettingsAsync() called.");
+    logMethodDebug(this.options.logger, "getSettingsAsync");
 
     const getRemoteConfigAsync: () => Promise<SettingsWithRemoteConfig> = async () => {
       const config = await this.configService!.getConfigAsync();
@@ -693,7 +693,7 @@ class Snapshot implements IConfigCatClientSnapshot {
   getAllKeys() { return this.mergedSettings ? Object.keys(this.mergedSettings) : []; }
 
   getValue<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): SettingTypeOf<T> {
-    this.options.logger.debug("Snapshot.getValue() called.");
+    logMethodDebug(this.options.logger, "Snapshot.getValue");
 
     validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
@@ -716,7 +716,7 @@ class Snapshot implements IConfigCatClientSnapshot {
   }
 
   getValueDetails<T extends SettingValue>(key: string, defaultValue: T, user?: IUser): EvaluationDetails<SettingTypeOf<T>> {
-    this.options.logger.debug("Snapshot.getValueDetails() called.");
+    logMethodDebug(this.options.logger, "Snapshot.getValueDetails");
 
     validateSettingKey(key);
     ensureAllowedDefaultValue(defaultValue);
@@ -737,7 +737,7 @@ class Snapshot implements IConfigCatClientSnapshot {
   }
 
   getKeyAndValue(variationId: string): SettingKeyValue | null {
-    this.options.logger.debug("Snapshot.getKeyAndValue() called.");
+    logMethodDebug(this.options.logger, "Snapshot.getKeyAndValue");
 
     validateVariationId(variationId);
 

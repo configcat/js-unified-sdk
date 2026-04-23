@@ -1,5 +1,5 @@
 import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
-import { LogLevel, toMessage } from "./ConfigCatLogger";
+import { LogLevel, logMethodDebug, toMessage } from "./ConfigCatLogger";
 import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, inferValue, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
@@ -64,7 +64,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   }
 
   evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult {
-    this.logger.debug("RolloutEvaluator.evaluate() called.");
+    logMethodDebug(this.logger, "RolloutEvaluator.evaluate");
 
     // Building the evaluation log is expensive, so let's not do it if it wouldn't be logged anyway.
     const logBuilder = context.logBuilder = this.logger.isEnabled(LogLevel.Info)

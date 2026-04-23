@@ -3,7 +3,7 @@ import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { ConfigCatClient } from "./ConfigCatClient";
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
-import { toMessage } from "./ConfigCatLogger";
+import { logMethodDebug, toMessage } from "./ConfigCatLogger";
 import type { FetchErrorCauses, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
@@ -172,6 +172,8 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   }
 
   dispose(): void {
+    logMethodDebug(this.options.logger, "ConfigServiceBase.dispose");
+
     if (this.status !== ConfigServiceStatus.Disposed) {
       this.status = ConfigServiceStatus.Disposed;
 
@@ -258,7 +260,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
   private async fetchAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchAsync() called.");
+    const methodName = "ConfigServiceBase.fetchAsync";
+    const debugLogger = this.options.logger.ifDebug;
+    logMethodDebug(debugLogger, methodName);
 
     let errorMessage: LogMessage;
     try {
@@ -269,32 +273,32 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
         case 200: // OK
           if (!config) {
             errorMessage = options.logger.fetchReceived200WithInvalidBody(response["rayId"], error);
-            options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
+            logMethodDebug(debugLogger, methodName, `${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
             return fetchResultFromError(lastConfig, RefreshErrorCode.InvalidHttpResponseContent, toMessage(errorMessage), error);
           }
 
-          options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was successful. Returning new config.");
+          logMethodDebug(debugLogger, methodName, "fetch was successful. Returning new config.");
           return fetchResultFromSuccess(new ProjectConfig(response.body, config, ProjectConfig.generateTimestamp(), response.eTag));
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
             errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase, response["rayId"]);
-            options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
+            logMethodDebug(debugLogger, methodName, `${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
             return fetchResultFromError(lastConfig, RefreshErrorCode.InvalidHttpResponseWhenLocalCacheIsEmpty, toMessage(errorMessage));
           }
 
-          options.logger.debug("ConfigServiceBase.fetchAsync(): content was not modified. Returning last config with updated timestamp.");
+          logMethodDebug(debugLogger, methodName, "content was not modified. Returning last config with updated timestamp.");
           return fetchResultFromNotModified(lastConfig.with(ProjectConfig.generateTimestamp()));
 
         case 403: // Forbidden
         case 404: // Not Found
           errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(options.sdkKey, response["rayId"]);
-          options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
+          logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
           return fetchResultFromError(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.InvalidSdkKey, toMessage(errorMessage));
 
         default:
           errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase, response["rayId"]);
-          options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning null.");
+          logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning null.");
           return fetchResultFromError(lastConfig, RefreshErrorCode.UnexpectedHttpResponse, toMessage(errorMessage));
       }
     } catch (err) {
@@ -303,17 +307,21 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
         ? [RefreshErrorCode.HttpRequestTimeout, options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err)]
         : [RefreshErrorCode.HttpRequestFailure, options.logger.fetchFailedDueToUnexpectedError(err)];
 
-      options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning null.");
+      logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning null.");
       return fetchResultFromError(lastConfig, errorCode, toMessage(errorMessage), err);
     }
   }
 
   private async fetchRequestAsync(lastETag: string | undefined, maxRetryCount = 2): Promise<[FetchResponse, Config?, any?]> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchRequestAsync() called.");
+    const methodName = "ConfigServiceBase.fetchRequestAsync";
+    const debugLogger = this.options.logger.ifDebug;
+    logMethodDebug(debugLogger, methodName);
 
     for (let retryNumber = 0; ; retryNumber++) {
-      options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}.`);
+      logMethodDebug(debugLogger, methodName, retryNumber > 0
+        ? `calling fetchLogic(), retry ${retryNumber}/${maxRetryCount}.`
+        : "calling fetchLogic().");
 
       const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
 
@@ -332,7 +340,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
 
       if (!response.body) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): no response body.");
+        logMethodDebug(debugLogger, methodName, "no response body.");
         return [response, void 0, Error("No response body.")];
       }
 
@@ -340,13 +348,13 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       try {
         config = deserializeConfig(response.body);
       } catch (err) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): invalid response body.");
+        logMethodDebug(debugLogger, methodName, "invalid response body.");
         return [response, void 0, err];
       }
 
       const preferences = config.p;
       if (!preferences) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): preferences are missing or invalid.");
+        logMethodDebug(debugLogger, methodName, "preferences are missing or invalid.");
         return [response, config];
       }
 
@@ -354,7 +362,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
       // If baseUrl is the same as the last known one, just return the response.
       if (baseUrl == null || baseUrl === options.baseUrl) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): baseUrl OK.");
+        logMethodDebug(debugLogger, methodName, "baseUrl OK.");
         return [response, config];
       }
 
@@ -363,7 +371,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       // If baseUrl is overridden, and the redirect parameter is not 2 (force),
       // the SDK should not redirect the calls and it just have to return the response.
       if (options.baseUrlOverriden && redirect !== RedirectMode.Force) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): options.baseUrlOverriden && redirect !== 2.");
+        logMethodDebug(debugLogger, methodName, "options.baseUrlOverriden && redirect !== RedirectMode.Force.");
         return [response, config];
       }
 
