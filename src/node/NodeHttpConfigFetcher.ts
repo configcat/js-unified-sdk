@@ -3,10 +3,10 @@ import * as https from "https";
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
-import { FormattableLogMessage, LogLevel, logMethodDebug } from "../ConfigCatLogger";
+import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { connectionPoolResetThresholdMs, FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
-import { delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, toStringSafe } from "../Utils";
+import { connectionPoolResetThresholdMs, FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
+import { delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, randomUUID, toStringSafe } from "../Utils";
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -126,9 +126,21 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     }
   }
 
-  private handleResponse(response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void) {
+  private handleResponse(
+    response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void,
+    requestId: string | undefined, debugLogger: LoggerWrapper | undefined
+  ) {
     try {
       const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
+
+      if (debugLogger) {
+        const { headers } = response;
+        const eTagHeaderValue = hasOwnProperty(headers, "etag") ? headers["etag"] : void 0;
+        debugLogger.debug(FormattableLogMessage.from(
+          requestIdArgName, "STATUS_CODE", "REASON_PHRASE", "ETAG"
+        )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
+      }
+
       const headers = getResponseHeadersDefault(response);
 
       if (statusCode === 200) {
@@ -138,6 +150,11 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
           .on("end", () => {
             try {
               const body = Buffer.concat(chunks).toString();
+
+              debugLogger?.debug(FormattableLogMessage.from(
+                requestIdArgName, "LENGTH"
+              )`[${requestId}] Received body. (Length: ${body.length})`);
+
               resolve(new FetchResponse(statusCode, reasonPhrase, headers, body));
             } catch (err) {
               reject(err);
@@ -162,7 +179,16 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   // Defined directly on the prototype, see below.
   private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethod<NodeHttpConfigFetcher>;
 
-  private async fetchWithRetryAsync(request: FetchRequest, logger?: LoggerWrapper) {
+  private async fetchWithRetryAsync(request: FetchRequest, logger: LoggerWrapper | undefined) {
+    const debugLogger = logger?.ifDebug;
+    let requestId: string | undefined;
+
+    if (debugLogger) {
+      requestId = randomUUID();
+
+      debugLogger.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Preparing request...`);
+    }
+
     const { url } = request;
     const isCustomUrl = !isCdnUrl(url);
     const isHttpsUrl = /^https:/i.test(url);
@@ -191,15 +217,38 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       try {
-        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl, isHttpsUrl, agent, logger);
-        shouldRenewAgent = !FetchResponse.prototype.isExpected.call(fetchResponse);
-        if (!shouldRenewAgent || retryNumber >= fetchRetryLimit) {
+        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl, isHttpsUrl, agent, requestId, debugLogger);
+
+        if (FetchResponse.prototype.isExpected.call(fetchResponse)) {
+          return fetchResponse;
+        }
+
+        shouldRenewAgent = true;
+        debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Received unexpected status code.`);
+
+        if (retryNumber >= fetchRetryLimit) {
           return fetchResponse;
         }
       } catch (err) {
-        shouldRenewAgent = err instanceof FetchError
-          && ((err as FetchError).cause === "timeout" || (err as FetchError).cause === "failure");
-        if (!shouldRenewAgent || retryNumber >= fetchRetryLimit) {
+        if (err instanceof FetchError) {
+          switch ((err as FetchError).cause) {
+            case "abort":
+              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request aborted.`);
+              throw err;
+            case "timeout":
+              shouldRenewAgent = true;
+              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request timed out.`);
+              break;
+            case "failure":
+              shouldRenewAgent = true;
+              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request failed.`);
+              break;
+          }
+        } else {
+          throw err;
+        }
+
+        if (retryNumber >= fetchRetryLimit) {
           throw err;
         }
       } finally {
@@ -216,11 +265,19 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
                 // This will cause the `numRequestsInProgress` counter to go below zero eventually, indicating that a new
                 // agent has been created and the original one is not to be used anymore as it will be destroyed (see below).
                 numRequestsToSubtract = 2;
+
+                debugLogger?.debug(isHttpsUrl
+                  ? FormattableLogMessage.from(requestIdArgName)`[${requestId}] Renewed https.Agent.`
+                  : FormattableLogMessage.from(requestIdArgName)`[${requestId}] Renewed http.Agent.`);
               }
             }
           } finally {
             if ((agentState.numRequestsInProgress -= numRequestsToSubtract) < 0) {
               agent.destroy();
+
+              debugLogger?.debug(isHttpsUrl
+                ? FormattableLogMessage.from(requestIdArgName)`[${requestId}] Disposed out-of-use https.Agent.`
+                : FormattableLogMessage.from(requestIdArgName)`[${requestId}] Disposed out-of-use http.Agent.`);
             }
           }
         }
@@ -228,11 +285,14 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
       // Wait a little before trying again.
       await delay(fetchRetryDelayMs);
+
+      debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Trying request again...`);
     }
   }
 
   private fetchCoreAsync(
-    request: FetchRequest, isCustomUrl: boolean, isHttpsUrl: boolean, agent: http.Agent | https.Agent, logger?: LoggerWrapper
+    request: FetchRequest, isCustomUrl: boolean, isHttpsUrl: boolean, agent: http.Agent | https.Agent,
+    requestId: string | undefined, debugLogger: LoggerWrapper | undefined
   ): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
       const { url, lastETag, timeoutMs } = request;
@@ -251,12 +311,15 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
       }
 
-      if (logger?.isEnabled(LogLevel.Debug)) {
+      if (debugLogger) {
         const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
-        logger.debug(FormattableLogMessage.from("OPTIONS")`NodeHttpConfigFetcher.fetchAsync() requestOptions: ${requestOptionsSafe}`);
+        debugLogger.debug(FormattableLogMessage.from(
+          requestIdArgName, "URL", "IF_NONE_MATCH", "OPTIONS"
+        )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${lastETag ?? ""}', Options: ${requestOptionsSafe})`);
       }
 
-      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject))
+      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions,
+        response => this.handleResponse(response, resolve, reject, requestId, debugLogger))
         .on("timeout", () => {
           try {
             clientRequest.destroy();

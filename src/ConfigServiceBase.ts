@@ -2,9 +2,9 @@ import type { CacheSyncResult } from "./ConfigCatCache";
 import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { ConfigCatClient } from "./ConfigCatClient";
 import type { OptionsBase } from "./ConfigCatClientOptions";
-import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
+import type { LogMessage } from "./ConfigCatLogger";
 import { logMethodDebug, toMessage } from "./ConfigCatLogger";
-import type { FetchErrorCauses, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
+import type { FetchErrorCauses, FetchInternalAsyncMethod, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import type { Config } from "./ProjectConfig";
@@ -325,13 +325,13 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
       const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
 
-      interface IConfigFetcherInternal {
-        [fetchInternalAsyncMethodName](request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse>;
+      interface IConfigFetcherInternal extends IConfigCatConfigFetcher {
+        [fetchInternalAsyncMethodName]: FetchInternalAsyncMethod<IConfigCatConfigFetcher>;
       }
 
       const response = await (
         (this.configFetcher as Partial<IConfigFetcherInternal>)[fetchInternalAsyncMethodName]
-          ? (this.configFetcher as unknown as IConfigFetcherInternal)[fetchInternalAsyncMethodName](request, this.options.logger)
+          ? (this.configFetcher as IConfigFetcherInternal)[fetchInternalAsyncMethodName](request, this.options.logger)
           : this.configFetcher.fetchAsync(request)
       );
 

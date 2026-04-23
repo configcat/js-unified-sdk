@@ -159,3 +159,5 @@ export type FetchInternalAsyncMethod<TFetcher extends IConfigCatConfigFetcher> =
 export const fetchRetryLimit = 1;
 export const fetchRetryDelayMs = 50;
 export const connectionPoolResetThresholdMs = 30_000;
+
+export const requestIdArgName = "REQUEST_ID";

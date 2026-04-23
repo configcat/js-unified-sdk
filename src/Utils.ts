@@ -1,3 +1,5 @@
+const hexDigits = "0123456789abcdef";
+
 // NOTE: Normally, we'd just use AbortController/AbortSignal, however that may not be available on all platforms,
 // and we don't want to include a complete polyfill. So we implement a simplified version that fits our use case.
 export class AbortToken {
@@ -50,6 +52,21 @@ export function delay(delayMs: number, abortToken?: AbortToken | null): Promise<
 export const getMonotonicTimeMs = typeof performance !== "undefined" && isFunction(performance?.now)
   ? () => performance.now()
   : () => new Date().getTime();
+
+// eslint-disable-next-line @typescript-eslint/unbound-method
+export const randomUUID = typeof crypto !== "undefined" && isFunction(crypto?.randomUUID)
+  ? () => crypto.randomUUID()
+  : () => {
+    const charCodes = new Array(36) as number[];
+    for (let i = 0; i < charCodes.length; i++) {
+      let r: number;
+      charCodes[i] =
+        i === 8 || i === 13 || i === 18 || i === 23 ? 0x2d // '-'
+        : i === 14 ? 0x34 // '4'
+        : (r = Math.random() * 16 | 0, hexDigits.charCodeAt(i === 19 ? r & 0x3 | 0x8 : r));
+    }
+    return String.fromCharCode(...charCodes);
+  };
 
 // NOTE: We don't use the built-in WeakRef-related types in the signatures of the exported functions below because
 // this module is exposed via the "pubternal" API, and we don't want these types to be included in the generated
@@ -325,6 +342,19 @@ export function utf8Encode(text: string): string {
   }
 
   return utf8text += text.slice(chunkStart, i);
+}
+
+export function toHexString(int32Array: number[], count?: number): string {
+  let result = "";
+  count ??= int32Array.length;
+  for (let i = 0; i < count; i++) {
+    for (let j = 3; j >= 0; j--) {
+      const b = (int32Array[i] >> (j << 3)) & 0xFF;
+      result += hexDigits[b >> 4];
+      result += hexDigits[b & 0xF];
+    }
+  }
+  return result;
 }
 
 export function parseIntStrict(value: string): number {

@@ -1,10 +1,10 @@
 import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
-import { logMethodDebug } from "../ConfigCatLogger";
+import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit } from "../ConfigFetcher";
-import { delay } from "../Utils";
+import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
+import { delay, randomUUID } from "../Utils";
 
 export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
   private isDisposed = false;
@@ -23,7 +23,16 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
   // Defined directly on the prototype, see below.
   private [fetchInternalAsyncMethodName]!: FetchInternalAsyncMethod<FetchApiConfigFetcherBase>;
 
-  private async fetchWithRetryAsync(request: FetchRequest, logger?: LoggerWrapper): Promise<FetchResponse> {
+  private async fetchWithRetryAsync(request: FetchRequest, logger: LoggerWrapper | undefined): Promise<FetchResponse> {
+    const debugLogger = logger?.ifDebug;
+    let requestId: string | undefined;
+
+    if (debugLogger) {
+      requestId = randomUUID();
+
+      debugLogger.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Preparing request...`);
+    }
+
     const isCustomUrl = !isCdnUrl(request.url);
 
     for (let retryNumber = 0; ; retryNumber++) {
@@ -65,25 +74,66 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
       }
 
       try {
+        if (debugLogger) {
+          if (this.runsOnServerSide) {
+            debugLogger.debug(FormattableLogMessage.from(
+              requestIdArgName, "URL", "IF_NONE_MATCH"
+            )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${lastETag ?? ""}')`);
+          } else {
+            debugLogger.debug(FormattableLogMessage.from(
+              requestIdArgName, "URL"
+            )`[${requestId}] Sending request... (Url: '${url}')`);
+          }
+        }
+
         const response = await fetch(url, requestInit);
 
         const { status: statusCode, statusText: reasonPhrase } = response;
+
+        if (debugLogger) {
+          const eTagHeaderValue = response.headers.get("ETag");
+          debugLogger.debug(FormattableLogMessage.from(
+            requestIdArgName, "STATUS_CODE", "REASON_PHRASE", "ETAG"
+          )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
+        }
+
         const headers = getResponseHeadersDefault(response);
-        const body = statusCode === 200 ? await response.text() : void 0;
+
+        let body: string | undefined;
+        if (statusCode === 200) {
+          body = await response.text();
+
+          debugLogger?.debug(FormattableLogMessage.from(
+            requestIdArgName, "LENGTH"
+          )`[${requestId}] Received body. (Length: ${body.length})`);
+        }
+
         const fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers, body);
-        if (FetchResponse.prototype.isExpected.call(fetchResponse) || retryNumber >= fetchRetryLimit) {
+        if (FetchResponse.prototype.isExpected.call(fetchResponse)) {
+          return fetchResponse;
+        }
+
+        debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Received unexpected status code.`);
+
+        if (retryNumber >= fetchRetryLimit) {
           return fetchResponse;
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           if (!requestInit.signal?.aborted) {
+            debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request aborted.`);
+
             throw new FetchError("abort");
           }
+
+          debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request timed out.`);
 
           if (retryNumber >= fetchRetryLimit) {
             throw new FetchError("timeout", timeoutMs);
           }
         } else {
+          debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request failed.`);
+
           if (retryNumber >= fetchRetryLimit) {
             throw new FetchError("failure", err);
           }
@@ -94,6 +144,8 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
 
       // Wait a little before trying again.
       await delay(fetchRetryDelayMs);
+
+      debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Trying request again...`);
     }
   }
 

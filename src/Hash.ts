@@ -1,4 +1,4 @@
-import { createMap, utf8Encode } from "./Utils";
+import { createMap, toHexString, utf8Encode } from "./Utils";
 
 export function sha1(msg: string) {
   function rotate_left(n: number, s: number) {
@@ -144,8 +144,8 @@ export function sha256(msgUtf8: string) {
   for (j = 0; j < words[lengthProperty];) {
     var w = words.slice(j, j += 16); // The message is expanded into 64 words as part of the iteration
     var oldHash = hash;
-    // This is now the undefinedworking hash", often labelled as variables a...g
-    // (we have to truncate as well, otherwise extra entries at the end accumulate
+    // This is now the "working hash", often labelled as variables a...g
+    // (we have to truncate as well, otherwise extra entries at the end accumulate)
     hash = hash.slice(0, 8);
 
     for (i = 0; i < 64; i++) {
@@ -181,18 +181,4 @@ export function sha256(msgUtf8: string) {
   }
 
   return toHexString(hash, 8);
-}
-
-function toHexString(int32Array: number[], count?: number) {
-  const hexDigits = "0123456789abcdef";
-  var result = "";
-  count ??= int32Array.length;
-  for (let i = 0; i < count; i++) {
-    for (let j = 3; j >= 0; j--) {
-      const b = (int32Array[i] >> (j << 3)) & 0xFF;
-      result += hexDigits[b >> 4];
-      result += hexDigits[b & 0xF];
-    } 
-  }
-  return result;
 }
