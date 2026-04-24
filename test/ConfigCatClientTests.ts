@@ -1032,7 +1032,7 @@ describe("ConfigCatClient", () => {
     client.dispose();
     assert.equal(configFetcher.calledTimes, 0);
     setTimeout(() => {
-      assert.equal(configFetcher.calledTimes, 1);
+      assert.equal(configFetcher.calledTimes, 0);
       client.dispose();
       done();
     }, 4000);

@@ -298,22 +298,31 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
         default:
           errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase, response["rayId"]);
-          logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning null.");
+          logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning last config.");
           return fetchResultFromError(lastConfig, RefreshErrorCode.UnexpectedHttpResponse, toMessage(errorMessage));
       }
     } catch (err) {
       let errorCode: RefreshErrorCode;
 
       const fetchError = err instanceof FetchError ? err as FetchError : void 0;
-      if (fetchError && fetchError.cause === "timeout") {
-        errorMessage = options.logger.fetchFailedDueToRequestTimeout((fetchError.args as FetchErrorCauses["timeout"])[0], err, fetchError["rayId"]);
-        errorCode = RefreshErrorCode.HttpRequestTimeout;
-      } else {
-        errorMessage = options.logger.fetchFailedDueToUnexpectedError(err, fetchError?.["rayId"]);
-        errorCode = RefreshErrorCode.HttpRequestFailure;
+      // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+      switch (fetchError?.cause) {
+        case "abort":
+          // This should occur only when the client gets disposed while a fetch operation is in progress.
+          // Let the caller deal with this (either swallow it or report it as RefreshErrorCode.UnexpectedError)
+          logMethodDebug(debugLogger, methodName, "fetch was aborted. Propagating error.");
+          throw err;
+        case "timeout":
+          errorMessage = options.logger.fetchFailedDueToRequestTimeout((fetchError.args as FetchErrorCauses["timeout"])[0], err, fetchError["rayId"]);
+          errorCode = RefreshErrorCode.HttpRequestTimeout;
+          break;
+        default:
+          errorMessage = options.logger.fetchFailedDueToUnexpectedError(err, fetchError?.["rayId"]);
+          errorCode = RefreshErrorCode.HttpRequestFailure;
+          break;
       }
 
-      logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning null.");
+      logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning last config.");
       return fetchResultFromError(lastConfig, errorCode, toMessage(errorMessage), err);
     }
   }
@@ -396,10 +405,6 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
         return [response, config];
       }
     }
-  }
-
-  protected get isOfflineExactly(): boolean {
-    return this.status === ConfigServiceStatus.Offline;
   }
 
   get isOffline(): boolean {

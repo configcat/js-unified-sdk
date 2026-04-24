@@ -37,7 +37,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
 
     for (let retryNumber = 0; ; retryNumber++) {
       if (this.isDisposed) {
-        throw retryNumber > 0 ? new FetchError("abort") : Error(`${this.constructor.name} object has been disposed.`);
+        throw new FetchError("abort");
       }
 
       let { url } = request;

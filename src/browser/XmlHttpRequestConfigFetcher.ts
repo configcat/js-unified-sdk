@@ -91,7 +91,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
     for (let retryNumber = 0; ; retryNumber++) {
       if (this.isDisposed) {
-        throw retryNumber > 0 ? new FetchError("abort") : Error(`${this.constructor.name} object has been disposed.`);
+        throw new FetchError("abort");
       }
 
       try {

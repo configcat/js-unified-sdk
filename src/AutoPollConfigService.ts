@@ -1,6 +1,7 @@
 import type { AutoPollOptions } from "./ConfigCatClientOptions";
 import { logMethodDebug } from "./ConfigCatLogger";
 import type { FetchResult } from "./ConfigFetcher";
+import { FetchError } from "./ConfigFetcher";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -132,6 +133,10 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
         try {
           await this.refreshWorkerLogic(initialCacheSyncUp);
         } catch (err) {
+          if (err instanceof FetchError && (err as FetchError).cause === "abort") {
+            continue;
+          }
+
           this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
         }
 
@@ -141,9 +146,9 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
         }
       } catch (err) {
         this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
+      } finally {
+        initialCacheSyncUp = null; // allow GC to collect the Promise and its result
       }
-
-      initialCacheSyncUp = null; // allow GC to collect the Promise and its result
     }
   }
 
@@ -157,13 +162,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
 
     const latestConfig = await (initialCacheSyncUp ?? this.syncUpWithCache());
     if (latestConfig.isExpired(this.pollExpirationMs)) {
-      // Even if the service gets disposed immediately, we allow the first refresh for backward compatibility,
-      // i.e. to not break usage patterns like this:
-      // ```
-      // client.getValueAsync("SOME_KEY", false, user).then(value => { /* ... */ });
-      // client.dispose();
-      // ```
-      if (initialCacheSyncUp ? !this.isOfflineExactly : !this.isOffline) {
+      if (!this.isOffline) {
         await this.refreshConfigCoreAsync(latestConfig, false);
         return; // postpone signalling initialization until `onConfigFetched`
       }

@@ -204,7 +204,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     for (let retryNumber = 0; ; retryNumber++) {
       const agentStateOrExternalAgent = isHttpsUrl ? this.httpsAgentState : this.httpAgentState;
       if (!agentStateOrExternalAgent) { // has config fetcher been disposed?
-        throw retryNumber > 0 ? new FetchError("abort") : Error(`${this.constructor.name} object has been disposed.`);
+        throw new FetchError("abort");
       }
 
       const [agentState, agent] = agentStateOrExternalAgent instanceof AgentState
