@@ -4,9 +4,15 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
-import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { connectionPoolResetThresholdMs, FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
 import { delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, randomUUID, toStringSafe } from "../Utils";
+
+type FetchContext = {
+  readonly debugLogger: LoggerWrapper | undefined;
+  readonly requestId: string | undefined;
+  rayId: string | undefined;
+};
 
 export interface INodeHttpConfigFetcherOptions {
   /**
@@ -127,10 +133,10 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   private handleResponse(
-    response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void,
-    requestId: string | undefined, debugLogger: LoggerWrapper | undefined
+    response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void, context: FetchContext
   ) {
     try {
+      const { debugLogger, requestId } = context;
       const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
 
       if (debugLogger) {
@@ -142,6 +148,8 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       const headers = getResponseHeadersDefault(response);
+      const fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers);
+      const rayId = context.rayId = fetchResponse["rayId"];
 
       if (statusCode === 200) {
         const chunks: any[] = [];
@@ -149,23 +157,23 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
           .on("data", chunk => chunks.push(chunk))
           .on("end", () => {
             try {
-              const body = Buffer.concat(chunks).toString();
+              const body = (fetchResponse as { body: string }).body = Buffer.concat(chunks).toString();
 
               debugLogger?.debug(FormattableLogMessage.from(
                 requestIdArgName, "LENGTH"
               )`[${requestId}] Received body. (Length: ${body.length})`);
 
-              resolve(new FetchResponse(statusCode, reasonPhrase, headers, body));
+              resolve(fetchResponse);
             } catch (err) {
               reject(err);
             }
           })
-          .on("error", err => reject(new FetchError("failure", err)));
+          .on("error", err => reject(new (FetchError as FetchErrorCtorInternal)("failure", err, rayId)));
       } else {
         // Consume response data to free up memory
         response.resume();
 
-        resolve(new FetchResponse(statusCode, reasonPhrase, headers));
+        resolve(fetchResponse);
       }
     } catch (err) {
       reject(err);
@@ -217,7 +225,8 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       try {
-        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl, isHttpsUrl, agent, requestId, debugLogger);
+        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl, isHttpsUrl, agent,
+          { debugLogger, requestId, rayId: void 0 });
 
         if (FetchResponse.prototype.isExpected.call(fetchResponse)) {
           return fetchResponse;
@@ -291,10 +300,10 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   private fetchCoreAsync(
-    request: FetchRequest, isCustomUrl: boolean, isHttpsUrl: boolean, agent: http.Agent | https.Agent,
-    requestId: string | undefined, debugLogger: LoggerWrapper | undefined
+    request: FetchRequest, isCustomUrl: boolean, isHttpsUrl: boolean, agent: http.Agent | https.Agent, context: FetchContext
   ): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
+      const { debugLogger, requestId } = context;
       const { url, lastETag, timeoutMs } = request;
 
       const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
@@ -318,23 +327,22 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${lastETag ?? ""}', Options: ${requestOptionsSafe})`);
       }
 
-      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions,
-        response => this.handleResponse(response, resolve, reject, requestId, debugLogger))
+      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject, context))
         .on("timeout", () => {
           try {
             clientRequest.destroy();
           } finally {
-            reject(new FetchError("timeout", timeoutMs));
+            reject(new (FetchError as FetchErrorCtorInternal)("timeout", timeoutMs, context.rayId));
           }
         })
         .on("close", () => {
           // eslint-disable-next-line @typescript-eslint/no-deprecated
           if (typeof clientRequest.aborted !== "undefined" ? clientRequest.aborted : clientRequest.destroyed) {
-            reject(new FetchError("abort"));
+            reject(new (FetchError as FetchErrorCtorInternal)("abort", context.rayId));
           }
         })
         .on("error", err => {
-          reject(new FetchError("failure", err));
+          reject(new (FetchError as FetchErrorCtorInternal)("failure", err, context.rayId));
         })
         .end();
     });

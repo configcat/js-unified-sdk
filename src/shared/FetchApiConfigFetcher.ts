@@ -2,7 +2,7 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
-import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
 import { delay, randomUUID } from "../Utils";
 
@@ -63,6 +63,8 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
         }
       }
 
+      let rayId: string | undefined;
+
       let cleanup: (() => void) | undefined;
 
       // NOTE: Older Chromium versions (e.g. the one used in our tests) may not support AbortController.
@@ -98,17 +100,18 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
         }
 
         const headers = getResponseHeadersDefault(response);
+        const fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers);
+        rayId = fetchResponse["rayId"];
 
         let body: string | undefined;
         if (statusCode === 200) {
-          body = await response.text();
+          body = (fetchResponse as { body: string }).body = await response.text();
 
           debugLogger?.debug(FormattableLogMessage.from(
             requestIdArgName, "LENGTH"
           )`[${requestId}] Received body. (Length: ${body.length})`);
         }
 
-        const fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers, body);
         if (FetchResponse.prototype.isExpected.call(fetchResponse)) {
           return fetchResponse;
         }
@@ -123,19 +126,19 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
           if (!requestInit.signal?.aborted) {
             debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request aborted.`);
 
-            throw new FetchError("abort");
+            throw new (FetchError as FetchErrorCtorInternal)("abort", rayId);
           }
 
           debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request timed out.`);
 
           if (retryNumber >= fetchRetryLimit) {
-            throw new FetchError("timeout", timeoutMs);
+            throw new (FetchError as FetchErrorCtorInternal)("timeout", timeoutMs, rayId);
           }
         } else {
           debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request failed.`);
 
           if (retryNumber >= fetchRetryLimit) {
-            throw new FetchError("failure", err);
+            throw new (FetchError as FetchErrorCtorInternal)("failure", err, rayId);
           }
         }
       } finally {

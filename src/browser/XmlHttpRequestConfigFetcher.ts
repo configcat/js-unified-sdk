@@ -2,13 +2,19 @@ import type { OptionsBase } from "../ConfigCatClientOptions";
 import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
-import type { FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
+import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
 import { delay, randomUUID } from "../Utils";
 
 interface IHttpRequest {
   setRequestHeader(name: string, value: string): void;
 }
+
+type FetchContext = {
+  readonly debugLogger: LoggerWrapper | undefined;
+  readonly requestId: string | undefined;
+  fetchResponse: FetchResponse | undefined;
+};
 
 export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   private static getFactory(): (options: OptionsBase) => IConfigCatConfigFetcher {
@@ -22,34 +28,41 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   private handleStateChange(
-    httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void,
-    requestId: string | undefined, debugLogger: LoggerWrapper | undefined
+    httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void, context: FetchContext
   ) {
     try {
+      const { debugLogger, requestId } = context;
+
       if (httpRequest.readyState === 2) {
+        const { status: statusCode, statusText: reasonPhrase } = httpRequest;
+
         if (debugLogger) {
-          const { status: statusCode, statusText: reasonPhrase } = httpRequest;
           const eTagHeaderValue = httpRequest.getResponseHeader("ETag");
           debugLogger.debug(FormattableLogMessage.from(
             requestIdArgName, "STATUS_CODE", "REASON_PHRASE", "ETAG"
           )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
         }
+
+        const headers = getResponseHeadersDefault(httpRequest);
+        context.fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers);
       } else if (httpRequest.readyState === 4) {
         const { status: statusCode, statusText: reasonPhrase } = httpRequest;
 
         // The readystatechange event is emitted even in the case of abort or error.
         // We can detect this by checking for zero status code (see https://stackoverflow.com/a/19247992/8656352).
         if (statusCode) {
-          const headers = getResponseHeadersDefault(httpRequest);
-          let body: string | undefined;
+          const fetchResponse = context.fetchResponse
+            ?? new FetchResponse(statusCode, reasonPhrase, getResponseHeadersDefault(httpRequest)); // just in case
+
           if (statusCode === 200) {
-            body = httpRequest.responseText;
+            const body = (fetchResponse as { body: string }).body = httpRequest.responseText;
 
             debugLogger?.debug(FormattableLogMessage.from(
               requestIdArgName, "LENGTH"
             )`[${requestId}] Received body. (Length: ${body.length})`);
           }
-          resolve(new FetchResponse(statusCode, reasonPhrase, headers, body));
+
+          resolve(fetchResponse);
         }
       }
     } catch (err) {
@@ -82,7 +95,8 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       try {
-        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl, requestId, debugLogger);
+        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl,
+          { debugLogger, requestId, fetchResponse: void 0 });
 
         if (FetchResponse.prototype.isExpected.call(fetchResponse)) {
           return fetchResponse;
@@ -122,11 +136,9 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     }
   }
 
-  private fetchCoreAsync(
-    request: FetchRequest, isCustomUrl: boolean,
-    requestId: string | undefined, debugLogger: LoggerWrapper | undefined
-  ): Promise<FetchResponse> {
+  private fetchCoreAsync(request: FetchRequest, isCustomUrl: boolean, context: FetchContext): Promise<FetchResponse> {
     return new Promise<FetchResponse>((resolve, reject) => {
+      const { debugLogger, requestId } = context;
       let { url } = request;
       const { lastETag, timeoutMs } = request;
 
@@ -139,10 +151,10 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
       const httpRequest: XMLHttpRequest = new XMLHttpRequest();
 
-      httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject, requestId, debugLogger);
-      httpRequest.ontimeout = () => reject(new FetchError("timeout", timeoutMs));
-      httpRequest.onabort = () => reject(new FetchError("abort"));
-      httpRequest.onerror = () => reject(new FetchError("failure"));
+      httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject, context);
+      httpRequest.ontimeout = () => reject(new (FetchError as FetchErrorCtorInternal)("timeout", timeoutMs, context.fetchResponse?.["rayId"]));
+      httpRequest.onabort = () => reject(new (FetchError as FetchErrorCtorInternal)("abort", context.fetchResponse?.["rayId"]));
+      httpRequest.onerror = () => reject(new (FetchError as FetchErrorCtorInternal)("failure", void 0, context.fetchResponse?.["rayId"]));
 
       httpRequest.open("GET", url, true);
       httpRequest.timeout = timeoutMs;

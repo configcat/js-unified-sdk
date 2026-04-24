@@ -112,30 +112,43 @@ export type FetchErrorCauses = {
   failure: [err?: any];
 };
 
+type FetchErrorArgsInternal<TCause extends keyof FetchErrorCauses> = [...FetchErrorCauses[TCause], rayId?: string];
+
+export type FetchErrorCtorInternal<TCause extends keyof FetchErrorCauses = keyof FetchErrorCauses> =
+  new(cause: TCause, ...args: FetchErrorArgsInternal<TCause>) => FetchError<TCause>;
+
 export class FetchError<TCause extends keyof FetchErrorCauses = keyof FetchErrorCauses> extends Error {
   override readonly name = FetchError.name;
   readonly args: FetchErrorCauses[TCause];
+  private readonly rayId: string | undefined;
 
   constructor(public cause: TCause, ...args: FetchErrorCauses[TCause]) {
-    super(((cause: TCause, args: FetchErrorCauses[TCause]): string | undefined => {
-      switch (cause) {
-        case "abort":
-          return "Request was aborted.";
-        case "timeout":
-          const [timeoutMs] = args as FetchErrorCauses["timeout"];
-          return `Request timed out. Timeout value: ${timeoutMs}ms`;
-        case "failure":
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const [err] = args as FetchErrorCauses["failure"];
-          const message = "Request failed due to a network or protocol error.";
-          return err
-            ? message + " " + (err instanceof Error ? err.message : toStringSafe(err))
-            : message;
-      }
-    })(cause, args));
+    let message: string, rayId: string | undefined;
+    switch (cause) {
+      case "abort":
+        [rayId] = args as FetchErrorArgsInternal<"abort">;
+        message = "Request was aborted.";
+        break;
+      case "timeout":
+        let timeoutMs: number;
+        [timeoutMs, rayId] = args as FetchErrorArgsInternal<"timeout">;
+        message = `Request timed out. Timeout value: ${timeoutMs}ms`;
+        break;
+      case "failure":
+        let err: any;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        [err, rayId] = args as FetchErrorArgsInternal<"failure">;
+        message = "Request failed due to a network or protocol error.";
+        message = err
+          ? message + " " + (err instanceof Error ? err.message : toStringSafe(err))
+          : message;
+        break;
+    }
+    super(message);
 
     ensurePrototype(this, FetchError);
     this.args = args;
+    this.rayId = rayId;
   }
 }
 

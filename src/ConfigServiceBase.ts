@@ -303,9 +303,15 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       }
     } catch (err) {
       let errorCode: RefreshErrorCode;
-      [errorCode, errorMessage] = err instanceof FetchError && (err as FetchError).cause === "timeout"
-        ? [RefreshErrorCode.HttpRequestTimeout, options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err)]
-        : [RefreshErrorCode.HttpRequestFailure, options.logger.fetchFailedDueToUnexpectedError(err)];
+
+      const fetchError = err instanceof FetchError ? err as FetchError : void 0;
+      if (fetchError && fetchError.cause === "timeout") {
+        errorMessage = options.logger.fetchFailedDueToRequestTimeout((fetchError.args as FetchErrorCauses["timeout"])[0], err, fetchError["rayId"]);
+        errorCode = RefreshErrorCode.HttpRequestTimeout;
+      } else {
+        errorMessage = options.logger.fetchFailedDueToUnexpectedError(err, fetchError?.["rayId"]);
+        errorCode = RefreshErrorCode.HttpRequestFailure;
+      }
 
       logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning null.");
       return fetchResultFromError(lastConfig, errorCode, toMessage(errorMessage), err);
