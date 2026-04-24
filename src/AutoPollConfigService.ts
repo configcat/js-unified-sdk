@@ -135,9 +135,9 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
           this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
         }
 
-        const realNextTimeMs = scheduledNextTimeMs - getMonotonicTimeMs();
-        if (realNextTimeMs > 0) {
-          await delay(realNextTimeMs, stopToken);
+        const timeToWaitMs = scheduledNextTimeMs - getMonotonicTimeMs();
+        if (timeToWaitMs > 0) {
+          await delay(timeToWaitMs, stopToken);
         }
       } catch (err) {
         this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
