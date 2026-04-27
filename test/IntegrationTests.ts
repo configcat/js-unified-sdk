@@ -206,10 +206,12 @@ describe("Integration tests - Wrong SDK key", () => {
     const client: IConfigCatClient = platform().getClient("WRONG_SDK_KEY-56789012/1234567890123456789012", PollingMode.AutoPoll,
       { requestTimeoutMs: 500, maxInitWaitTimeSeconds: 1 });
 
-    const actual: string = await client.getValueAsync("stringDefaultCat", defaultValue);
-    assert.strictEqual(actual, defaultValue);
-
-    client.dispose();
+    try {
+      const actual: string = await client.getValueAsync("stringDefaultCat", defaultValue);
+      assert.strictEqual(actual, defaultValue);
+    } finally {
+      client.dispose();
+    }
   });
 
   it("Manual poll with wrong SDK Key - getValueAsync() should return default value", async () => {
@@ -217,13 +219,15 @@ describe("Integration tests - Wrong SDK key", () => {
     const defaultValue = "NOT_CAT";
     const client: IConfigCatClient = platform().getClient("WRONG_SDK_KEY-56789012/1234567890123456789012", PollingMode.ManualPoll, { requestTimeoutMs: 500 });
 
-    const actual: string = await client.getValueAsync("stringDefaultCat", defaultValue);
-    assert.strictEqual(actual, defaultValue);
-    await client.forceRefreshAsync();
-    const actual2: string = await client.getValueAsync("stringDefaultCat", defaultValue);
-    assert.strictEqual(actual2, defaultValue);
-
-    client.dispose();
+    try {
+      const actual: string = await client.getValueAsync("stringDefaultCat", defaultValue);
+      assert.strictEqual(actual, defaultValue);
+      await client.forceRefreshAsync();
+      const actual2: string = await client.getValueAsync("stringDefaultCat", defaultValue);
+      assert.strictEqual(actual2, defaultValue);
+    } finally {
+      client.dispose();
+    }
   });
 
   it("Lazy load with wrong SDK Key - getValueAsync() should return default value", async () => {
@@ -231,20 +235,24 @@ describe("Integration tests - Wrong SDK key", () => {
     const defaultValue = "NOT_CAT";
     const client: IConfigCatClient = platform().getClient("WRONG_SDK_KEY-56789012/1234567890123456789012", PollingMode.LazyLoad, { requestTimeoutMs: 500 });
 
-    const actual: string = await client.getValueAsync("stringDefaultCat", defaultValue);
-    assert.strictEqual(actual, defaultValue);
-
-    client.dispose();
+    try {
+      const actual: string = await client.getValueAsync("stringDefaultCat", defaultValue);
+      assert.strictEqual(actual, defaultValue);
+    } finally {
+      client.dispose();
+    }
   });
 
   it("getAllKeysAsync() should not crash with wrong SDK Key", async () => {
 
     const client: IConfigCatClient = platform().getClient("WRONG_SDK_KEY-56789012/1234567890123456789012", PollingMode.ManualPoll, { requestTimeoutMs: 500 });
 
-    const keys: string[] = await client.getAllKeysAsync();
-    assert.equal(keys.length, 0);
-
-    client.dispose();
+    try {
+      const keys: string[] = await client.getAllKeysAsync();
+      assert.equal(keys.length, 0);
+    } finally {
+      client.dispose();
+    }
   });
 });
 
@@ -295,32 +303,34 @@ describe("Integration tests - Other cases", () => {
 
     const client: IConfigCatClient = platform().getClient("configcat-sdk-1/~~~~~~~~~~~~~~~~~~~~~~/~~~~~~~~~~~~~~~~~~~~~~", PollingMode.ManualPoll, { logger: fakeLogger });
 
-    // TODO: Remove this as soon as we update the CDN CORS settings (see also https://trello.com/c/RSGwVoqC)
-    const clientVersion: string = (((client as ConfigCatClient)["options"]) as OptionsBase)["clientVersion"];
-    if (clientVersion.includes("ConfigCat-UnifiedJS-Browser") || clientVersion.includes("ConfigCat-UnifiedJS-ChromiumExtension")) {
-      this.skip();
+    try {
+      // TODO: Remove this as soon as we update the CDN CORS settings (see also https://trello.com/c/RSGwVoqC)
+      const clientVersion: string = (((client as ConfigCatClient)["options"]) as OptionsBase)["clientVersion"];
+      if (clientVersion.includes("ConfigCat-UnifiedJS-Browser") || clientVersion.includes("ConfigCat-UnifiedJS-ChromiumExtension")) {
+        this.skip();
+      }
+
+      await client.forceRefreshAsync();
+
+      const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1100);
+      assert.strictEqual(errors.length, 1);
+
+      const [[, , error]] = errors;
+      assert.instanceOf(error, FormattableLogMessage);
+
+      assert.strictEqual(error.argNames.length, 2);
+      assert.strictEqual(error.argNames[0], "SDK_KEY");
+      assert.strictEqual(error.argNames[1], "RAY_ID");
+
+      assert.strictEqual(error.argValues.length, 2);
+      const [actualSdkKey, actualRayId] = error.argValues;
+      assert.equal(actualSdkKey, "***************/**********************/****************~~~~~~");
+      assert.isString(actualRayId);
+
+      expect(error.toString()).to.contain(actualRayId);
+    } finally {
+      client.dispose();
     }
-
-    await client.forceRefreshAsync();
-
-    const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1100);
-    assert.strictEqual(errors.length, 1);
-
-    const [[, , error]] = errors;
-    assert.instanceOf(error, FormattableLogMessage);
-
-    assert.strictEqual(error.argNames.length, 2);
-    assert.strictEqual(error.argNames[0], "SDK_KEY");
-    assert.strictEqual(error.argNames[1], "RAY_ID");
-
-    assert.strictEqual(error.argValues.length, 2);
-    const [actualSdkKey, actualRayId] = error.argValues;
-    assert.equal(actualSdkKey, "***************/**********************/****************~~~~~~");
-    assert.isString(actualRayId);
-
-    expect(error.toString()).to.contain(actualRayId);
-
-    client.dispose();
   });
 
 });

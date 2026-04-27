@@ -50,6 +50,8 @@ describe("ConfigCatConfigFetcherTests", () => {
 
     assert.strictEqual(configFetcherRequests.length, 2);
     assert.strictEqual(configFetcherRequests[1].lastETag, eTag);
+
+    client.dispose();
   });
 
   it("Custom config fetcher - Failure", async () => {
@@ -108,6 +110,8 @@ describe("ConfigCatConfigFetcherTests", () => {
     assert.equal(actualRayId, rayId);
 
     expect(error.toString()).to.contain(rayId);
+
+    client.dispose();
   });
 
 });

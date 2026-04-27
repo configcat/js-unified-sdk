@@ -483,6 +483,8 @@ describe("ConfigServiceBaseTests", () => {
 
     fetcherMock.verify(v => v.fetchAsync(It.Is<FetchRequest>(request => request.lastETag === "oldConfig")), Times.Once());
     cacheMock.verify(v => v.set(It.IsAny<string>(), It.Is<ProjectConfig>(c => c.httpETag === fr.config.httpETag && c.configJson === newConfig.configJson)), Times.Once());
+
+    service.dispose();
   });
 
   it("LazyLoadConfigService - ProjectConfig is cached - should not invoke fetch", async () => {
@@ -516,6 +518,8 @@ describe("ConfigServiceBaseTests", () => {
     assert.equal(actualConfig.configJson, config.configJson);
 
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Never());
+
+    service.dispose();
   });
 
   it("LazyLoadConfigService - refreshConfigAsync - should invoke fetch and cache.set operation", async () => {
@@ -556,6 +560,8 @@ describe("ConfigServiceBaseTests", () => {
 
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Once());
     cacheMock.verify(v => v.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()), Times.Once());
+
+    service.dispose();
   });
 
   it("LazyLoadConfigService - refreshConfigAsync - should invoke fetch and cache.set operation - async cache supported", async () => {
@@ -596,6 +602,8 @@ describe("ConfigServiceBaseTests", () => {
 
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Once());
     cacheMock.verify(v => v.set(It.IsAny<string>(), It.IsAny<ProjectConfig>()), Times.Once());
+
+    service.dispose();
   });
 
   it("AutoPollConfigService - getConfigAsync() should return cached config when cached config is not expired", async () => {
@@ -724,6 +732,8 @@ describe("ConfigServiceBaseTests", () => {
     assert.strictEqual(cachedPc, actualPc);
 
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Never());
+
+    service.dispose();
   });
 
   it("LazyLoadConfigService - getConfigAsync() should fetch when cached config is expired", async () => {
@@ -767,6 +777,8 @@ describe("ConfigServiceBaseTests", () => {
     assert.equal(fr.config.configJson, actualPc.configJson);
 
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Once());
+
+    service.dispose();
   });
 
   it("fetchAsync() should not initiate a request when there is a pending one", async () => {
@@ -803,6 +815,8 @@ describe("ConfigServiceBaseTests", () => {
     assert.equal(pc.configJson, config1.configJson);
 
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Once());
+
+    service.dispose();
   });
 
   it("fetchAsync() should initiate a request when there is not a pending one", async () => {
@@ -842,6 +856,8 @@ describe("ConfigServiceBaseTests", () => {
     assert.equal(pc.configJson, config2.configJson);
 
     fetcherMock.verify(v => v.fetchAsync(It.IsAny<FetchRequest>()), Times.Exactly(2));
+
+    service.dispose();
   });
 
   it("refreshConfigAsync() should return null config when cache is empty and fetch fails.", async () => {
@@ -870,6 +886,8 @@ describe("ConfigServiceBaseTests", () => {
 
     assert.isTrue(projectConfig.isEmpty);
     assert.isTrue((cache.get(options.getCacheKey())).isEmpty);
+
+    service.dispose();
   });
 
   it("refreshConfigAsync() should return latest config when cache is empty and fetch fails.", async () => {
@@ -902,6 +920,8 @@ describe("ConfigServiceBaseTests", () => {
 
     assert.strictEqual(projectConfig, cachedPc);
     assert.strictEqual(cache.get(options.getCacheKey()), cachedPc);
+
+    service.dispose();
   });
 
   it("refreshConfigAsync() - only one config refresh should be in progress at a time - success", async () => {
