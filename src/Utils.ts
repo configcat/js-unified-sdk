@@ -33,6 +33,8 @@ export class AbortToken {
   }
 }
 
+/* Timing */
+
 export function delay(delayMs: number, abortToken?: AbortToken | null): Promise<boolean> {
   let timerId: ReturnType<typeof setTimeout>;
   return new Promise<boolean>(resolve => {
@@ -53,6 +55,8 @@ export const getMonotonicTimeMs = typeof performance !== "undefined" && isFuncti
   ? () => performance.now()
   : () => new Date().getTime();
 
+/* Cryptography */
+
 // eslint-disable-next-line @typescript-eslint/unbound-method
 export const randomUUID = typeof crypto !== "undefined" && isFunction(crypto?.randomUUID)
   ? () => crypto.randomUUID()
@@ -67,6 +71,8 @@ export const randomUUID = typeof crypto !== "undefined" && isFunction(crypto?.ra
     }
     return String.fromCharCode(...charCodes);
   };
+
+/* Garbage collection */
 
 // NOTE: We don't use the built-in WeakRef-related types in the signatures of the exported functions below because
 // this module is exposed via the "pubternal" API, and we don't want these types to be included in the generated
@@ -107,6 +113,28 @@ export function toStringSafe(value: unknown): string {
   }
 }
 
+/* Strings */
+
+export function indexOfAny(s: string, chars: string, position?: number): number {
+  for (let i = position == null ? 0 : Math.max(position, 0); i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    for (let j = 0; j < chars.length; j++) {
+      if (chars.charCodeAt(j) === ch) return i;
+    }
+  }
+  return -1;
+}
+
+export function startsWith(s: string, searchString: string): boolean {
+  // NOTE: String.prototype.startsWith was introduced after ES5. We'd rather work around it instead of polyfilling it.
+  return s.lastIndexOf(searchString, 0) >= 0;
+}
+
+export function endsWith(s: string, searchString: string): boolean {
+  // NOTE: String.prototype.endsWith was introduced after ES5. We'd rather work around it instead of polyfilling it.
+  return s.indexOf(searchString, s.length - searchString.length) >= 0;
+}
+
 /** Formats error in a similar way to Chromium-based browsers. */
 export function errorToString(err: any, includeStackTrace = false): string {
   return err instanceof Error ? visit(err, "") : toStringSafe(err);
@@ -117,7 +145,7 @@ export function errorToString(err: any, includeStackTrace = false): string {
     if (includeStackTrace && err.stack) {
       let stack = err.stack.trim();
       // NOTE: Some JS runtimes (e.g. V8) includes the error in the stack trace, some don't (e.g. SpiderMonkey).
-      if (stack.lastIndexOf(errString, 0) === 0) {
+      if (startsWith(stack, errString)) {
         stack = stack.substring(errString.length).trim();
       }
       s += "\n" + stack.replace(/^\s*(?:at\s)?/gm, indent + "    at ");
@@ -141,6 +169,8 @@ export function errorToString(err: any, includeStackTrace = false): string {
     return s;
   }
 }
+
+/* Objects */
 
 /** Indicates a null-prototype object that is used as a map. */
 export type ObjectMap<TKey extends keyof any, TValue> = Record<TKey, TValue>
@@ -171,6 +201,19 @@ export function ensurePrototype<T extends object>(obj: T, ctor: new (...args: an
 export function hasOwnProperty(obj: object, key: keyof any): boolean {
   return Object.prototype.hasOwnProperty.call(obj, key);
 }
+
+export function shallowClone<T extends {}>(obj: T, propertyReplacer?: (key: keyof T, value: unknown) => unknown): Record<keyof T, unknown> {
+  const clone = {} as Record<keyof T, unknown>;
+  for (const key in obj) {
+    if (hasOwnProperty(obj, key)) {
+      const value = obj[key];
+      clone[key] = propertyReplacer ? propertyReplacer(key, value) : value;
+    }
+  }
+  return clone;
+}
+
+/* Data validation */
 
 export function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
@@ -281,6 +324,8 @@ export function throwInvalidArg(argName: string, reason: string, memberPath?: st
   throw (errorConstructor ?? Error)(`Invalid ${argKind} \`${argName}${memberPath}\`. ${reason}`);
 }
 
+/* Data formatting */
+
 export function formatStringList(items: ReadonlyArray<string>, maxLength = 0, getOmittedItemsText?: (count: number) => string, separator = ", "): string {
   const length = items.length;
   if (!length) {
@@ -357,6 +402,8 @@ export function toHexString(int32Array: number[], count?: number): string {
   return result;
 }
 
+/* Data parsing */
+
 export function parseIntStrict(value: string): number {
   // NOTE: JS's int to string conversion (parseInt) is too forgiving, it accepts hex numbers and ignores invalid characters after the number.
 
@@ -378,16 +425,7 @@ export function parseFloatStrict(value: string): number {
   return +value;
 }
 
-export function shallowClone<T extends {}>(obj: T, propertyReplacer?: (key: keyof T, value: unknown) => unknown): Record<keyof T, unknown> {
-  const clone = {} as Record<keyof T, unknown>;
-  for (const key in obj) {
-    if (hasOwnProperty(obj, key)) {
-      const value = obj[key];
-      clone[key] = propertyReplacer ? propertyReplacer(key, value) : value;
-    }
-  }
-  return clone;
-}
+/* Messages */
 
 export class LazyString<TState = any> {
   private factoryOrValue: ((state: TState) => string) | string;
@@ -407,6 +445,8 @@ export class LazyString<TState = any> {
 }
 
 export type Message = { toString(): string };
+
+/* Utility types */
 
 /** Picks a set of properties from object `T` and change their type as specified by `TPropMap`. */
 export type PickWithType<T, TPropMap extends { [K in keyof T]?: unknown }> = {

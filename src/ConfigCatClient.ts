@@ -13,7 +13,7 @@ import type { EvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingType
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
-import { createMap, createWeakRef, ensureEnumArg, ensureObjectArg, ensureStringArg, errorToString, isObject, shallowClone, throwInvalidArg, toStringSafe } from "./Utils";
+import { createMap, createWeakRef, ensureEnumArg, ensureObjectArg, ensureStringArg, errorToString, isObject, shallowClone, startsWith, throwInvalidArg, toStringSafe } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -752,8 +752,7 @@ class Snapshot implements IConfigCatClientSnapshot {
 }
 
 function isValidSdkKey(sdkKey: string, customBaseUrl: boolean) {
-  // NOTE: String.prototype.startsWith was introduced after ES5. We'd rather work around it instead of polyfilling it.
-  if (customBaseUrl && sdkKey.length > PROXY_SDKKEY_PREFIX.length && sdkKey.lastIndexOf(PROXY_SDKKEY_PREFIX, 0) === 0) {
+  if (customBaseUrl && sdkKey.length > PROXY_SDKKEY_PREFIX.length && startsWith(sdkKey, PROXY_SDKKEY_PREFIX)) {
     return true;
   }
 

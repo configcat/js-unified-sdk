@@ -16,7 +16,7 @@ import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
-import { createMap, createWeakRef, ensureBooleanArg, ensureEnumArg, ensureFunctionArg, ensureNumberArgInRange, ensureObjectArg, ensureStringArg, isNumberInRange } from "./Utils";
+import { createMap, createWeakRef, ensureBooleanArg, ensureEnumArg, ensureFunctionArg, ensureNumberArgInRange, ensureObjectArg, ensureStringArg, indexOfAny, isNumberInRange } from "./Utils";
 
 export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
@@ -338,7 +338,7 @@ export function isCdnUrl(url: string): boolean {
   if (!CDN_BASEURL_REGEXP.test(url)) {
     return false;
   }
-  let index = url.indexOf("?");
+  let index = indexOfAny(url, "?#");
   index = url.lastIndexOf(PROXY_PATH_SEGMENT, (index >= 0 ? index : url.length) - PROXY_PATH_SEGMENT.length);
   return index < 0;
 }
