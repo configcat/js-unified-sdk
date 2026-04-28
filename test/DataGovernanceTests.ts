@@ -331,7 +331,7 @@ export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
   }
 
   private getUrl(baseUrl: string) {
-    return baseUrl + "/configuration-files/API_KEY/config_v6.json?sdk=" + this.options.clientVersion;
+    return baseUrl + "/configuration-files/API_KEY/config_v6.json";
   }
 
   getCacheState(cachedConfig: ProjectConfig): ClientCacheState {

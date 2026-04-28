@@ -3,7 +3,7 @@ import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
+import { adjustUrlForBrowser, FETCH_RETRY_DELAY_MS, FETCH_RETRY_LIMIT, FetchError, fetchInternalAsyncMethodName, FetchResponse, REQUEST_ID_ARG_NAME } from "../ConfigFetcher";
 import { delay, randomUUID } from "../Utils";
 
 export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
@@ -30,7 +30,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
     if (debugLogger) {
       requestId = randomUUID();
 
-      debugLogger.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Preparing request...`);
+      debugLogger.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Preparing request...`);
     }
 
     const isCustomUrl = !isCdnUrl(request.url);
@@ -54,10 +54,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
 
       if (lastETag) {
         if (!this.runsOnServerSide) {
-        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
-        // we can transform this query param to the header in our CDN provider.
-        // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
-          url += "&ccetag=" + encodeURIComponent(lastETag);
+          url = adjustUrlForBrowser(url, request);
         } else {
           (requestInit.headers ??= []).push(["If-None-Match", lastETag]);
         }
@@ -79,11 +76,11 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
         if (debugLogger) {
           if (this.runsOnServerSide) {
             debugLogger.debug(FormattableLogMessage.from(
-              requestIdArgName, "URL", "IF_NONE_MATCH"
+              REQUEST_ID_ARG_NAME, "URL", "IF_NONE_MATCH"
             )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${lastETag ?? ""}')`);
           } else {
             debugLogger.debug(FormattableLogMessage.from(
-              requestIdArgName, "URL"
+              REQUEST_ID_ARG_NAME, "URL"
             )`[${requestId}] Sending request... (Url: '${url}')`);
           }
         }
@@ -95,7 +92,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
         if (debugLogger) {
           const eTagHeaderValue = response.headers.get("ETag");
           debugLogger.debug(FormattableLogMessage.from(
-            requestIdArgName, "STATUS_CODE", "REASON_PHRASE", "ETAG"
+            REQUEST_ID_ARG_NAME, "STATUS_CODE", "REASON_PHRASE", "ETAG"
           )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
         }
 
@@ -108,7 +105,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
           body = (fetchResponse as { body: string }).body = await response.text();
 
           debugLogger?.debug(FormattableLogMessage.from(
-            requestIdArgName, "LENGTH"
+            REQUEST_ID_ARG_NAME, "LENGTH"
           )`[${requestId}] Received body. (Length: ${body.length})`);
         }
 
@@ -116,28 +113,28 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
           return fetchResponse;
         }
 
-        debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Received unexpected status code.`);
+        debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Received unexpected status code.`);
 
-        if (retryNumber >= fetchRetryLimit) {
+        if (retryNumber >= FETCH_RETRY_LIMIT) {
           return fetchResponse;
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           if (!requestInit.signal?.aborted) {
-            debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request aborted.`);
+            debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request aborted.`);
 
             throw new (FetchError as FetchErrorCtorInternal)("abort", rayId);
           }
 
-          debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request timed out.`);
+          debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request timed out.`);
 
-          if (retryNumber >= fetchRetryLimit) {
+          if (retryNumber >= FETCH_RETRY_LIMIT) {
             throw new (FetchError as FetchErrorCtorInternal)("timeout", timeoutMs, rayId);
           }
         } else {
-          debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request failed.`);
+          debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request failed.`);
 
-          if (retryNumber >= fetchRetryLimit) {
+          if (retryNumber >= FETCH_RETRY_LIMIT) {
             throw new (FetchError as FetchErrorCtorInternal)("failure", err, rayId);
           }
         }
@@ -146,9 +143,9 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
       }
 
       // Wait a little before trying again.
-      await delay(fetchRetryDelayMs);
+      await delay(FETCH_RETRY_DELAY_MS);
 
-      debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Trying request again...`);
+      debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Trying request again...`);
     }
   }
 

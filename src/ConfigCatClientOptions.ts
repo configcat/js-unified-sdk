@@ -292,7 +292,9 @@ export abstract class OptionsBase {
     }
 
     if ((this.baseUrlOverriden = baseUrl != null)) {
-      this.baseUrl = baseUrl!;
+      // Strip potential query string and/or fragment from the user-provided URL.
+      const index = indexOfAny(baseUrl, "?#");
+      this.baseUrl = index < 0 ? baseUrl : baseUrl.substring(0, index);
     } else {
       this.baseUrl = this.dataGovernance === DataGovernance.EuOnly
         ? "https://cdn-eu.configcat.com"
@@ -321,7 +323,7 @@ export abstract class OptionsBase {
     const { baseUrl } = this;
     return baseUrl
       + (baseUrl.charCodeAt(baseUrl.length - 1) !== 0x2F /*'/'*/ ? "/" : "")
-      + "configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName + "?sdk=" + this.clientVersion;
+      + "configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName;
   }
 
   getCacheKey(): string {
@@ -338,9 +340,20 @@ export function isCdnUrl(url: string): boolean {
   if (!CDN_BASEURL_REGEXP.test(url)) {
     return false;
   }
+
   let index = indexOfAny(url, "?#");
-  index = url.lastIndexOf(PROXY_PATH_SEGMENT, (index >= 0 ? index : url.length) - PROXY_PATH_SEGMENT.length);
-  return index < 0;
+  if (index >= 0) url = url.substring(0, index);
+
+  index = url.indexOf("/", url.indexOf("://") + 3);
+  if (index < 0) return true;
+
+  if (url.indexOf("%", index + 1) < 0) {
+    index = url.lastIndexOf(PROXY_PATH_SEGMENT, url.length - PROXY_PATH_SEGMENT.length);
+    return index < 0;
+  } else {
+    const decodedPathSegments = url.substring(index + 1).split("/").map(item => decodeURIComponent(item));
+    return decodedPathSegments.indexOf(PROXY_PATH_SEGMENT.slice(1, PROXY_PATH_SEGMENT.length - 1)) < 0;
+  }
 }
 
 export class AutoPollOptions extends OptionsBase {

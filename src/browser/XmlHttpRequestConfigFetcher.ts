@@ -3,7 +3,7 @@ import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
+import { adjustUrlForBrowser, FETCH_RETRY_DELAY_MS, FETCH_RETRY_LIMIT, FetchError, fetchInternalAsyncMethodName, FetchResponse, REQUEST_ID_ARG_NAME } from "../ConfigFetcher";
 import { delay, randomUUID } from "../Utils";
 
 interface IHttpRequest {
@@ -39,7 +39,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
         if (debugLogger) {
           const eTagHeaderValue = httpRequest.getResponseHeader("ETag");
           debugLogger.debug(FormattableLogMessage.from(
-            requestIdArgName, "STATUS_CODE", "REASON_PHRASE", "ETAG"
+            REQUEST_ID_ARG_NAME, "STATUS_CODE", "REASON_PHRASE", "ETAG"
           )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
         }
 
@@ -58,7 +58,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
             const body = (fetchResponse as { body: string }).body = httpRequest.responseText;
 
             debugLogger?.debug(FormattableLogMessage.from(
-              requestIdArgName, "LENGTH"
+              REQUEST_ID_ARG_NAME, "LENGTH"
             )`[${requestId}] Received body. (Length: ${body.length})`);
           }
 
@@ -84,7 +84,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     if (debugLogger) {
       requestId = randomUUID();
 
-      debugLogger.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Preparing request...`);
+      debugLogger.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Preparing request...`);
     }
 
     const isCustomUrl = !isCdnUrl(request.url);
@@ -102,37 +102,37 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
           return fetchResponse;
         }
 
-        debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Received unexpected status code.`);
+        debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Received unexpected status code.`);
 
-        if (retryNumber >= fetchRetryLimit) {
+        if (retryNumber >= FETCH_RETRY_LIMIT) {
           return fetchResponse;
         }
       } catch (err) {
         if (err instanceof FetchError) {
           switch ((err as FetchError).cause) {
             case "abort":
-              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request aborted.`);
+              debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request aborted.`);
               throw err;
             case "timeout":
-              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request timed out.`);
+              debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request timed out.`);
               break;
             case "failure":
-              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request failed.`);
+              debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request failed.`);
               break;
           }
         } else {
           throw err;
         }
 
-        if (retryNumber >= fetchRetryLimit) {
+        if (retryNumber >= FETCH_RETRY_LIMIT) {
           throw err;
         }
       }
 
       // Wait a little before trying again.
-      await delay(fetchRetryDelayMs);
+      await delay(FETCH_RETRY_DELAY_MS);
 
-      debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Trying request again...`);
+      debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Trying request again...`);
     }
   }
 
@@ -140,15 +140,9 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     return new Promise<FetchResponse>((resolve, reject) => {
       const { debugLogger, requestId } = context;
       let { url } = request;
-      const { lastETag, timeoutMs } = request;
+      const { timeoutMs } = request;
 
-      if (lastETag) {
-        // We are sending the etag as a query parameter so if the browser doesn't automatically adds the If-None-Match header,
-        // we can transform this query param to the header in our CDN provider.
-        // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
-        url += "&ccetag=" + encodeURIComponent(lastETag);
-      }
-
+      url = adjustUrlForBrowser(request.url, request);
       const httpRequest: XMLHttpRequest = new XMLHttpRequest();
 
       httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject, context);
@@ -163,7 +157,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       debugLogger?.debug(FormattableLogMessage.from(
-        requestIdArgName, "URL"
+        REQUEST_ID_ARG_NAME, "URL"
       )`[${requestId}] Sending request... (Url: '${url}')`);
 
       httpRequest.send(null);

@@ -2,7 +2,13 @@ import type { LoggerWrapper } from "./ConfigCatLogger";
 import type { RefreshErrorCode } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
 import type { Message } from "./Utils";
-import { ensurePrototype, toStringSafe } from "./Utils";
+import { ensurePrototype, indexOfAny, toStringSafe } from "./Utils";
+
+export const USER_AGENT_HEADER_NAME = "User-Agent";
+export const CONFIGCAT_USER_AGENT_HEADER_NAME = "X-ConfigCat-UserAgent";
+
+export const SDK_QUERYPARAM_NAME = "sdk";
+export const ETAG_QUERYPARAM_NAME = "ccetag";
 
 export const enum FetchStatus {
   Fetched = 0,
@@ -165,12 +171,48 @@ export interface IConfigCatConfigFetcher {
   dispose?(): void;
 }
 
+let normalizedUserAgentHeaderName: string | undefined;
+let normalizedConfigCatUserAgentHeaderName: string | undefined;
+
+export function adjustUrlForBrowser(url: string, request: FetchRequest): string {
+  const { lastETag, headers } = request;
+
+  normalizedUserAgentHeaderName ??= USER_AGENT_HEADER_NAME.toLowerCase();
+  normalizedConfigCatUserAgentHeaderName ??= CONFIGCAT_USER_AGENT_HEADER_NAME.toLowerCase();
+
+  let userAgentHeaderValue: string | undefined;
+  for (const [key, value] of headers) {
+    const normalizedKey = key.toLowerCase();
+    if (normalizedKey === normalizedUserAgentHeaderName || normalizedKey === normalizedConfigCatUserAgentHeaderName) {
+      userAgentHeaderValue = value;
+      break;
+    }
+  }
+
+  const sdkQueryParamValue = encodeURIComponent(userAgentHeaderValue ?? "");
+
+  // NOTE: We are sending the etag as a query parameter so if the browser doesn't automatically adds
+  // the If-None-Match header, we can transform this query param to the header in our CDN provider.
+  // (Explicitly specifying the If-None-Match header would cause an unnecessary CORS OPTIONS request.)
+
+  let endIndex: number;
+  const index = indexOfAny(url, "?#");
+  const query = index < 0 || url.charCodeAt(index) !== 0x3F /*'?'*/
+    ? ""
+    : (endIndex = url.indexOf("#", index + 1), url.substring(index + 1, endIndex < 0 ? url.length : endIndex));
+  url = index < 0 ? url : url.substring(0, index);
+
+  return query ? `${url}?${SDK_QUERYPARAM_NAME}=${sdkQueryParamValue}&${ETAG_QUERYPARAM_NAME}=${encodeURIComponent(lastETag ?? "")}&${query}`
+    : lastETag ? `${url}?${SDK_QUERYPARAM_NAME}=${sdkQueryParamValue}&${ETAG_QUERYPARAM_NAME}=${encodeURIComponent(lastETag)}`
+    : `${url}?${SDK_QUERYPARAM_NAME}=${sdkQueryParamValue}`;
+}
+
 export const fetchInternalAsyncMethodName = "fetchInternalAsync";
 export type FetchInternalAsyncMethod<TFetcher extends IConfigCatConfigFetcher> =
   (this: TFetcher, request: FetchRequest, logger?: LoggerWrapper) => Promise<FetchResponse>;
 
-export const fetchRetryLimit = 1;
-export const fetchRetryDelayMs = 50;
-export const connectionPoolResetThresholdMs = 30_000;
+export const FETCH_RETRY_LIMIT = 1;
+export const FETCH_RETRY_DELAY_MS = 50;
+export const CONNECTIONPOOL_RESET_THRESHOLD_MS = 30_000;
 
-export const requestIdArgName = "REQUEST_ID";
+export const REQUEST_ID_ARG_NAME = "REQUEST_ID";

@@ -5,7 +5,7 @@ import { isCdnUrl } from "../ConfigCatClientOptions";
 import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
-import { connectionPoolResetThresholdMs, FetchError, fetchInternalAsyncMethodName, FetchResponse, fetchRetryDelayMs, fetchRetryLimit, requestIdArgName } from "../ConfigFetcher";
+import { CONNECTIONPOOL_RESET_THRESHOLD_MS, FETCH_RETRY_DELAY_MS, FETCH_RETRY_LIMIT, FetchError, fetchInternalAsyncMethodName, FetchResponse, REQUEST_ID_ARG_NAME } from "../ConfigFetcher";
 import { delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, randomUUID, toStringSafe } from "../Utils";
 
 type FetchContext = {
@@ -143,7 +143,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         const { headers } = response;
         const eTagHeaderValue = hasOwnProperty(headers, "etag") ? headers["etag"] : void 0;
         debugLogger.debug(FormattableLogMessage.from(
-          requestIdArgName, "STATUS_CODE", "REASON_PHRASE", "ETAG"
+          REQUEST_ID_ARG_NAME, "STATUS_CODE", "REASON_PHRASE", "ETAG"
         )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
       }
 
@@ -160,7 +160,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
               const body = (fetchResponse as { body: string }).body = Buffer.concat(chunks).toString();
 
               debugLogger?.debug(FormattableLogMessage.from(
-                requestIdArgName, "LENGTH"
+                REQUEST_ID_ARG_NAME, "LENGTH"
               )`[${requestId}] Received body. (Length: ${body.length})`);
 
               resolve(fetchResponse);
@@ -194,7 +194,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     if (debugLogger) {
       requestId = randomUUID();
 
-      debugLogger.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Preparing request...`);
+      debugLogger.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Preparing request...`);
     }
 
     const { url } = request;
@@ -233,38 +233,38 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         }
 
         shouldRenewAgent = true;
-        debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Received unexpected status code.`);
+        debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Received unexpected status code.`);
 
-        if (retryNumber >= fetchRetryLimit) {
+        if (retryNumber >= FETCH_RETRY_LIMIT) {
           return fetchResponse;
         }
       } catch (err) {
         if (err instanceof FetchError) {
           switch ((err as FetchError).cause) {
             case "abort":
-              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request aborted.`);
+              debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request aborted.`);
               throw err;
             case "timeout":
               shouldRenewAgent = true;
-              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request timed out.`);
+              debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request timed out.`);
               break;
             case "failure":
               shouldRenewAgent = true;
-              debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Request failed.`);
+              debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request failed.`);
               break;
           }
         } else {
           throw err;
         }
 
-        if (retryNumber >= fetchRetryLimit) {
+        if (retryNumber >= FETCH_RETRY_LIMIT) {
           throw err;
         }
       } finally {
         if (agentState) {
           let numRequestsToSubtract = 1;
           try {
-            if (shouldRenewAgent && agentState.canRenew(connectionPoolResetThresholdMs)) {
+            if (shouldRenewAgent && agentState.canRenew(CONNECTIONPOOL_RESET_THRESHOLD_MS)) {
               const currentAgentState = isHttpsUrl ? this.httpsAgentState : this.httpAgentState;
               if (agentState === currentAgentState) {
                 isHttpsUrl
@@ -276,8 +276,8 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
                 numRequestsToSubtract = 2;
 
                 debugLogger?.debug(isHttpsUrl
-                  ? FormattableLogMessage.from(requestIdArgName)`[${requestId}] Renewed https.Agent.`
-                  : FormattableLogMessage.from(requestIdArgName)`[${requestId}] Renewed http.Agent.`);
+                  ? FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Renewed https.Agent.`
+                  : FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Renewed http.Agent.`);
               }
             }
           } finally {
@@ -285,17 +285,17 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
               agent.destroy();
 
               debugLogger?.debug(isHttpsUrl
-                ? FormattableLogMessage.from(requestIdArgName)`[${requestId}] Disposed out-of-use https.Agent.`
-                : FormattableLogMessage.from(requestIdArgName)`[${requestId}] Disposed out-of-use http.Agent.`);
+                ? FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Disposed out-of-use https.Agent.`
+                : FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Disposed out-of-use http.Agent.`);
             }
           }
         }
       }
 
       // Wait a little before trying again.
-      await delay(fetchRetryDelayMs);
+      await delay(FETCH_RETRY_DELAY_MS);
 
-      debugLogger?.debug(FormattableLogMessage.from(requestIdArgName)`[${requestId}] Trying request again...`);
+      debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Trying request again...`);
     }
   }
 
@@ -323,7 +323,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       if (debugLogger) {
         const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
         debugLogger.debug(FormattableLogMessage.from(
-          requestIdArgName, "URL", "IF_NONE_MATCH", "OPTIONS"
+          REQUEST_ID_ARG_NAME, "URL", "IF_NONE_MATCH", "OPTIONS"
         )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${lastETag ?? ""}', Options: ${requestOptionsSafe})`);
       }
 

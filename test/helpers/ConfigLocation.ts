@@ -50,7 +50,7 @@ export class CdnConfigLocation extends ConfigLocation {
 
   getRealLocation(): string {
     const url = this.options.getUrl();
-    const index = url.lastIndexOf("?");
+    const index = url.indexOf("?");
     return index >= 0 ? url.slice(0, index) : url;
   }
 
