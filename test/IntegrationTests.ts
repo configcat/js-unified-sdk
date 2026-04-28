@@ -2,8 +2,7 @@ import { assert, expect } from "chai";
 import { FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
 import { EvaluationDetails, FormattableLogMessage, IConfigCatClient, IOptions, LogLevel, OverrideBehaviour, PollingMode, SettingKeyValue, User } from "#lib";
-import { ConfigCatClient } from "#lib/ConfigCatClient";
-import { createConsoleLogger, createFlagOverridesFromMap, OptionsBase } from "#lib/index.pubternals";
+import { createConsoleLogger, createFlagOverridesFromMap } from "#lib/index.pubternals";
 
 const sdkKey = "PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A";
 
@@ -304,12 +303,6 @@ describe("Integration tests - Other cases", () => {
     const client: IConfigCatClient = platform().getClient("configcat-sdk-1/~~~~~~~~~~~~~~~~~~~~~~/~~~~~~~~~~~~~~~~~~~~~~", PollingMode.ManualPoll, { logger: fakeLogger });
 
     try {
-      // TODO: Remove this as soon as we update the CDN CORS settings (see also https://trello.com/c/RSGwVoqC)
-      const clientVersion: string = (((client as ConfigCatClient)["options"]) as OptionsBase)["clientVersion"];
-      if (clientVersion.includes("ConfigCat-UnifiedJS-Browser") || clientVersion.includes("ConfigCat-UnifiedJS-ChromiumExtension")) {
-        this.skip();
-      }
-
       await client.forceRefreshAsync();
 
       const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1100);

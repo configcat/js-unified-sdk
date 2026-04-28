@@ -2,8 +2,6 @@ import { assert, expect } from "chai";
 import { FakeConfigFetcherWithTwoKeys, FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
 import { FetchRequest, FetchResponse, FormattableLogMessage, IConfigCatConfigFetcher } from "#lib";
-import { ConfigCatClient } from "#lib/ConfigCatClient";
-import { OptionsBase } from "#lib/ConfigCatClientOptions";
 
 describe("ConfigCatConfigFetcherTests", () => {
 
@@ -88,12 +86,6 @@ describe("ConfigCatConfigFetcherTests", () => {
 
     assert.strictEqual(configFetcherRequests.length, 1);
     assert.isUndefined(configFetcherRequests[0].lastETag);
-
-    // TODO: Remove this as soon as we update the CDN CORS settings (see also https://trello.com/c/RSGwVoqC)
-    const clientVersion: string = (((client as ConfigCatClient)["options"]) as OptionsBase)["clientVersion"];
-    if (clientVersion.includes("ConfigCat-UnifiedJS-Browser") || clientVersion.includes("ConfigCat-UnifiedJS-ChromiumExtension")) {
-      return;
-    }
 
     const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1100);
     assert.strictEqual(errors.length, 1);
