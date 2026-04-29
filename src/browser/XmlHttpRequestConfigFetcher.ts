@@ -21,6 +21,9 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     return () => new XmlHttpRequestConfigFetcher();
   }
 
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
+  private requestRetryDelayMs = FETCH_RETRY_DELAY_MS;
+
   private readonly disposeToken = new AbortToken();
 
   dispose(): void {
@@ -83,11 +86,14 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
     if (debugLogger) {
       requestId = randomUUID();
-
       debugLogger.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Preparing request...`);
     }
 
+    let { url } = request;
     const isCustomUrl = !isCdnUrl(request.url);
+    const { headers, timeoutMs } = request;
+
+    url = adjustUrlForBrowser(url, request);
 
     for (let retryNumber = 0; ; retryNumber++) {
       if (this.disposeToken.aborted) {
@@ -95,7 +101,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       try {
-        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl,
+        const fetchResponse = await this.fetchCoreAsync(url, isCustomUrl ? headers : void 0, timeoutMs,
           { debugLogger, requestId, fetchResponse: void 0 });
 
         if (FetchResponse.prototype.isExpected.call(fetchResponse)) {
@@ -130,33 +136,32 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       // Wait a little before trying again.
-      await delay(FETCH_RETRY_DELAY_MS);
+      await delay(this.requestRetryDelayMs);
 
       debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Trying request again...`);
     }
   }
 
-  private fetchCoreAsync(request: FetchRequest, isCustomUrl: boolean, context: FetchContext): Promise<FetchResponse> {
+  private fetchCoreAsync(
+    url: string, headers: ReadonlyArray<readonly [name: string, value: string]> | undefined, timeoutMs: number, context: FetchContext
+  ): Promise<FetchResponse> {
     let unregisterFromDisposeToken: (() => void) | undefined;
     return new Promise<FetchResponse>((resolve, reject) => {
       const { debugLogger, requestId } = context;
-      let { url } = request;
-      const { timeoutMs } = request;
 
-      url = adjustUrlForBrowser(request.url, request);
       const httpRequest: XMLHttpRequest = new XMLHttpRequest();
 
       unregisterFromDisposeToken = this.disposeToken.registerCallback(() => httpRequest.abort());
 
       httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject, context);
-      httpRequest.ontimeout = () => reject(new (FetchError as FetchErrorCtorInternal)("timeout", timeoutMs, context.fetchResponse?.["rayId"]));
+      httpRequest.ontimeout = function() { reject(new (FetchError as FetchErrorCtorInternal)("timeout", this.timeout, context.fetchResponse?.["rayId"])); };
       httpRequest.onabort = () => reject(new (FetchError as FetchErrorCtorInternal)("abort", context.fetchResponse?.["rayId"]));
       httpRequest.onerror = () => reject(new (FetchError as FetchErrorCtorInternal)("failure", void 0, context.fetchResponse?.["rayId"]));
 
       httpRequest.open("GET", url, true);
       httpRequest.timeout = timeoutMs;
-      if (isCustomUrl) {
-        this.setRequestHeaders(httpRequest, request.headers);
+      if (headers) {
+        this.setRequestHeaders(httpRequest, headers);
       }
 
       debugLogger?.debug(FormattableLogMessage.from(

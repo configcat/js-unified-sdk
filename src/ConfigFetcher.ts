@@ -171,6 +171,13 @@ export interface IConfigCatConfigFetcher {
   dispose?(): void;
 }
 
+export function getRequestHeaders(clientVersion: string): [string, string][] {
+  return [
+    [USER_AGENT_HEADER_NAME, clientVersion],
+    [CONFIGCAT_USER_AGENT_HEADER_NAME, clientVersion],
+  ];
+}
+
 let normalizedUserAgentHeaderName: string | undefined;
 let normalizedConfigCatUserAgentHeaderName: string | undefined;
 

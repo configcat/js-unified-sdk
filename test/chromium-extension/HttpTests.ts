@@ -3,7 +3,7 @@ import fetchMock from "fetch-mock";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel, RefreshErrorCode } from "#lib";
-import { getMonotonicTimeMs } from "#lib/Utils";
+import { delay, errorToString, getMonotonicTimeMs } from "#lib/Utils";
 
 describe("HTTP tests", () => {
   const sdkKey = "PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A";
@@ -13,11 +13,15 @@ describe("HTTP tests", () => {
     it("HTTP timeout", async () => {
       const requestTimeoutMs = 750;
 
-      fetchMock.get(url => url.startsWith(baseUrl),
-        new Promise(resolve => setTimeout(() => resolve({ throws: new Error("Test failed.") }), requestTimeoutMs * 4)));
+      let requestCount = 0;
+
+      fetchMock.get(
+        url => url.startsWith(baseUrl),
+        () => (++requestCount, new Promise(resolve => setTimeout(() => resolve({ throws: new Error("Test failed.") }), requestTimeoutMs * 4)))
+      );
 
       try {
-        const logger = new FakeLogger();
+        const logger = new FakeLogger(LogLevel.Debug);
 
         const client = platform.createClientWithManualPoll(sdkKey, {
           requestTimeoutMs,
@@ -36,6 +40,8 @@ describe("HTTP tests", () => {
         assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestTimeout);
         assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Request timed out while trying to fetch config JSON.")));
 
+        assert.strictEqual(requestCount, 2);
+
         client.dispose();
       } finally {
         fetchMock.reset();
@@ -44,10 +50,15 @@ describe("HTTP tests", () => {
   }
 
   it("404 Not found", async () => {
-    fetchMock.get(url => url.startsWith(baseUrl), 404);
+    let requestCount = 0;
+
+    fetchMock.get(
+      url => url.startsWith(baseUrl),
+      () => (++requestCount, 404)
+    );
 
     try {
-      const logger = new FakeLogger();
+      const logger = new FakeLogger(LogLevel.Debug);
 
       const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
@@ -63,6 +74,8 @@ describe("HTTP tests", () => {
       assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.InvalidSdkKey);
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Your SDK Key seems to be wrong:")));
 
+      assert.strictEqual(requestCount, 1);
+
       client.dispose();
     } finally {
       fetchMock.reset();
@@ -70,10 +83,15 @@ describe("HTTP tests", () => {
   });
 
   it("Unexpected status code", async () => {
-    fetchMock.get(url => url.startsWith(baseUrl), 502);
+    let requestCount = 0;
+
+    fetchMock.get(
+      url => url.startsWith(baseUrl),
+      () => (++requestCount, 502)
+    );
 
     try {
-      const logger = new FakeLogger();
+      const logger = new FakeLogger(LogLevel.Debug);
 
       const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
@@ -89,6 +107,8 @@ describe("HTTP tests", () => {
       assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedHttpResponse);
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected HTTP response was received while trying to fetch config JSON:")));
 
+      assert.strictEqual(requestCount, 2);
+
       client.dispose();
     } finally {
       fetchMock.reset();
@@ -96,11 +116,15 @@ describe("HTTP tests", () => {
   });
 
   it("Unexpected error", async () => {
-    fetchMock.get(url => url.startsWith(baseUrl),
-      { throws: new Error("Connection error.") });
+    let requestCount = 0;
+
+    fetchMock.get(
+      url => url.startsWith(baseUrl),
+      () => (++requestCount, { throws: new Error("Connection error.") })
+    );
 
     try {
-      const logger = new FakeLogger();
+      const logger = new FakeLogger(LogLevel.Debug);
 
       const client = platform.createClientWithManualPoll(sdkKey, {
         requestTimeoutMs: 1000,
@@ -116,9 +140,47 @@ describe("HTTP tests", () => {
       assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestFailure);
       assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected error occurred while trying to fetch config JSON.")));
 
+      assert.strictEqual(requestCount, 2);
+
       client.dispose();
     } finally {
       fetchMock.reset();
     }
   });
+
+  if (typeof AbortController !== "undefined") {
+    it("Abort on dispose", async () => {
+      const delayMs = 250;
+
+      let requestCount = 0;
+
+      fetchMock.get(
+        url => url.startsWith(baseUrl),
+        () => (++requestCount, delay(delayMs).then(() => ({ status: 200, body: "{}" })))
+      );
+
+      try {
+        const logger = new FakeLogger(LogLevel.Debug);
+
+        const client = platform.createClientWithManualPoll(sdkKey, {
+          requestTimeoutMs: 1000,
+          baseUrl,
+          logger,
+        });
+
+        const forceRefreshPromise = client.forceRefreshAsync();
+        await delay(delayMs / 5);
+        client.dispose();
+        const refreshResult = await forceRefreshPromise;
+
+        assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedError);
+        assert.include(refreshResult.errorMessage?.toString(), "Request was aborted.");
+        assert.isDefined(logger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 1003 && errorToString(err).includes("Request was aborted.")));
+
+        assert.strictEqual(requestCount, 1);
+      } finally {
+        fetchMock.reset();
+      }
+    });
+  }
 });

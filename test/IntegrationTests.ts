@@ -1,7 +1,8 @@
 import { assert, expect } from "chai";
 import { FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
-import { EvaluationDetails, FormattableLogMessage, IConfigCatClient, IOptions, LogLevel, OverrideBehaviour, PollingMode, SettingKeyValue, User } from "#lib";
+import { EvaluationDetails, FetchError, FetchResponse, FormattableLogMessage, IConfigCatClient, IConfigCatConfigFetcher, IOptions, LogLevel, OverrideBehaviour, PollingMode, SettingKeyValue, User } from "#lib";
+import { FetchErrorCtorInternal } from "#lib/ConfigFetcher";
 import { createConsoleLogger, createFlagOverridesFromMap } from "#lib/index.pubternals";
 
 const sdkKey = "PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A";
@@ -297,33 +298,60 @@ describe("Integration tests - Other cases", () => {
     } finally { clientOverride.dispose(); }
   });
 
-  it("Should include ray ID in log messages when http response is not successful", async function() {
-    const fakeLogger = new FakeLogger();
+  for (const testCase of <("404" | "408" | "timeout" | "error")[]>["404", "408", "timeout", "error"]) {
+    it(`Should include ray ID in log messages when http response is not successful - testCase: ${testCase}`, async function() {
+      const fakeLogger = new FakeLogger();
 
-    const client: IConfigCatClient = platform().getClient("configcat-sdk-1/~~~~~~~~~~~~~~~~~~~~~~/~~~~~~~~~~~~~~~~~~~~~~", PollingMode.ManualPoll, { logger: fakeLogger });
+      const rayId = "CF-RAY-123";
 
-    try {
-      await client.forceRefreshAsync();
+      const [fetchCallback, expectedEventId] =
+        testCase === "404" ? [() => new FetchResponse(404, "Not Found", [["CF-RAY", rayId]]), 1100]
+        : testCase === "408" ? [() => new FetchResponse(408, "Request Timeout", [["CF-RAY", rayId]]), 1101]
+        : testCase === "timeout" ? [() => { throw new (FetchError as FetchErrorCtorInternal)("timeout", 0, rayId); }, 1102]
+        : [() => { throw new (FetchError as FetchErrorCtorInternal)("failure", Error("Network error"), rayId); }, 1103];
 
-      const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1100);
-      assert.strictEqual(errors.length, 1);
+      const fakeConfigFetcher = new class implements IConfigCatConfigFetcher {
+        constructor(private readonly fetchCallback: () => FetchResponse) {}
 
-      const [[, , error]] = errors;
-      assert.instanceOf(error, FormattableLogMessage);
+        fetchAsync(): Promise<FetchResponse> {
+          try {
+            return Promise.resolve(this.fetchCallback());
+          } catch (err) { return Promise.reject(err as Error); }
+        }
+      }(fetchCallback);
 
-      assert.strictEqual(error.argNames.length, 2);
-      assert.strictEqual(error.argNames[0], "SDK_KEY");
-      assert.strictEqual(error.argNames[1], "RAY_ID");
+      const client: IConfigCatClient = platform().getClient(
+        "configcat-sdk-1/~~~~~~~~~~~~~~~~~~~~~~/~~~~~~~~~~~~~~~~~~~~~~",
+        PollingMode.ManualPoll,
+        { logger: fakeLogger, configFetcher: fakeConfigFetcher }
+      );
 
-      assert.strictEqual(error.argValues.length, 2);
-      const [actualSdkKey, actualRayId] = error.argValues;
-      assert.equal(actualSdkKey, "***************/**********************/****************~~~~~~");
-      assert.isString(actualRayId);
+      try {
+        await client.forceRefreshAsync();
 
-      expect(error.toString()).to.contain(actualRayId);
-    } finally {
-      client.dispose();
-    }
-  });
+        const events = fakeLogger.events.filter(([, eventId]) => eventId === expectedEventId);
+        assert.strictEqual(events.length, 1);
+
+        const [[, , message]] = events;
+
+        if (testCase === "404") {
+          assert.instanceOf(message, FormattableLogMessage);
+
+          assert.strictEqual(message.argNames.length, 2);
+          assert.strictEqual(message.argNames[0], "SDK_KEY");
+          assert.strictEqual(message.argNames[1], "RAY_ID");
+
+          assert.strictEqual(message.argValues.length, 2);
+          const [actualSdkKey, actualRayId] = message.argValues;
+          assert.equal(actualSdkKey, "***************/**********************/****************~~~~~~");
+          assert.equal(actualRayId, rayId);
+        }
+
+        expect(message.toString()).to.contain(rayId);
+      } finally {
+        client.dispose();
+      }
+    });
+  }
 
 });

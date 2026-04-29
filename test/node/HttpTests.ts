@@ -6,7 +6,7 @@ import type { Duplex } from "stream";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from ".";
 import { LogLevel, RefreshErrorCode } from "#lib";
-import { getMonotonicTimeMs } from "#lib/Utils";
+import { delay, errorToString, getMonotonicTimeMs } from "#lib/Utils";
 
 // If the tests are failing with strange https or proxy errors, it is most likely that the local .key and .pem files are expired.
 // You can regenerate them anytime (./test/cert/regenerate.md).
@@ -26,9 +26,13 @@ describe("HTTP tests", () => {
   afterEach(() => server.stop());
 
   it("HTTP timeout", async () => {
-    server.forAnyRequest().thenTimeout();
+    let requestCount = 0;
 
-    const logger = new FakeLogger();
+    server.forAnyRequest()
+      .matching(() => (++requestCount, true))
+      .thenTimeout();
+
+    const logger = new FakeLogger(LogLevel.Debug);
 
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 750,
@@ -47,13 +51,19 @@ describe("HTTP tests", () => {
     assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestTimeout);
     assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Request timed out while trying to fetch config JSON.")));
 
+    assert.strictEqual(requestCount, 2);
+
     client.dispose();
   });
 
   it("404 Not found", async () => {
-    server.forAnyRequest().thenReply(404, "Not Found");
+    let requestCount = 0;
 
-    const logger = new FakeLogger();
+    server.forAnyRequest()
+      .matching(() => (++requestCount, true))
+      .thenReply(404, "Not Found");
+
+    const logger = new FakeLogger(LogLevel.Debug);
 
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
@@ -69,13 +79,19 @@ describe("HTTP tests", () => {
     assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.InvalidSdkKey);
     assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Your SDK Key seems to be wrong:")));
 
+    assert.strictEqual(requestCount, 1);
+
     client.dispose();
   });
 
   it("Unexpected status code", async () => {
-    server.forAnyRequest().thenReply(502, "Bad Gateway");
+    let requestCount = 0;
 
-    const logger = new FakeLogger();
+    server.forAnyRequest()
+      .matching(() => (++requestCount, true))
+      .thenReply(502, "Bad Gateway");
+
+    const logger = new FakeLogger(LogLevel.Debug);
 
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
@@ -91,13 +107,19 @@ describe("HTTP tests", () => {
     assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedHttpResponse);
     assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected HTTP response was received while trying to fetch config JSON:")));
 
+    assert.strictEqual(requestCount, 2);
+
     client.dispose();
   });
 
   it("Unexpected error", async () => {
-    server.forAnyRequest().thenCloseConnection();
+    let requestCount = 0;
 
-    const logger = new FakeLogger();
+    server.forAnyRequest()
+      .matching(() => (++requestCount, true))
+      .thenCloseConnection();
+
+    const logger = new FakeLogger(LogLevel.Debug);
 
     const client = platform.createClientWithManualPoll(sdkKey, {
       requestTimeoutMs: 1000,
@@ -112,6 +134,8 @@ describe("HTTP tests", () => {
 
     assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.HttpRequestFailure);
     assert.isDefined(logger.events.find(([level, , msg]) => level === LogLevel.Error && msg.toString().startsWith("Unexpected error occurred while trying to fetch config JSON.")));
+
+    assert.strictEqual(requestCount, 2);
 
     client.dispose();
   });
@@ -145,6 +169,38 @@ describe("HTTP tests", () => {
       client.dispose();
     });
   }
+
+  it("Abort on dispose", async () => {
+    const delayMs = 250;
+
+    let requestCount = 0;
+
+    server.forAnyRequest()
+      .matching(() => (++requestCount, true))
+      .thenCallback(async () => {
+        await delay(delayMs);
+        return { statusCode: 200, statusMessage: "OK", body: "{}" };
+      });
+
+    const logger = new FakeLogger(LogLevel.Debug);
+
+    const client = platform.createClientWithManualPoll(sdkKey, {
+      requestTimeoutMs: 1000,
+      baseUrl: server.url,
+      logger,
+    });
+
+    const forceRefreshPromise = client.forceRefreshAsync();
+    await delay(delayMs / 5);
+    client.dispose();
+    const refreshResult = await forceRefreshPromise;
+
+    assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedError);
+    assert.include(refreshResult.errorMessage?.toString(), "Request was aborted.");
+    assert.isDefined(logger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 1003 && errorToString(err).includes("Request was aborted.")));
+
+    assert.strictEqual(requestCount, 1);
+  });
 });
 
 // NOTE: We need to augment the https.Agent type as some necessary methods are not defined in `@types/node`.

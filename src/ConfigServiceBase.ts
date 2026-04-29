@@ -5,7 +5,7 @@ import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { LogMessage } from "./ConfigCatLogger";
 import { logMethodDebug, toMessage } from "./ConfigCatLogger";
 import type { FetchErrorCauses, FetchInternalAsyncMethod, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
-import { CONFIGCAT_USER_AGENT_HEADER_NAME, FetchError, fetchInternalAsyncMethodName, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus, USER_AGENT_HEADER_NAME } from "./ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus, getRequestHeaders } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import type { Config } from "./ProjectConfig";
 import { deserializeConfig, prepareConfig, ProjectConfig } from "./ProjectConfig";
@@ -155,10 +155,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     this.configFetcher = options.configFetcher;
     this.ownsConfigFetcher = options.ownsConfigFetcher;
 
-    this.requestHeaders = [
-      [USER_AGENT_HEADER_NAME, options.clientVersion],
-      [CONFIGCAT_USER_AGENT_HEADER_NAME, options.clientVersion],
-    ];
+    this.requestHeaders = getRequestHeaders(options.clientVersion);
 
     this.status = options.offline ? ConfigServiceStatus.Offline : ConfigServiceStatus.Online;
   }

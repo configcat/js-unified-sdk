@@ -2,13 +2,65 @@ import { assert, expect } from "chai";
 import { createManualPollOptions, FakeConfigFetcherWithTwoKeys, FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
 import { FetchRequest, FetchResponse, FormattableLogMessage, IConfigCatConfigFetcher } from "#lib";
+import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { isCdnUrl } from "#lib/ConfigCatClientOptions";
-import { adjustUrlForBrowser, CONFIGCAT_USER_AGENT_HEADER_NAME, ETAG_QUERYPARAM_NAME, SDK_QUERYPARAM_NAME, USER_AGENT_HEADER_NAME } from "#lib/ConfigFetcher";
+import { adjustUrlForBrowser, ETAG_QUERYPARAM_NAME, getRequestHeaders, SDK_QUERYPARAM_NAME, USER_AGENT_HEADER_NAME } from "#lib/ConfigFetcher";
+import { ManualPollConfigService } from "#lib/ManualPollConfigService";
 
 const testSdkKey = "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g";
 const testETag = "W/\"123\"";
 
 describe("ConfigCatConfigFetcherTests", () => {
+  it("Internal config fetcher should be disposed", () => {
+    // Arrange
+
+    const client = platform().createClientWithManualPoll(
+      "test-67890123456789012/1234567890123456789012"
+    ) as ConfigCatClient;
+
+    const configService = client["configService"] as ManualPollConfigService;
+
+    const configFetcher = configService["configFetcher"];
+
+    let isDisposed = false;
+    const originalDispose = configFetcher.dispose;
+    configFetcher.dispose = function() {
+      isDisposed = true;
+      originalDispose?.call(this);
+    };
+
+    // Act
+
+    client.dispose();
+
+    // Assert
+
+    assert.isTrue(isDisposed);
+  });
+
+  it("External config fetcher should not be disposed", () => {
+    // Arrange
+
+    let isDisposed = false;
+
+    const configFetcher = new class implements IConfigCatConfigFetcher {
+      fetchAsync(request: FetchRequest): never { throw Error("Not implemented"); }
+      dispose(): void { isDisposed = true; }
+    }();
+
+    const client = platform().createClientWithManualPoll(
+      "test-67890123456789012/1234567890123456789012",
+      { configFetcher }
+    );
+
+    // Act
+
+    client.dispose();
+
+    // Assert
+
+    assert.isFalse(isDisposed);
+  });
 
   it("Custom config fetcher - Success", async () => {
     // Arrange
@@ -142,10 +194,7 @@ describe("ConfigCatConfigFetcherTests", () => {
         url = url.substring(url.indexOf("/", index + 3));
       }
 
-      const requestHeaders: [string, string][] = [
-        [USER_AGENT_HEADER_NAME, options.clientVersion],
-        [CONFIGCAT_USER_AGENT_HEADER_NAME, options.clientVersion],
-      ];
+      const requestHeaders = getRequestHeaders(options.clientVersion);
       const fetchRequest = new FetchRequest(url, etag, requestHeaders, Infinity);
 
       // Act

@@ -6,7 +6,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { CONNECTIONPOOL_RESET_THRESHOLD_MS, FETCH_RETRY_DELAY_MS, FETCH_RETRY_LIMIT, FetchError, fetchInternalAsyncMethodName, FetchResponse, REQUEST_ID_ARG_NAME } from "../ConfigFetcher";
-import { AbortToken, delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, randomUUID, toStringSafe } from "../Utils";
+import { AbortToken, delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, randomUUID } from "../Utils";
 
 type FetchContext = {
   readonly debugLogger: LoggerWrapper | undefined;
@@ -89,6 +89,12 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   private httpAgentState: AgentState<http.Agent> | http.Agent | undefined; // undefined indicates disposed state
   private httpsAgentState: AgentState<https.Agent> | https.Agent | undefined; // undefined indicates disposed state
+
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
+  private agentRenewalThresholdMs = CONNECTIONPOOL_RESET_THRESHOLD_MS;
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
+  private requestRetryDelayMs = FETCH_RETRY_DELAY_MS;
+
   private readonly disposeToken: AbortToken;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
@@ -198,11 +204,10 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
     if (debugLogger) {
       requestId = randomUUID();
-
       debugLogger.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Preparing request...`);
     }
 
-    const { url } = request;
+    const { url, lastETag, timeoutMs } = request;
     const isCustomUrl = !isCdnUrl(url);
     const isHttpsUrl = /^https:/i.test(url);
 
@@ -217,6 +222,20 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         // eslint-disable-next-line no-sparse-arrays
         : [, agentStateOrExternalAgent];
 
+      const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
+      requestOptions.agent = agent;
+      requestOptions.timeout = timeoutMs;
+
+      if (isCustomUrl) {
+        this.setRequestHeaders(requestOptions, request.headers);
+      } else {
+        setRequestHeadersDefault(requestOptions, request.headers);
+      }
+
+      if (lastETag) {
+        (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
+      }
+
       let shouldRenewAgent = false;
 
       if (agentState) {
@@ -230,7 +249,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       try {
-        const fetchResponse = await this.fetchCoreAsync(request, isCustomUrl, isHttpsUrl, agent,
+        const fetchResponse = await this.fetchCoreAsync(isHttpsUrl ? https : http, url, requestOptions,
           { debugLogger, requestId, rayId: void 0 });
 
         if (FetchResponse.prototype.isExpected.call(fetchResponse)) {
@@ -269,7 +288,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         if (agentState) {
           let numRequestsToSubtract = 1;
           try {
-            if (shouldRenewAgent && agentState.canRenew(CONNECTIONPOOL_RESET_THRESHOLD_MS)) {
+            if (shouldRenewAgent && agentState.canRenew(this.agentRenewalThresholdMs)) {
               const currentAgentState = isHttpsUrl ? this.httpsAgentState : this.httpAgentState;
               if (agentState === currentAgentState) {
                 isHttpsUrl
@@ -298,42 +317,41 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
       }
 
       // Wait a little before trying again.
-      await delay(FETCH_RETRY_DELAY_MS);
+      await delay(this.requestRetryDelayMs);
 
       debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Trying request again...`);
     }
   }
 
   private fetchCoreAsync(
-    request: FetchRequest, isCustomUrl: boolean, isHttpsUrl: boolean, agent: http.Agent | https.Agent, context: FetchContext
+    httpModule: typeof http | typeof https,
+    url: string,
+    requestOptions: (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> },
+    context: FetchContext
   ): Promise<FetchResponse> {
     let unregisterFromDisposeToken: (() => void) | undefined;
     return new Promise<FetchResponse>((resolve, reject) => {
       const { debugLogger, requestId } = context;
-      const { url, lastETag, timeoutMs } = request;
-
-      const requestOptions = Object.create(null) as (http.RequestOptions | https.RequestOptions) & { headers?: Record<string, http.OutgoingHttpHeader> };
-      requestOptions.agent = agent;
-      requestOptions.timeout = timeoutMs;
-
-      if (isCustomUrl) {
-        this.setRequestHeaders(requestOptions, request.headers);
-      } else {
-        setRequestHeadersDefault(requestOptions, request.headers);
-      }
-
-      if (lastETag) {
-        (requestOptions.headers ??= {})["If-None-Match"] = lastETag;
-      }
+      const timeoutMs = requestOptions.timeout;
 
       if (debugLogger) {
-        const requestOptionsSafe = JSON.stringify({ ...requestOptions, agent: toStringSafe(requestOptions.agent) });
+        let ifNoneMatchHeaderValue: string | number | undefined;
+        const requestHeaders = requestOptions.headers;
+        if (requestHeaders) {
+          for (const key in requestHeaders) {
+            if (hasOwnProperty(requestHeaders, key) && key.toLowerCase() === "if-none-match") {
+              const value = requestHeaders[key];
+              ifNoneMatchHeaderValue = isArray(value) ? value[0] : value;
+              break;
+            }
+          }
+        }
         debugLogger.debug(FormattableLogMessage.from(
-          REQUEST_ID_ARG_NAME, "URL", "IF_NONE_MATCH", "OPTIONS"
-        )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${lastETag ?? ""}', Options: ${requestOptionsSafe})`);
+          REQUEST_ID_ARG_NAME, "URL", "IF_NONE_MATCH"
+        )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${ifNoneMatchHeaderValue ?? ""}')`);
       }
 
-      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject, context));
+      const clientRequest = httpModule.get(url, requestOptions, response => this.handleResponse(response, resolve, reject, context));
 
       unregisterFromDisposeToken = this.disposeToken.registerCallback(
         // eslint-disable-next-line @typescript-eslint/no-deprecated
