@@ -6,7 +6,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { CONNECTIONPOOL_RESET_THRESHOLD_MS, FETCH_RETRY_DELAY_MS, FETCH_RETRY_LIMIT, FetchError, fetchInternalAsyncMethodName, FetchResponse, REQUEST_ID_ARG_NAME } from "../ConfigFetcher";
-import { delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, randomUUID, toStringSafe } from "../Utils";
+import { AbortToken, delay, ensureFunctionArg, ensureObjectArg, getMonotonicTimeMs, hasOwnProperty, isArray, randomUUID, toStringSafe } from "../Utils";
 
 type FetchContext = {
   readonly debugLogger: LoggerWrapper | undefined;
@@ -89,6 +89,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
   private httpAgentState: AgentState<http.Agent> | http.Agent | undefined; // undefined indicates disposed state
   private httpsAgentState: AgentState<https.Agent> | https.Agent | undefined; // undefined indicates disposed state
+  private readonly disposeToken: AbortToken;
 
   constructor(options?: INodeHttpConfigFetcherOptions) {
     let httpAgent: http.Agent | undefined, httpAgentFactory: INodeHttpConfigFetcherOptions["httpAgentFactory"] | undefined;
@@ -118,12 +119,16 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
 
     this.httpAgentState = httpAgent ?? new AgentState(httpAgentFactory ?? (options => new http.Agent(options)));
     this.httpsAgentState = httpsAgent ?? new AgentState(httpsAgentFactory ?? (options => new https.Agent(options)));
+    this.disposeToken = new AbortToken();
   }
 
   dispose(): void {
+    this.disposeToken.abort();
+
     const { httpAgentState, httpsAgentState } = this;
     // Release agent objects and factory callbacks so GC can collect them.
     this.httpAgentState = this.httpsAgentState = void 0;
+
     if (httpAgentState instanceof AgentState) {
       httpAgentState.agent?.destroy();
     }
@@ -202,11 +207,11 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     const isHttpsUrl = /^https:/i.test(url);
 
     for (let retryNumber = 0; ; retryNumber++) {
-      const agentStateOrExternalAgent = isHttpsUrl ? this.httpsAgentState : this.httpAgentState;
-      if (!agentStateOrExternalAgent) { // has config fetcher been disposed?
+      if (this.disposeToken.aborted) {
         throw new FetchError("abort");
       }
 
+      const agentStateOrExternalAgent = (isHttpsUrl ? this.httpsAgentState : this.httpAgentState)!;
       const [agentState, agent] = agentStateOrExternalAgent instanceof AgentState
         ? [agentStateOrExternalAgent as AgentState<http.Agent | https.Agent>, agentStateOrExternalAgent.getOrCreateAgent()]
         // eslint-disable-next-line no-sparse-arrays
@@ -302,6 +307,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
   private fetchCoreAsync(
     request: FetchRequest, isCustomUrl: boolean, isHttpsUrl: boolean, agent: http.Agent | https.Agent, context: FetchContext
   ): Promise<FetchResponse> {
+    let unregisterFromDisposeToken: (() => void) | undefined;
     return new Promise<FetchResponse>((resolve, reject) => {
       const { debugLogger, requestId } = context;
       const { url, lastETag, timeoutMs } = request;
@@ -327,7 +333,13 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         )`[${requestId}] Sending request... (Url: '${url}', If-None-Match: '${lastETag ?? ""}', Options: ${requestOptionsSafe})`);
       }
 
-      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject, context))
+      const clientRequest = (isHttpsUrl ? https : http).get(url, requestOptions, response => this.handleResponse(response, resolve, reject, context));
+
+      unregisterFromDisposeToken = this.disposeToken.registerCallback(
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        typeof clientRequest.abort !== "undefined" ? () => clientRequest.abort() : () => clientRequest.destroy());
+
+      clientRequest
         .on("timeout", () => {
           try {
             clientRequest.destroy();
@@ -337,7 +349,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         })
         .on("close", () => {
           // eslint-disable-next-line @typescript-eslint/no-deprecated
-          if (typeof clientRequest.aborted !== "undefined" ? clientRequest.aborted : clientRequest.destroyed) {
+          if (typeof clientRequest.abort !== "undefined" ? clientRequest.aborted : clientRequest.destroyed) {
             reject(new (FetchError as FetchErrorCtorInternal)("abort", context.rayId));
           }
         })
@@ -345,7 +357,7 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
           reject(new (FetchError as FetchErrorCtorInternal)("failure", err, context.rayId));
         })
         .end();
-    });
+    }).finally(() => unregisterFromDisposeToken?.());
   }
 
   protected setRequestHeaders(requestOptions: { headers?: Record<string, number | string | string[]> }, headers: ReadonlyArray<readonly [string, string]>): void {

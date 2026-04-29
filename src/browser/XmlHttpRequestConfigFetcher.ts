@@ -4,7 +4,7 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { adjustUrlForBrowser, FETCH_RETRY_DELAY_MS, FETCH_RETRY_LIMIT, FetchError, fetchInternalAsyncMethodName, FetchResponse, REQUEST_ID_ARG_NAME } from "../ConfigFetcher";
-import { delay, randomUUID } from "../Utils";
+import { AbortToken, delay, randomUUID } from "../Utils";
 
 interface IHttpRequest {
   setRequestHeader(name: string, value: string): void;
@@ -21,10 +21,10 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     return () => new XmlHttpRequestConfigFetcher();
   }
 
-  private isDisposed = false;
+  private readonly disposeToken = new AbortToken();
 
   dispose(): void {
-    this.isDisposed = true;
+    this.disposeToken.abort();
   }
 
   private handleStateChange(
@@ -90,7 +90,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     const isCustomUrl = !isCdnUrl(request.url);
 
     for (let retryNumber = 0; ; retryNumber++) {
-      if (this.isDisposed) {
+      if (this.disposeToken.aborted) {
         throw new FetchError("abort");
       }
 
@@ -137,6 +137,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
   }
 
   private fetchCoreAsync(request: FetchRequest, isCustomUrl: boolean, context: FetchContext): Promise<FetchResponse> {
+    let unregisterFromDisposeToken: (() => void) | undefined;
     return new Promise<FetchResponse>((resolve, reject) => {
       const { debugLogger, requestId } = context;
       let { url } = request;
@@ -144,6 +145,8 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
       url = adjustUrlForBrowser(request.url, request);
       const httpRequest: XMLHttpRequest = new XMLHttpRequest();
+
+      unregisterFromDisposeToken = this.disposeToken.registerCallback(() => httpRequest.abort());
 
       httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject, context);
       httpRequest.ontimeout = () => reject(new (FetchError as FetchErrorCtorInternal)("timeout", timeoutMs, context.fetchResponse?.["rayId"]));
@@ -161,7 +164,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
       )`[${requestId}] Sending request... (Url: '${url}')`);
 
       httpRequest.send(null);
-    });
+    }).finally(() => unregisterFromDisposeToken?.());
   }
 
   protected setRequestHeaders(httpRequest: IHttpRequest, headers: ReadonlyArray<readonly [string, string]>): void {

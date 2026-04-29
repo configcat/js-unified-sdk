@@ -4,13 +4,13 @@ import type { LoggerWrapper } from "../ConfigCatLogger";
 import { FormattableLogMessage, logMethodDebug } from "../ConfigCatLogger";
 import type { FetchErrorCtorInternal, FetchInternalAsyncMethod, FetchRequest, IConfigCatConfigFetcher } from "../ConfigFetcher";
 import { adjustUrlForBrowser, FETCH_RETRY_DELAY_MS, FETCH_RETRY_LIMIT, FetchError, fetchInternalAsyncMethodName, FetchResponse, REQUEST_ID_ARG_NAME } from "../ConfigFetcher";
-import { delay, randomUUID } from "../Utils";
+import { AbortToken, delay, randomUUID } from "../Utils";
 
 export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetcher {
-  private isDisposed = false;
+  private readonly disposeToken = new AbortToken();
 
   dispose(): void {
-    this.isDisposed = true;
+    this.disposeToken.abort();
   }
 
   protected constructor(private readonly runsOnServerSide?: boolean) {
@@ -36,7 +36,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
     const isCustomUrl = !isCdnUrl(request.url);
 
     for (let retryNumber = 0; ; retryNumber++) {
-      if (this.isDisposed) {
+      if (this.disposeToken.aborted) {
         throw new FetchError("abort");
       }
 
@@ -67,9 +67,13 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
       // NOTE: Older Chromium versions (e.g. the one used in our tests) may not support AbortController.
       if (typeof AbortController === "function") {
         const controller = new AbortController();
+        const unregisterFromDisposeToken = this.disposeToken.registerCallback(() => controller.abort());
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         requestInit.signal = controller.signal;
-        cleanup = () => clearTimeout(timeoutId);
+        cleanup = () => {
+          clearTimeout(timeoutId);
+          unregisterFromDisposeToken();
+        };
       }
 
       try {
@@ -120,7 +124,7 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
-          if (!requestInit.signal?.aborted) {
+          if (!requestInit.signal?.aborted || this.disposeToken.aborted) {
             debugLogger?.debug(FormattableLogMessage.from(REQUEST_ID_ARG_NAME)`[${requestId}] Request aborted.`);
 
             throw new (FetchError as FetchErrorCtorInternal)("abort", rayId);
