@@ -143,54 +143,6 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
     }
   }
 
-  private handleResponse(
-    response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void, context: FetchContext
-  ) {
-    try {
-      const { debugLogger, requestId } = context;
-      const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
-
-      if (debugLogger) {
-        const { headers } = response;
-        const eTagHeaderValue = hasOwnProperty(headers, "etag") ? headers["etag"] : void 0;
-        debugLogger.debug(FormattableLogMessage.from(
-          REQUEST_ID_ARG_NAME, "STATUS_CODE", "REASON_PHRASE", "ETAG"
-        )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
-      }
-
-      const headers = getResponseHeadersDefault(response);
-      const fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers);
-      const rayId = context.rayId = fetchResponse["rayId"];
-
-      if (statusCode === 200) {
-        const chunks: any[] = [];
-        response
-          .on("data", chunk => chunks.push(chunk))
-          .on("end", () => {
-            try {
-              const body = (fetchResponse as { body: string }).body = Buffer.concat(chunks).toString();
-
-              debugLogger?.debug(FormattableLogMessage.from(
-                REQUEST_ID_ARG_NAME, "LENGTH"
-              )`[${requestId}] Received body. (Length: ${body.length})`);
-
-              resolve(fetchResponse);
-            } catch (err) {
-              reject(err);
-            }
-          })
-          .on("error", err => reject(new (FetchError as FetchErrorCtorInternal)("failure", err, rayId)));
-      } else {
-        // Consume response data to free up memory
-        response.resume();
-
-        resolve(fetchResponse);
-      }
-    } catch (err) {
-      reject(err);
-    }
-  }
-
   fetchAsync(request: FetchRequest): Promise<FetchResponse> {
     return this[fetchInternalAsyncMethodName](request);
   }
@@ -376,6 +328,54 @@ export class NodeHttpConfigFetcher implements IConfigCatConfigFetcher {
         })
         .end();
     }).finally(() => unregisterFromDisposeToken?.());
+  }
+
+  private handleResponse(
+    response: http.IncomingMessage, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void, context: FetchContext
+  ) {
+    try {
+      const { debugLogger, requestId } = context;
+      const { statusCode, statusMessage: reasonPhrase } = response as { statusCode: number; statusMessage: string };
+
+      if (debugLogger) {
+        const { headers } = response;
+        const eTagHeaderValue = hasOwnProperty(headers, "etag") ? headers["etag"] : void 0;
+        debugLogger.debug(FormattableLogMessage.from(
+          REQUEST_ID_ARG_NAME, "STATUS_CODE", "REASON_PHRASE", "ETAG"
+        )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
+      }
+
+      const headers = getResponseHeadersDefault(response);
+      const fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers);
+      const rayId = context.rayId = fetchResponse["rayId"];
+
+      if (statusCode === 200) {
+        const chunks: any[] = [];
+        response
+          .on("data", chunk => chunks.push(chunk))
+          .on("end", () => {
+            try {
+              const body = (fetchResponse as { body: string }).body = Buffer.concat(chunks).toString();
+
+              debugLogger?.debug(FormattableLogMessage.from(
+                REQUEST_ID_ARG_NAME, "LENGTH"
+              )`[${requestId}] Received body. (Length: ${body.length})`);
+
+              resolve(fetchResponse);
+            } catch (err) {
+              reject(err);
+            }
+          })
+          .on("error", err => reject(new (FetchError as FetchErrorCtorInternal)("failure", err, rayId)));
+      } else {
+        // Consume response data to free up memory
+        response.resume();
+
+        resolve(fetchResponse);
+      }
+    } catch (err) {
+      reject(err);
+    }
   }
 
   protected setRequestHeaders(requestOptions: { headers?: Record<string, number | string | string[]> }, headers: ReadonlyArray<readonly [string, string]>): void {

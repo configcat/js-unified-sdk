@@ -30,49 +30,6 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
     this.disposeToken.abort();
   }
 
-  private handleStateChange(
-    httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void, context: FetchContext
-  ) {
-    try {
-      const { debugLogger, requestId } = context;
-
-      if (httpRequest.readyState === 2) {
-        const { status: statusCode, statusText: reasonPhrase } = httpRequest;
-
-        if (debugLogger) {
-          const eTagHeaderValue = httpRequest.getResponseHeader("ETag");
-          debugLogger.debug(FormattableLogMessage.from(
-            REQUEST_ID_ARG_NAME, "STATUS_CODE", "REASON_PHRASE", "ETAG"
-          )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
-        }
-
-        const headers = getResponseHeadersDefault(httpRequest);
-        context.fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers);
-      } else if (httpRequest.readyState === 4) {
-        const { status: statusCode, statusText: reasonPhrase } = httpRequest;
-
-        // The readystatechange event is emitted even in the case of abort or error.
-        // We can detect this by checking for zero status code (see https://stackoverflow.com/a/19247992/8656352).
-        if (statusCode) {
-          const fetchResponse = context.fetchResponse
-            ?? new FetchResponse(statusCode, reasonPhrase, getResponseHeadersDefault(httpRequest)); // just in case
-
-          if (statusCode === 200) {
-            const body = (fetchResponse as { body: string }).body = httpRequest.responseText;
-
-            debugLogger?.debug(FormattableLogMessage.from(
-              REQUEST_ID_ARG_NAME, "LENGTH"
-            )`[${requestId}] Received body. (Length: ${body.length})`);
-          }
-
-          resolve(fetchResponse);
-        }
-      }
-    } catch (err) {
-      reject(err);
-    }
-  }
-
   fetchAsync(request: FetchRequest): Promise<FetchResponse> {
     return this[fetchInternalAsyncMethodName](request);
   }
@@ -170,6 +127,49 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
 
       httpRequest.send(null);
     }).finally(() => unregisterFromDisposeToken?.());
+  }
+
+  private handleStateChange(
+    httpRequest: XMLHttpRequest, resolve: (value: FetchResponse) => void, reject: (reason?: any) => void, context: FetchContext
+  ) {
+    try {
+      const { debugLogger, requestId } = context;
+
+      if (httpRequest.readyState === 2) {
+        const { status: statusCode, statusText: reasonPhrase } = httpRequest;
+
+        if (debugLogger) {
+          const eTagHeaderValue = httpRequest.getResponseHeader("ETag");
+          debugLogger.debug(FormattableLogMessage.from(
+            REQUEST_ID_ARG_NAME, "STATUS_CODE", "REASON_PHRASE", "ETAG"
+          )`[${requestId}] Received headers. (StatusCode: ${statusCode}, ReasonPhrase: '${reasonPhrase}', ETag: '${eTagHeaderValue ?? ""}')`);
+        }
+
+        const headers = getResponseHeadersDefault(httpRequest);
+        context.fetchResponse = new FetchResponse(statusCode, reasonPhrase, headers);
+      } else if (httpRequest.readyState === 4) {
+        const { status: statusCode, statusText: reasonPhrase } = httpRequest;
+
+        // The readystatechange event is emitted even in the case of abort or error.
+        // We can detect this by checking for zero status code (see https://stackoverflow.com/a/19247992/8656352).
+        if (statusCode) {
+          const fetchResponse = context.fetchResponse
+            ?? new FetchResponse(statusCode, reasonPhrase, getResponseHeadersDefault(httpRequest)); // just in case
+
+          if (statusCode === 200) {
+            const body = (fetchResponse as { body: string }).body = httpRequest.responseText;
+
+            debugLogger?.debug(FormattableLogMessage.from(
+              REQUEST_ID_ARG_NAME, "LENGTH"
+            )`[${requestId}] Received body. (Length: ${body.length})`);
+          }
+
+          resolve(fetchResponse);
+        }
+      }
+    } catch (err) {
+      reject(err);
+    }
   }
 
   protected setRequestHeaders(httpRequest: IHttpRequest, headers: ReadonlyArray<readonly [string, string]>): void {
