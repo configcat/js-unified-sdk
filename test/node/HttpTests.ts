@@ -9,7 +9,8 @@ import { LogLevel, RefreshErrorCode } from "#lib";
 import { delay, errorToString, getMonotonicTimeMs } from "#lib/Utils";
 
 // If the tests are failing with strange https or proxy errors, it is most likely that the local .key and .pem files are expired.
-// You can regenerate them anytime (./test/cert/regenerate.md).
+// You can regenerate them by following the instructions in `test/node/cert/regenerate.md`.
+
 describe("HTTP tests", () => {
   let server: mockttp.Mockttp;
   const sdkKey = "PKDVCLf-Hq-h-kCzMp-L7Q/psuH7BGHoUmdONrzzUOY7A";
