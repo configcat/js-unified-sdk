@@ -135,8 +135,8 @@ function nameOfConfigServiceStatus(value: ConfigServiceStatus): string {
 export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   private status: ConfigServiceStatus;
 
-  private pendingCacheSyncUp: Promise<ProjectConfig> | null = null;
-  private pendingConfigRefresh: Promise<[FetchResult, ProjectConfig]> | null = null;
+  private pendingCacheSyncUp: Promise<[ProjectConfig | undefined, err?: any]> | null = null;
+  private pendingConfigRefresh: Promise<[FetchResult | undefined, ProjectConfig, err?: any]> | null = null;
 
   protected readonly cacheKey: string;
 
@@ -199,7 +199,17 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
   }
 
-  protected refreshConfigCoreAsync(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult, ProjectConfig]> {
+  protected async refreshConfigCoreAsync(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult, ProjectConfig]> {
+    let fetchResult: FetchResult | undefined, err: unknown;
+    [fetchResult, latestConfig, err] = await this.beginConfigRefreshOrJoinPending(latestConfig, isInitiatedByUser);
+    if (fetchResult) {
+      return [fetchResult, latestConfig];
+    } else {
+      throw err;
+    }
+  }
+
+  private beginConfigRefreshOrJoinPending(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult | undefined, ProjectConfig, err?: unknown]> {
     if (this.pendingConfigRefresh) {
       // NOTE: Joiners may obtain more up-to-date config data from the external cache than the `latestConfig`
       // that was used to initiate the fetch operation. However, we ignore this possibility because we consider
@@ -209,30 +219,39 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       return this.pendingConfigRefresh;
     }
 
-    const configRefreshPromise = (async (latestConfig: ProjectConfig): Promise<[FetchResult, ProjectConfig]> => {
-      const fetchResult = await this.fetchAsync(latestConfig);
+    const configRefreshPromise = (async (latestConfig: ProjectConfig): Promise<[FetchResult | undefined, ProjectConfig, err?: unknown]> => {
+      // NOTE: This function must never result in a rejected promise, otherwise some runtimes like Node.js or Deno may
+      // detect it as unhandled promise rejection and terminate the process (see also https://stackoverflow.com/a/77505185/8656352).
+      // Thus, we need to wrap all the code here in try-catch and propagate the potential error as data.
 
-      const shouldUpdateCache =
-        fetchResult.status === FetchStatus.Fetched
-        || fetchResult.status === FetchStatus.NotModified
-        || fetchResult.config.timestamp > latestConfig.timestamp // is not transient error?
-          && (!fetchResult.config.isEmpty || this.options.cache.getInMemory().isEmpty);
+      try {
+        const fetchResult = await this.fetchAsync(latestConfig);
 
-      if (shouldUpdateCache) {
-        // NOTE: `ExternalConfigCache.set` makes sure that the external cache is not overwritten with empty
-        // config data under any circumstances.
-        await this.options.cache.set(this.cacheKey, fetchResult.config);
+        const shouldUpdateCache =
+          fetchResult.status === FetchStatus.Fetched
+          || fetchResult.status === FetchStatus.NotModified
+          || fetchResult.config.timestamp > latestConfig.timestamp // is not transient error?
+            && (!fetchResult.config.isEmpty || this.options.cache.getInMemory().isEmpty);
 
-        latestConfig = fetchResult.config;
+        if (shouldUpdateCache) {
+          // NOTE: `ExternalConfigCache.set` makes sure that the external cache is not overwritten with empty
+          // config data under any circumstances.
+          await this.options.cache.set(this.cacheKey, fetchResult.config);
+
+          latestConfig = fetchResult.config;
+        }
+
+        this.onConfigFetched(fetchResult, isInitiatedByUser);
+
+        if (fetchResult.status === FetchStatus.Fetched) {
+          this.onConfigChanged(fetchResult.config);
+        }
+
+        return [fetchResult, latestConfig];
+      } catch (err) {
+        // eslint-disable-next-line no-sparse-arrays
+        return [, latestConfig, err];
       }
-
-      this.onConfigFetched(fetchResult, isInitiatedByUser);
-
-      if (fetchResult.status === FetchStatus.Fetched) {
-        this.onConfigChanged(fetchResult.config);
-      }
-
-      return [fetchResult, latestConfig];
     })(latestConfig);
 
     this.pendingConfigRefresh = configRefreshPromise;
@@ -437,25 +456,40 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       return cache.get(this.cacheKey);
     }
 
-    if (this.pendingCacheSyncUp) {
-      return this.pendingCacheSyncUp;
+    let cacheSyncUpPromise = this.pendingCacheSyncUp;
+
+    if (!cacheSyncUpPromise) {
+      const syncResult = cache.get(this.cacheKey);
+      if (!isPromiseLike(syncResult)) {
+        return this.onCacheSynced(syncResult);
+      }
+
+      // NOTE: This call chain must never result in a rejected promise, otherwise some runtimes like Node.js or Deno may
+      // detect it as unhandled promise rejection and terminate the process (see also https://stackoverflow.com/a/77505185/8656352).
+      // Thus, we need to make sure that potential error is catched and propagate it as data.
+      cacheSyncUpPromise = syncResult
+        .then(syncResult => [this.onCacheSynced(syncResult)] as [ProjectConfig])
+        .catch((err: unknown) => {
+          // eslint-disable-next-line no-sparse-arrays
+          return [, err];
+        });
+
+      this.pendingCacheSyncUp = cacheSyncUpPromise;
+      try {
+        cacheSyncUpPromise.finally(() => this.pendingCacheSyncUp = null);
+      } catch (err) {
+        this.pendingCacheSyncUp = null;
+        throw err;
+      }
     }
 
-    const syncResult = cache.get(this.cacheKey);
-    if (!isPromiseLike(syncResult)) {
-      return this.onCacheSynced(syncResult);
-    }
-
-    const cacheSyncUpPromise = syncResult.then(syncResult => this.onCacheSynced(syncResult));
-
-    this.pendingCacheSyncUp = cacheSyncUpPromise;
-    try {
-      cacheSyncUpPromise.finally(() => this.pendingCacheSyncUp = null);
-    } catch (err) {
-      this.pendingCacheSyncUp = null;
-      throw err;
-    }
-    return cacheSyncUpPromise;
+    return cacheSyncUpPromise.then(([projectConfig, err]) => {
+      if (projectConfig) {
+        return projectConfig;
+      } else {
+        throw err;
+      }
+    });
   }
 
   private onCacheSynced(syncResult: CacheSyncResult): ProjectConfig {

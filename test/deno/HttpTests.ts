@@ -3,7 +3,7 @@ import fetchMock from "npm:fetch-mock";
 import { FakeLogger } from "../helpers/fakes";
 import { platform } from "../helpers/platform";
 import { LogLevel, RefreshErrorCode } from "#lib";
-import { getMonotonicTimeMs } from "#lib/Utils";
+import { delay, errorToString, getMonotonicTimeMs } from "#lib/Utils";
 
 const denoVersionComponents = Deno.version.deno.split(".");
 const denoMajorVersion = Number(denoVersionComponents[0]);
@@ -151,8 +151,38 @@ if (denoMajorVersion >= 2 || denoMajorVersion === 1 && denoMinorVersion >= 38) {
       }
     });
 
-    // NOTE: For Deno, we skip the "Abort on dispose" test case as it fails with some weird "Uncaught (in promise)"
-    // error. This is probably related to the test runner (mocha) or fetch-mock because the test works as expected
-    // in a standalone console application.
+    it("Abort on dispose", async () => {
+      const delayMs = 250;
+
+      let requestCount = 0;
+
+      fetchMock.get(
+        url => url.startsWith(baseUrl),
+        () => (++requestCount, delay(delayMs).then(() => ({ status: 200, body: "{}" })))
+      );
+
+      try {
+        const logger = new FakeLogger(LogLevel.Debug);
+
+        const client = platform().createClientWithManualPoll(sdkKey, {
+          requestTimeoutMs: 1000,
+          baseUrl,
+          logger,
+        });
+
+        const forceRefreshPromise = client.forceRefreshAsync();
+        await delay(delayMs / 5);
+        client.dispose();
+        const refreshResult = await forceRefreshPromise;
+
+        assert.strictEqual(refreshResult.errorCode, RefreshErrorCode.UnexpectedError);
+        assert.include(refreshResult.errorMessage?.toString(), "Request was aborted.");
+        assert.isDefined(logger.events.find(([level, eventId, , err]) => level === LogLevel.Error && eventId === 1003 && errorToString(err).includes("Request was aborted.")));
+
+        assert.strictEqual(requestCount, 1);
+      } finally {
+        fetchMock.reset();
+      }
+    });
   });
 }
