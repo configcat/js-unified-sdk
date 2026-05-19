@@ -69,8 +69,8 @@ export abstract class FetchApiConfigFetcherBase implements IConfigCatConfigFetch
       if (typeof AbortController === "function") {
         const controller = new AbortController();
         const unregisterFromDisposeToken = this.disposeToken.registerCallback(() => controller.abort());
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         requestInit.signal = controller.signal;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         cleanup = () => {
           clearTimeout(timeoutId);
           unregisterFromDisposeToken();

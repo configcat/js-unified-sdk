@@ -111,7 +111,7 @@ export class XmlHttpRequestConfigFetcher implements IConfigCatConfigFetcher {
       unregisterFromDisposeToken = this.disposeToken.registerCallback(() => httpRequest.abort());
 
       httpRequest.onreadystatechange = () => this.handleStateChange(httpRequest, resolve, reject, context);
-      httpRequest.ontimeout = function() { reject(new (FetchError as FetchErrorCtorInternal)("timeout", this.timeout, context.fetchResponse?.["rayId"])); };
+      httpRequest.ontimeout = () => reject(new (FetchError as FetchErrorCtorInternal)("timeout", httpRequest.timeout, context.fetchResponse?.["rayId"]));
       httpRequest.onabort = () => reject(new (FetchError as FetchErrorCtorInternal)("abort", context.fetchResponse?.["rayId"]));
       httpRequest.onerror = () => reject(new (FetchError as FetchErrorCtorInternal)("failure", void 0, context.fetchResponse?.["rayId"]));
 
