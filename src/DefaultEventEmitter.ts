@@ -110,7 +110,7 @@ export class DefaultEventEmitter implements IEventEmitter {
       return [listeners.fn];
     }
 
-    const length = listeners.length, fns = new Array<Function>(length);
+    const length = listeners.length, fns = Array<Function>(length);
     for (let i = 0; i < length; i++) {
       fns[i] = listeners[i].fn;
     }
@@ -182,7 +182,7 @@ export class DefaultEventEmitter implements IEventEmitter {
         case 3: listener.fn.call(this, arg0, arg1, arg2); break;
         case 4: listener.fn.call(this, arg0, arg1, arg2, arg3); break;
         default:
-          const args = new Array(argCount);
+          const args = Array(argCount);
           for (let j = 0; j < argCount; j++) {
             // eslint-disable-next-line prefer-rest-params, @typescript-eslint/no-unsafe-assignment
             args[j] = arguments[j + 1];
