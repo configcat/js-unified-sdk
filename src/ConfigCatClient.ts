@@ -13,7 +13,7 @@ import type { EvaluationDetails, IRolloutEvaluator, SettingKeyValue, SettingType
 import { checkSettingsAvailable, evaluate, evaluateAll, evaluationDetailsFromDefaultValue, findKeyAndValue, getEvaluationErrorCode, RolloutEvaluator } from "./RolloutEvaluator";
 import type { IUser } from "./User";
 import { getUserAttributes } from "./User";
-import { createMap, createWeakRef, ensureEnumArg, ensureObjectArg, ensureStringArg, errorToString, isObject, shallowClone, throwInvalidArg, toStringSafe } from "./Utils";
+import { createMap, createWeakRef, ensureEnumArg, ensureObjectArg, ensureStringArg, errorToString, hasAnyOwnProperties, isObject, shallowClone, throwInvalidArg, toStringSafe } from "./Utils";
 
 /** ConfigCat SDK client. */
 export interface IConfigCatClient extends IProvidesHooks {
@@ -569,10 +569,16 @@ export class ConfigCatClient implements IConfigCatClient {
             return new Snapshot(localSettings, null, this);
           case OverrideBehaviour.LocalOverRemote:
             [remoteSettings, remoteConfig] = getRemoteConfig();
-            return new Snapshot({ ...remoteSettings, ...localSettings }, remoteConfig, this);
+            return new Snapshot(
+              remoteSettings && hasAnyOwnProperties(remoteSettings) ? { ...remoteSettings, ...localSettings } : localSettings,
+              remoteConfig, this
+            );
           case OverrideBehaviour.RemoteOverLocal:
             [remoteSettings, remoteConfig] = getRemoteConfig();
-            return new Snapshot({ ...localSettings, ...remoteSettings }, remoteConfig, this);
+            return new Snapshot(
+              remoteSettings && hasAnyOwnProperties(remoteSettings) ? { ...localSettings, ...remoteSettings } : localSettings,
+              remoteConfig, this
+            );
         }
       }
 
@@ -603,10 +609,10 @@ export class ConfigCatClient implements IConfigCatClient {
           return [localSettings, null];
         case OverrideBehaviour.LocalOverRemote:
           [remoteSettings, remoteConfig] = await getRemoteConfigAsync();
-          return [{ ...remoteSettings, ...localSettings }, remoteConfig];
+          return [remoteSettings && hasAnyOwnProperties(remoteSettings) ? { ...remoteSettings, ...localSettings } : localSettings, remoteConfig];
         case OverrideBehaviour.RemoteOverLocal:
           [remoteSettings, remoteConfig] = await getRemoteConfigAsync();
-          return [{ ...localSettings, ...remoteSettings }, remoteConfig];
+          return [remoteSettings && hasAnyOwnProperties(remoteSettings) ? { ...localSettings, ...remoteSettings } : localSettings, remoteConfig];
       }
     }
 

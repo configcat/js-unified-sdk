@@ -155,6 +155,15 @@ export function hasOwnProperty(obj: object, key: keyof any): boolean {
   return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
+export function hasAnyOwnProperties(obj: object): boolean {
+  for (const key in obj) {
+    if (hasOwnProperty(obj, key)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
 }
