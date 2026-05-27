@@ -30,7 +30,7 @@ module.exports = function(config) {
     },
 
     reporters: [
-      "progress",
+      "spec",
       ...(enableCoverage ? ["coverage-istanbul"] : []),
     ],
 
