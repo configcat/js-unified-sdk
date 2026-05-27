@@ -35,7 +35,15 @@ export function nameOfOverrideBehaviour(value: OverrideBehaviour): string {
   return OverrideBehaviour[value] as string;
 }
 
+/**
+ * Defines the interface used by the ConfigCat SDK to obtain flag overrides.
+ */
 export interface IOverrideDataSource {
+  /**
+   * Returns the flag overrides as a plain object where the object key is the feature flag key.
+   * @remarks Note for implementers. Mutating the returned object results in undefined behavior, thus, it must be avoided.
+   * @returns The key-value map of flag overrides as a plain object.
+   */
   getOverrides(): Record<string, Setting>;
 }
 

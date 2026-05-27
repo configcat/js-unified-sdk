@@ -202,6 +202,15 @@ export function hasOwnProperty(obj: object, key: keyof any): boolean {
   return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
+export function hasAnyOwnProperties(obj: object): boolean {
+  for (const key in obj) {
+    if (hasOwnProperty(obj, key)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function shallowClone<T extends {}>(obj: T, propertyReplacer?: (key: keyof T, value: unknown) => unknown): Record<keyof T, unknown> {
   const clone = {} as Record<keyof T, unknown>;
   for (const key in obj) {

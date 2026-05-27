@@ -210,7 +210,7 @@ async function postProcess(targetId, targetFile, targetDir, { importExtension, r
 /* Build pipeline configuration */
 
 const args = process.argv.slice(2);
-const buildForPublish = args.some(arg => arg == "--for-publish");
+const buildForPublish = args.some(arg => arg === "--for-publish");
 
 exports.default = gulp.series(
   clean,

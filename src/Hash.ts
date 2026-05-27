@@ -7,7 +7,7 @@ export function sha1(msg: string) {
   };
   var blockstart;
   var i, j;
-  var W = new Array(80);
+  var W = Array(80);
   var H0 = 0x67452301;
   var H1 = 0xEFCDAB89;
   var H2 = 0x98BADCFE;
@@ -17,7 +17,7 @@ export function sha1(msg: string) {
   var temp;
   msg = utf8Encode(msg);
   var msg_len = msg.length;
-  var word_array = new Array();
+  var word_array = Array();
   for( i=0; i<msg_len-3; i+=4 ) {
     j = msg.charCodeAt(i)<<24 | msg.charCodeAt(i+1)<<16 |
         msg.charCodeAt(i+2)<<8 | msg.charCodeAt(i+3);
