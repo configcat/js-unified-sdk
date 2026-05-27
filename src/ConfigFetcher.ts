@@ -118,7 +118,7 @@ export type FetchErrorCauses = {
   failure: [err?: any];
 };
 
-type FetchErrorArgsInternal<TCause extends keyof FetchErrorCauses> = [...FetchErrorCauses[TCause], rayId?: string];
+type FetchErrorArgsInternal<TCause extends keyof FetchErrorCauses> = [...FetchErrorCauses[TCause], /* rayId: */ string?];
 
 export type FetchErrorCtorInternal<TCause extends keyof FetchErrorCauses = keyof FetchErrorCauses> =
   new(cause: TCause, ...args: FetchErrorArgsInternal<TCause>) => FetchError<TCause>;

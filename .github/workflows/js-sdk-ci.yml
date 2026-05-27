@@ -14,7 +14,14 @@ on:
 jobs:
   check-ts-compat:
     runs-on: ubuntu-latest
-    name: TypeScript v4.0.2 compatibility check
+    strategy:
+      matrix:
+        ts-version: [
+          {display: "v4.0.2", tag: "", tsc_args: ""},
+          {display: "v5.x", tag: "<6.0.0", tsc_args: ""},
+          {display: "v6.x", tag: "<7.0.0", tsc_args: "--ignoreDeprecations 6.0"},
+        ]
+    name: TypeScript ${{ matrix.ts-version.display }} compatibility check
     steps:
       - uses: actions/checkout@v6
 
@@ -25,8 +32,14 @@ jobs:
       - name: Install dependencies & build
         run: npm install
 
+      - name: Set TypeScript version
+        if: matrix.ts-version.tag != ''
+        working-directory: ./extra-checks/ts-compat-check
+        run: npm install typescript@"${{ matrix.ts-version.tag }}"
+
       - name: Run check
-        run: npm run check:ts-compat
+        working-directory: ./extra-checks/ts-compat-check
+        run: npm run check -- ${{ matrix.ts-version.tsc_args }}
 
   test-browser-chrome:
     # Runner image version is temporarily pinned to `ubuntu-22.04`.
