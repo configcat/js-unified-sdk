@@ -1,11 +1,66 @@
 import { assert, expect } from "chai";
-import { FakeConfigFetcherWithTwoKeys, FakeLogger } from "./helpers/fakes";
+import { createManualPollOptions, FakeConfigFetcherWithTwoKeys, FakeLogger } from "./helpers/fakes";
 import { platform } from "./helpers/platform";
 import { FetchRequest, FetchResponse, FormattableLogMessage, IConfigCatConfigFetcher } from "#lib";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
-import { OptionsBase } from "#lib/ConfigCatClientOptions";
+import { isCdnUrl } from "#lib/ConfigCatClientOptions";
+import { adjustUrlForBrowser, ETAG_QUERYPARAM_NAME, getRequestHeaders, SDK_QUERYPARAM_NAME, USER_AGENT_HEADER_NAME } from "#lib/ConfigFetcher";
+import { ManualPollConfigService } from "#lib/ManualPollConfigService";
+
+const testSdkKey = "configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g";
+const testETag = "W/\"123\"";
 
 describe("ConfigCatConfigFetcherTests", () => {
+  it("Internal config fetcher should be disposed", () => {
+    // Arrange
+
+    const client = platform().createClientWithManualPoll(
+      "test-67890123456789012/1234567890123456789012"
+    ) as ConfigCatClient;
+
+    const configService = client["configService"] as ManualPollConfigService;
+
+    const configFetcher = configService["configFetcher"];
+
+    let isDisposed = false;
+    const originalDispose = configFetcher.dispose;
+    configFetcher.dispose = function() {
+      isDisposed = true;
+      originalDispose?.call(this);
+    };
+
+    // Act
+
+    client.dispose();
+
+    // Assert
+
+    assert.isTrue(isDisposed);
+  });
+
+  it("External config fetcher should not be disposed", () => {
+    // Arrange
+
+    let isDisposed = false;
+
+    const configFetcher = new class implements IConfigCatConfigFetcher {
+      fetchAsync(request: FetchRequest): never { throw Error("Not implemented"); }
+      dispose(): void { isDisposed = true; }
+    }();
+
+    const client = platform().createClientWithManualPoll(
+      "test-67890123456789012/1234567890123456789012",
+      { configFetcher }
+    );
+
+    // Act
+
+    client.dispose();
+
+    // Assert
+
+    assert.isFalse(isDisposed);
+  });
 
   it("Custom config fetcher - Success", async () => {
     // Arrange
@@ -50,6 +105,8 @@ describe("ConfigCatConfigFetcherTests", () => {
 
     assert.strictEqual(configFetcherRequests.length, 2);
     assert.strictEqual(configFetcherRequests[1].lastETag, eTag);
+
+    client.dispose();
   });
 
   it("Custom config fetcher - Failure", async () => {
@@ -87,12 +144,6 @@ describe("ConfigCatConfigFetcherTests", () => {
     assert.strictEqual(configFetcherRequests.length, 1);
     assert.isUndefined(configFetcherRequests[0].lastETag);
 
-    // TODO: Remove this as soon as we update the CDN CORS settings (see also https://trello.com/c/RSGwVoqC)
-    const clientVersion: string = (((client as ConfigCatClient)["options"]) as OptionsBase)["clientVersion"];
-    if (clientVersion.includes("ConfigCat-UnifiedJS-Browser") || clientVersion.includes("ConfigCat-UnifiedJS-ChromiumExtension")) {
-      return;
-    }
-
     const errors = fakeLogger.events.filter(([, eventId]) => eventId === 1100);
     assert.strictEqual(errors.length, 1);
 
@@ -108,6 +159,99 @@ describe("ConfigCatConfigFetcherTests", () => {
     assert.equal(actualRayId, rayId);
 
     expect(error.toString()).to.contain(rayId);
+
+    client.dispose();
   });
 
+  for (const [queryAndFragment, sdkKey, etag, useAbsoluteUrl] of <[string, string, string | undefined, boolean][]>[
+    ["", testSdkKey, testETag, false],
+    ["", testSdkKey, testETag, true],
+    ["", "configcat%2dsdk%2d1/PKDVCLf%2dHq%2dh%2dkCzMp%2dL7Q/u28_1qNyZ0Wz%2dldYHIU7%2dg", testETag, false],
+    ["", "configcat%2dsdk%2d1/PKDVCLf%2dHq%2dh%2dkCzMp%2dL7Q/u28_1qNyZ0Wz%2dldYHIU7%2dg", testETag, true],
+    ["", testSdkKey, null, false],
+    ["", testSdkKey, null, true],
+    ["?", testSdkKey, testETag, false],
+    ["?", testSdkKey, testETag, true],
+    ["?", testSdkKey, null, false],
+    ["?", testSdkKey, null, true],
+    ["?ccetag=123", testSdkKey, testETag, false],
+    ["?ccetag=123", testSdkKey, testETag, true],
+    ["?ccetag=123#f", testSdkKey, testETag, false],
+    ["?ccetag=123#f", testSdkKey, testETag, true],
+    ["#f", testSdkKey, testETag, false],
+    ["#f", testSdkKey, testETag, true],
+  ]) {
+    it(`AdjustUriForBrowser should work - queryAndFragment: ${queryAndFragment} | sdkKey: ${sdkKey} | etag: ${etag} | useAbsoluteUrl: ${useAbsoluteUrl}`, () => {
+      // Arrange
+
+      const options = createManualPollOptions(sdkKey);
+
+      let url = options.getUrl() + queryAndFragment;
+      const parsedAbsoluteUrl = new URL(url);
+
+      if (!useAbsoluteUrl) {
+        const index = url.indexOf("://");
+        url = url.substring(url.indexOf("/", index + 3));
+      }
+
+      const requestHeaders = getRequestHeaders(options.clientVersion);
+      const fetchRequest = new FetchRequest(url, etag, requestHeaders, Infinity);
+
+      // Act
+
+      const adjustedUrl = adjustUrlForBrowser(url, fetchRequest);
+
+      // Assert
+
+      const parsedAdjustedUrl = new URL(useAbsoluteUrl ? adjustedUrl : "https://x" + adjustedUrl);
+
+      assert.strictEqual(parsedAdjustedUrl.pathname, parsedAbsoluteUrl.pathname);
+
+      const normalizedUserAgentHeaderName = USER_AGENT_HEADER_NAME.toLowerCase();
+      const expectedUserAgentHeaderValue = fetchRequest.headers.find(([key]) => key.toLowerCase() === normalizedUserAgentHeaderName)![1];
+
+      const expectedQueryParams: [string, string][] = [];
+      expectedQueryParams.push([SDK_QUERYPARAM_NAME, expectedUserAgentHeaderValue]);
+      if (etag || parsedAbsoluteUrl.searchParams.size) {
+        expectedQueryParams.push([ETAG_QUERYPARAM_NAME, etag ?? ""]);
+      }
+      parsedAbsoluteUrl.searchParams.forEach((value, key) => expectedQueryParams.push([key, value]));
+
+      const actualQueryParams: [string, string][] = [];
+      parsedAdjustedUrl.searchParams.forEach((value, key) => actualQueryParams.push([key, value]));
+
+      assert.deepEqual(actualQueryParams, expectedQueryParams);
+
+      assert.strictEqual(parsedAdjustedUrl.hash, "");
+    });
+  }
+
+  for (const [url, expectedResult] of <[string, boolean][]>[
+    ["/", false],
+    ["/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", false],
+    ["file:///configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", false],
+    ["http://cdn-global.configcat.com/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", true],
+    ["https://cdn-global.configcat.com/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", true],
+    ["https://cdn-global.configcat.com/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json?x=/configcat-proxy/", true],
+    ["https://cdn-global.configcat.com/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json?x#/configcat-proxy/", true],
+    ["https://cdn-global.configcat.com/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json#/configcat-proxy/", true],
+    ["https://cdn-global.configcat.com/configuration%2dfiles/configcat%2dsdk%2d1/PKDVCLf%2dHq%2dh%2dkCzMp%2dL7Q/u28_1qNyZ0Wz%2dldYHIU7%2dg/config_v6.json", true],
+    ["https://cdn-global.configcat.com./configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", true],
+    ["https://cdn-global.configcat.com/configcat-proxy/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", false],
+    ["https://cdn-global.configcat.com/configcat%2dproxy/configuration-files/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", false],
+    ["https://cdn-global.configcat.com/configuration-files/configcat-proxy/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json", false],
+    ["https://cdn-global.configcat.com/configuration-files/configcat%2Dproxy/configcat-sdk-1/PKDVCLf-Hq-h-kCzMp-L7Q/u28_1qNyZ0Wz-ldYHIU7-g/config_v6.json?x", false],
+  ]) {
+    it(`IsCdnUri should work - url: ${url}`, () => {
+      // Arrange
+
+      // Act
+
+      const actualResult = isCdnUrl(url);
+
+      // Assert
+
+      assert.strictEqual(actualResult, expectedResult);
+    });
+  }
 });

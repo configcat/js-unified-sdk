@@ -3,9 +3,9 @@ import { ExternalConfigCache, InMemoryConfigCache } from "./ConfigCatCache";
 import type { ConfigCatClient } from "./ConfigCatClient";
 import type { OptionsBase } from "./ConfigCatClientOptions";
 import type { LogMessage } from "./ConfigCatLogger";
-import { toMessage } from "./ConfigCatLogger";
-import type { FetchErrorCauses, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
-import { FetchError, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus } from "./ConfigFetcher";
+import { logMethodDebug, toMessage } from "./ConfigCatLogger";
+import type { FetchErrorCauses, FetchInternalAsyncMethod, FetchResponse, FetchResult, IConfigCatConfigFetcher } from "./ConfigFetcher";
+import { FetchError, fetchInternalAsyncMethodName, FetchRequest, fetchResultFromError, fetchResultFromNotModified, fetchResultFromSuccess, FetchStatus, getRequestHeaders } from "./ConfigFetcher";
 import { RedirectMode } from "./ConfigJson";
 import type { Config } from "./ProjectConfig";
 import { deserializeConfig, prepareConfig, ProjectConfig } from "./ProjectConfig";
@@ -135,12 +135,14 @@ function nameOfConfigServiceStatus(value: ConfigServiceStatus): string {
 export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   private status: ConfigServiceStatus;
 
-  private pendingCacheSyncUp: Promise<ProjectConfig> | null = null;
-  private pendingConfigRefresh: Promise<[FetchResult, ProjectConfig]> | null = null;
+  private pendingCacheSyncUp: Promise<[ProjectConfig | undefined, err?: any]> | null = null;
+  private pendingConfigRefresh: Promise<[FetchResult | undefined, ProjectConfig, err?: any]> | null = null;
 
   protected readonly cacheKey: string;
 
   protected readonly configFetcher: IConfigCatConfigFetcher;
+  private readonly ownsConfigFetcher: boolean;
+
   private readonly requestHeaders: ReadonlyArray<readonly [string, string]>;
 
   abstract readonly readyPromise: Promise<ClientCacheState>;
@@ -151,10 +153,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     this.cacheKey = options.getCacheKey();
 
     this.configFetcher = options.configFetcher;
-    this.requestHeaders = [
-      ["User-Agent", options.clientVersion],
-      ["X-ConfigCat-UserAgent", options.clientVersion],
-    ];
+    this.ownsConfigFetcher = options.ownsConfigFetcher;
+
+    this.requestHeaders = getRequestHeaders(options.clientVersion);
 
     this.status = options.offline ? ConfigServiceStatus.Offline : ConfigServiceStatus.Online;
   }
@@ -168,7 +169,15 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
   }
 
   dispose(): void {
-    this.status = ConfigServiceStatus.Disposed;
+    logMethodDebug(this.options.logger, "ConfigServiceBase.dispose");
+
+    if (this.status !== ConfigServiceStatus.Disposed) {
+      this.status = ConfigServiceStatus.Disposed;
+
+      if (this.ownsConfigFetcher) {
+        this.configFetcher.dispose?.();
+      }
+    }
   }
 
   protected get disposed(): boolean {
@@ -190,7 +199,17 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
     }
   }
 
-  protected refreshConfigCoreAsync(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult, ProjectConfig]> {
+  protected async refreshConfigCoreAsync(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult, ProjectConfig]> {
+    let fetchResult: FetchResult | undefined, err: unknown;
+    [fetchResult, latestConfig, err] = await this.beginConfigRefreshOrJoinPending(latestConfig, isInitiatedByUser);
+    if (fetchResult) {
+      return [fetchResult, latestConfig];
+    } else {
+      throw err;
+    }
+  }
+
+  private beginConfigRefreshOrJoinPending(latestConfig: ProjectConfig, isInitiatedByUser: boolean): Promise<[FetchResult | undefined, ProjectConfig, err?: unknown]> {
     if (this.pendingConfigRefresh) {
       // NOTE: Joiners may obtain more up-to-date config data from the external cache than the `latestConfig`
       // that was used to initiate the fetch operation. However, we ignore this possibility because we consider
@@ -200,30 +219,39 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       return this.pendingConfigRefresh;
     }
 
-    const configRefreshPromise = (async (latestConfig: ProjectConfig): Promise<[FetchResult, ProjectConfig]> => {
-      const fetchResult = await this.fetchAsync(latestConfig);
+    const configRefreshPromise = (async (latestConfig: ProjectConfig): Promise<[FetchResult | undefined, ProjectConfig, err?: unknown]> => {
+      // NOTE: This function must never result in a rejected promise, otherwise some runtimes like Node.js or Deno may
+      // detect it as unhandled promise rejection and terminate the process (see also https://stackoverflow.com/a/77505185/8656352).
+      // Thus, we need to wrap all the code here in try-catch and propagate the potential error as data.
 
-      const shouldUpdateCache =
-        fetchResult.status === FetchStatus.Fetched
-        || fetchResult.status === FetchStatus.NotModified
-        || fetchResult.config.timestamp > latestConfig.timestamp // is not transient error?
-          && (!fetchResult.config.isEmpty || this.options.cache.getInMemory().isEmpty);
+      try {
+        const fetchResult = await this.fetchAsync(latestConfig);
 
-      if (shouldUpdateCache) {
-        // NOTE: `ExternalConfigCache.set` makes sure that the external cache is not overwritten with empty
-        // config data under any circumstances.
-        await this.options.cache.set(this.cacheKey, fetchResult.config);
+        const shouldUpdateCache =
+          fetchResult.status === FetchStatus.Fetched
+          || fetchResult.status === FetchStatus.NotModified
+          || fetchResult.config.timestamp > latestConfig.timestamp // is not transient error?
+            && (!fetchResult.config.isEmpty || this.options.cache.getInMemory().isEmpty);
 
-        latestConfig = fetchResult.config;
+        if (shouldUpdateCache) {
+          // NOTE: `ExternalConfigCache.set` makes sure that the external cache is not overwritten with empty
+          // config data under any circumstances.
+          await this.options.cache.set(this.cacheKey, fetchResult.config);
+
+          latestConfig = fetchResult.config;
+        }
+
+        this.onConfigFetched(fetchResult, isInitiatedByUser);
+
+        if (fetchResult.status === FetchStatus.Fetched) {
+          this.onConfigChanged(fetchResult.config);
+        }
+
+        return [fetchResult, latestConfig];
+      } catch (err) {
+        // eslint-disable-next-line no-sparse-arrays
+        return [, latestConfig, err];
       }
-
-      this.onConfigFetched(fetchResult, isInitiatedByUser);
-
-      if (fetchResult.status === FetchStatus.Fetched) {
-        this.onConfigChanged(fetchResult.config);
-      }
-
-      return [fetchResult, latestConfig];
     })(latestConfig);
 
     this.pendingConfigRefresh = configRefreshPromise;
@@ -248,7 +276,9 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
   private async fetchAsync(lastConfig: ProjectConfig): Promise<FetchResult> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchAsync() called.");
+    const methodName = "ConfigServiceBase.fetchAsync";
+    const debugLogger = this.options.logger.ifDebug;
+    logMethodDebug(debugLogger, methodName);
 
     let errorMessage: LogMessage;
     try {
@@ -259,61 +289,89 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
         case 200: // OK
           if (!config) {
             errorMessage = options.logger.fetchReceived200WithInvalidBody(response["rayId"], error);
-            options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
+            logMethodDebug(debugLogger, methodName, `${response.statusCode} ${response.reasonPhrase} was received but the HTTP response content was invalid. Returning null.`);
             return fetchResultFromError(lastConfig, RefreshErrorCode.InvalidHttpResponseContent, toMessage(errorMessage), error);
           }
 
-          options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was successful. Returning new config.");
+          logMethodDebug(debugLogger, methodName, "fetch was successful. Returning new config.");
           return fetchResultFromSuccess(new ProjectConfig(response.body, config, ProjectConfig.generateTimestamp(), response.eTag));
 
         case 304: // Not Modified
           if (lastConfig.isEmpty) {
             errorMessage = options.logger.fetchReceived304WhenLocalCacheIsEmpty(response.statusCode, response.reasonPhrase, response["rayId"]);
-            options.logger.debug(`ConfigServiceBase.fetchAsync(): ${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
+            logMethodDebug(debugLogger, methodName, `${response.statusCode} ${response.reasonPhrase} was received when no config is cached locally. Returning null.`);
             return fetchResultFromError(lastConfig, RefreshErrorCode.InvalidHttpResponseWhenLocalCacheIsEmpty, toMessage(errorMessage));
           }
 
-          options.logger.debug("ConfigServiceBase.fetchAsync(): content was not modified. Returning last config with updated timestamp.");
+          logMethodDebug(debugLogger, methodName, "content was not modified. Returning last config with updated timestamp.");
           return fetchResultFromNotModified(lastConfig.with(ProjectConfig.generateTimestamp()));
 
         case 403: // Forbidden
         case 404: // Not Found
           errorMessage = options.logger.fetchFailedDueToInvalidSdkKey(options.sdkKey, response["rayId"]);
-          options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
+          logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning last config (if any) with updated timestamp.");
           return fetchResultFromError(lastConfig.with(ProjectConfig.generateTimestamp()), RefreshErrorCode.InvalidSdkKey, toMessage(errorMessage));
 
         default:
           errorMessage = options.logger.fetchFailedDueToUnexpectedHttpResponse(response.statusCode, response.reasonPhrase, response["rayId"]);
-          options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning null.");
+          logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning last config.");
           return fetchResultFromError(lastConfig, RefreshErrorCode.UnexpectedHttpResponse, toMessage(errorMessage));
       }
     } catch (err) {
       let errorCode: RefreshErrorCode;
-      [errorCode, errorMessage] = err instanceof FetchError && err.cause === "timeout"
-        ? [RefreshErrorCode.HttpRequestTimeout, options.logger.fetchFailedDueToRequestTimeout((err.args as FetchErrorCauses["timeout"])[0], err)]
-        : [RefreshErrorCode.HttpRequestFailure, options.logger.fetchFailedDueToUnexpectedError(err)];
 
-      options.logger.debug("ConfigServiceBase.fetchAsync(): fetch was unsuccessful. Returning null.");
+      const fetchError = err instanceof FetchError ? err as FetchError : void 0;
+      // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+      switch (fetchError?.cause) {
+        case "abort":
+          // This should occur only when the client gets disposed while a fetch operation is in progress.
+          // Let the caller deal with this (either swallow it or report it as RefreshErrorCode.UnexpectedError)
+          logMethodDebug(debugLogger, methodName, "fetch was aborted. Propagating error.");
+          throw err;
+        case "timeout":
+          errorMessage = options.logger.fetchFailedDueToRequestTimeout((fetchError.args as FetchErrorCauses["timeout"])[0], err, fetchError["rayId"]);
+          errorCode = RefreshErrorCode.HttpRequestTimeout;
+          break;
+        default:
+          errorMessage = options.logger.fetchFailedDueToUnexpectedError(err, fetchError?.["rayId"]);
+          errorCode = RefreshErrorCode.HttpRequestFailure;
+          break;
+      }
+
+      logMethodDebug(debugLogger, methodName, "fetch was unsuccessful. Returning last config.");
       return fetchResultFromError(lastConfig, errorCode, toMessage(errorMessage), err);
     }
   }
 
   private async fetchRequestAsync(lastETag: string | undefined, maxRetryCount = 2): Promise<[FetchResponse, Config?, any?]> {
     const options = this.options;
-    options.logger.debug("ConfigServiceBase.fetchRequestAsync() called.");
+    const methodName = "ConfigServiceBase.fetchRequestAsync";
+    const debugLogger = this.options.logger.ifDebug;
+    logMethodDebug(debugLogger, methodName);
 
     for (let retryNumber = 0; ; retryNumber++) {
-      options.logger.debug(`ConfigServiceBase.fetchRequestAsync(): calling fetchLogic()${retryNumber > 0 ? `, retry ${retryNumber}/${maxRetryCount}` : ""}.`);
+      logMethodDebug(debugLogger, methodName, retryNumber > 0
+        ? `calling fetchLogic(), retry ${retryNumber}/${maxRetryCount}.`
+        : "calling fetchLogic().");
 
       const request = new FetchRequest(options.getUrl(), lastETag, this.requestHeaders, options.requestTimeoutMs);
-      const response = await this.configFetcher.fetchAsync(request);
+
+      interface IConfigFetcherInternal extends IConfigCatConfigFetcher {
+        [fetchInternalAsyncMethodName]: FetchInternalAsyncMethod<IConfigCatConfigFetcher>;
+      }
+
+      const response = await (
+        (this.configFetcher as Partial<IConfigFetcherInternal>)[fetchInternalAsyncMethodName]
+          ? (this.configFetcher as IConfigFetcherInternal)[fetchInternalAsyncMethodName](request, this.options.logger)
+          : this.configFetcher.fetchAsync(request)
+      );
 
       if (response.statusCode !== 200) {
         return [response];
       }
 
       if (!response.body) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): no response body.");
+        logMethodDebug(debugLogger, methodName, "no response body.");
         return [response, void 0, Error("No response body.")];
       }
 
@@ -321,13 +379,13 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       try {
         config = deserializeConfig(response.body);
       } catch (err) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): invalid response body.");
+        logMethodDebug(debugLogger, methodName, "invalid response body.");
         return [response, void 0, err];
       }
 
       const preferences = config.p;
       if (!preferences) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): preferences are missing or invalid.");
+        logMethodDebug(debugLogger, methodName, "preferences are missing or invalid.");
         return [response, config];
       }
 
@@ -335,7 +393,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
       // If baseUrl is the same as the last known one, just return the response.
       if (baseUrl == null || baseUrl === options.baseUrl) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): baseUrl OK.");
+        logMethodDebug(debugLogger, methodName, "baseUrl OK.");
         return [response, config];
       }
 
@@ -344,7 +402,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       // If baseUrl is overridden, and the redirect parameter is not 2 (force),
       // the SDK should not redirect the calls and it just have to return the response.
       if (options.baseUrlOverriden && redirect !== RedirectMode.Force) {
-        options.logger.debug("ConfigServiceBase.fetchRequestAsync(): options.baseUrlOverriden && redirect !== 2.");
+        logMethodDebug(debugLogger, methodName, "options.baseUrlOverriden && redirect !== RedirectMode.Force.");
         return [response, config];
       }
 
@@ -363,10 +421,6 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
         return [response, config];
       }
     }
-  }
-
-  protected get isOfflineExactly(): boolean {
-    return this.status === ConfigServiceStatus.Offline;
   }
 
   get isOffline(): boolean {
@@ -402,25 +456,40 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
       return cache.get(this.cacheKey);
     }
 
-    if (this.pendingCacheSyncUp) {
-      return this.pendingCacheSyncUp;
+    let cacheSyncUpPromise = this.pendingCacheSyncUp;
+
+    if (!cacheSyncUpPromise) {
+      const syncResult = cache.get(this.cacheKey);
+      if (!isPromiseLike(syncResult)) {
+        return this.onCacheSynced(syncResult);
+      }
+
+      // NOTE: This call chain must never result in a rejected promise, otherwise some runtimes like Node.js or Deno may
+      // detect it as unhandled promise rejection and terminate the process (see also https://stackoverflow.com/a/77505185/8656352).
+      // Thus, we need to make sure that potential error is catched and propagate it as data.
+      cacheSyncUpPromise = syncResult
+        .then(syncResult => [this.onCacheSynced(syncResult)] as [ProjectConfig])
+        .catch((err: unknown) => {
+          // eslint-disable-next-line no-sparse-arrays
+          return [, err];
+        });
+
+      this.pendingCacheSyncUp = cacheSyncUpPromise;
+      try {
+        cacheSyncUpPromise.finally(() => this.pendingCacheSyncUp = null);
+      } catch (err) {
+        this.pendingCacheSyncUp = null;
+        throw err;
+      }
     }
 
-    const syncResult = cache.get(this.cacheKey);
-    if (!isPromiseLike(syncResult)) {
-      return this.onCacheSynced(syncResult);
-    }
-
-    const cacheSyncUpPromise = syncResult.then(syncResult => this.onCacheSynced(syncResult));
-
-    this.pendingCacheSyncUp = cacheSyncUpPromise;
-    try {
-      cacheSyncUpPromise.finally(() => this.pendingCacheSyncUp = null);
-    } catch (err) {
-      this.pendingCacheSyncUp = null;
-      throw err;
-    }
-    return cacheSyncUpPromise;
+    return cacheSyncUpPromise.then(([projectConfig, err]) => {
+      if (projectConfig) {
+        return projectConfig;
+      } else {
+        throw err;
+      }
+    });
   }
 
   private onCacheSynced(syncResult: CacheSyncResult): ProjectConfig {

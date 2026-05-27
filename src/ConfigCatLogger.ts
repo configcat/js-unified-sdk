@@ -141,6 +141,8 @@ export class LoggerWrapper implements IConfigCatLogger {
     this.log(LogLevel.Debug, 0, message, exception);
   }
 
+  get ifDebug(): LoggerWrapper | undefined { return this.isEnabled(LogLevel.Debug) ? this : void 0; }
+
   /* Common error messages (1000-1999) */
 
   configJsonIsNotPresent(defaultReturnValue: string): LogMessage {
@@ -227,19 +229,27 @@ export class LoggerWrapper implements IConfigCatLogger {
     );
   }
 
-  fetchFailedDueToRequestTimeout(timeoutMs: number, ex: any): LogMessage {
+  fetchFailedDueToRequestTimeout(timeoutMs: number, ex: any, rayId: string | undefined): LogMessage {
     return this.log(
       LogLevel.Error, 1102,
-      FormattableLogMessage.from(
-        "TIMEOUT"
-      )`Request timed out while trying to fetch config JSON. Timeout value: ${timeoutMs}ms`,
+      rayId == null
+        ? FormattableLogMessage.from(
+          "TIMEOUT"
+        )`Request timed out while trying to fetch config JSON. Timeout value: ${timeoutMs}ms`
+        : FormattableLogMessage.from(
+          "TIMEOUT", "RAY_ID"
+        )`Request timed out while trying to fetch config JSON. Timeout value: ${timeoutMs}ms (Ray ID: ${rayId})`,
       ex);
   }
 
-  fetchFailedDueToUnexpectedError(ex: any): LogMessage {
+  fetchFailedDueToUnexpectedError(ex: any, rayId: string | undefined): LogMessage {
     return this.log(
       LogLevel.Error, 1103,
-      "Unexpected error occurred while trying to fetch config JSON. It is most likely due to a local network issue. Please make sure your application can reach the ConfigCat CDN servers (or your proxy server) over HTTP.",
+      rayId == null
+        ? "Unexpected error occurred while trying to fetch config JSON. It is most likely due to a local network issue. Please make sure your application can reach the ConfigCat CDN servers (or your proxy server) over HTTP."
+        : FormattableLogMessage.from(
+          "RAY_ID"
+        )`Unexpected error occurred while trying to fetch config JSON. It is most likely due to a local network issue. Please make sure your application can reach the ConfigCat CDN servers (or your proxy server) over HTTP. (Ray ID: ${rayId})`,
       ex
     );
   }
@@ -425,6 +435,10 @@ export class LoggerWrapper implements IConfigCatLogger {
 
   /* SDK-specific info messages (6000-6999) */
 
+}
+
+export function logMethodDebug(logger: LoggerWrapper | undefined, methodName: string, message?: string): void {
+  logger?.debug(`${methodName}()${message ? ":" : ""} ${message ?? "called."}`);
 }
 
 export class ConfigCatConsoleLogger implements IConfigCatLogger {

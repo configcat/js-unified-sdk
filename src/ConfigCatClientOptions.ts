@@ -16,7 +16,7 @@ import { LazyLoadConfigService } from "./LazyLoadConfigService";
 import { ManualPollConfigService } from "./ManualPollConfigService";
 import { ProjectConfig } from "./ProjectConfig";
 import type { IUser } from "./User";
-import { createMap, createWeakRef, ensureBooleanArg, ensureEnumArg, ensureFunctionArg, ensureNumberArgInRange, ensureObjectArg, ensureStringArg, isNumberInRange } from "./Utils";
+import { createMap, createWeakRef, ensureBooleanArg, ensureEnumArg, ensureFunctionArg, ensureNumberArgInRange, ensureObjectArg, ensureStringArg, indexOfAny, isNumberInRange } from "./Utils";
 
 export const PROXY_SDKKEY_PREFIX = "configcat-proxy/";
 
@@ -91,13 +91,15 @@ export interface IOptions {
    * If not set, a default implementation will be used depending on the current platform.
    * If you want to use custom a config fetcher, you can provide an implementation of `IConfigCatConfigFetcher`.
    *
-   * @remarks Implementing a config fetcher that makes HTTP requests to the ConfigCat CDN is tricky, especially when the
-   * SDK runs in a browser. Therefore, please **avoid writing actual config fetcher implementations from scratch**
+   * @remarks Please note that the SDK does not dispose externally created config fetcher instances.
+   *
+   * Also be aware that implementing a config fetcher that makes HTTP requests to the ConfigCat CDN is tricky, especially when
+   * the SDK runs in a browser. Therefore, please **avoid writing actual config fetcher implementations from scratch**
    * unless absolutely necessary and you know exactly what you are doing. (Writing mock implementations for testing
    * purposes is fine, of course.)
    *
-   * If you use the SDK with a {@link https://configcat.com/docs/advanced/proxy/proxy-overview/ | proxy } and need to set
-   * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. FetchApiConfigFetcher)
+   * If you use the SDK with {@link https://configcat.com/docs/advanced/proxy/proxy-overview/ | ConfigCat Proxy } and need to set
+   * custom HTTP request headers, you can subclass the built-in config fetcher implementations (e.g. `ServerSideFetchApiConfigFetcher`)
    * and override the `setRequestHeaders` method.
    */
   configFetcher?: IConfigCatConfigFetcher | null;
@@ -184,13 +186,14 @@ export abstract class OptionsBase {
 
   baseUrl: string;
 
-  baseUrlOverriden;
+  baseUrlOverriden: boolean;
 
   dataGovernance = DataGovernance.Global;
 
   cache: IConfigCache;
 
   configFetcher: IConfigCatConfigFetcher;
+  ownsConfigFetcher: boolean;
 
   flagOverrides: FlagOverrides | null = null;
 
@@ -289,7 +292,9 @@ export abstract class OptionsBase {
     }
 
     if ((this.baseUrlOverriden = baseUrl != null)) {
-      this.baseUrl = baseUrl!;
+      // Strip potential query string and/or fragment from the user-provided URL.
+      const index = indexOfAny(baseUrl, "?#");
+      this.baseUrl = index < 0 ? baseUrl : baseUrl.substring(0, index);
     } else {
       this.baseUrl = this.dataGovernance === DataGovernance.EuOnly
         ? "https://cdn-eu.configcat.com"
@@ -303,6 +308,7 @@ export abstract class OptionsBase {
       : (kernel.defaultCacheFactory?.(this) ?? new InMemoryConfigCache());
 
     this.configFetcher = configFetcher ?? kernel.configFetcherFactory(this);
+    this.ownsConfigFetcher = !configFetcher;
   }
 
   yieldHooks(): Hooks {
@@ -317,7 +323,7 @@ export abstract class OptionsBase {
     const { baseUrl } = this;
     return baseUrl
       + (baseUrl.charCodeAt(baseUrl.length - 1) !== 0x2F /*'/'*/ ? "/" : "")
-      + "configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName + "?sdk=" + this.clientVersion;
+      + "configuration-files/" + this.sdkKey + "/" + OptionsBase.configFileName;
   }
 
   getCacheKey(): string {
@@ -334,9 +340,20 @@ export function isCdnUrl(url: string): boolean {
   if (!CDN_BASEURL_REGEXP.test(url)) {
     return false;
   }
-  let index = url.indexOf("?");
-  index = url.lastIndexOf(PROXY_PATH_SEGMENT, (index >= 0 ? index : url.length) - PROXY_PATH_SEGMENT.length);
-  return index < 0;
+
+  let index = indexOfAny(url, "?#");
+  if (index >= 0) url = url.substring(0, index);
+
+  index = url.indexOf("/", url.indexOf("://") + 3);
+  if (index < 0) return true;
+
+  if (url.indexOf("%", index + 1) < 0) {
+    index = url.lastIndexOf(PROXY_PATH_SEGMENT, url.length - PROXY_PATH_SEGMENT.length);
+    return index < 0;
+  } else {
+    const decodedPathSegments = url.substring(index + 1).split("/").map(item => decodeURIComponent(item));
+    return decodedPathSegments.indexOf(PROXY_PATH_SEGMENT.slice(1, PROXY_PATH_SEGMENT.length - 1)) < 0;
+  }
 }
 
 export class AutoPollOptions extends OptionsBase {

@@ -276,7 +276,7 @@ export class FakeConfigFetcher implements IConfigFetcher {
       assert.fail("ConfigFetcher not prepared for " + url);
     }
     this.calls.push(url);
-    return Promise.resolve<FetchResponse>({ statusCode: 200, reasonPhrase: "OK", eTag: projectConfig.config.httpETag, body: projectConfig.config.configJson });
+    return Promise.resolve({ statusCode: 200, reasonPhrase: "OK", eTag: projectConfig.config.httpETag, body: projectConfig.config.configJson } as FetchResponse);
   }
 }
 
@@ -331,7 +331,7 @@ export class FakeConfigServiceBase extends ConfigServiceBase<FakeOptions> {
   }
 
   private getUrl(baseUrl: string) {
-    return baseUrl + "/configuration-files/API_KEY/config_v6.json?sdk=" + this.options.clientVersion;
+    return baseUrl + "/configuration-files/API_KEY/config_v6.json";
   }
 
   getCacheState(cachedConfig: ProjectConfig): ClientCacheState {

@@ -1,5 +1,5 @@
 import type { LoggerWrapper, LogMessage } from "./ConfigCatLogger";
-import { LogLevel, toMessage } from "./ConfigCatLogger";
+import { LogLevel, logMethodDebug, toMessage } from "./ConfigCatLogger";
 import { PrerequisiteFlagComparator, SegmentComparator, SettingType, UserComparator } from "./ConfigJson";
 import { EvaluateLogBuilder, formatSegmentComparator, formatUserCondition, inferValue, valueToString } from "./EvaluateLogBuilder";
 import { sha1, sha256 } from "./Hash";
@@ -10,7 +10,7 @@ import { parse as parseSemVer } from "./Semver";
 import type { IUser, UserAttributeValue, WellKnownUserObjectAttribute } from "./User";
 import { getUserAttribute, getUserAttributes, getUserIdentifier } from "./User";
 import type { Message, PickWithType } from "./Utils";
-import { ensurePrototype, errorToString, formatStringList, hasOwnProperty, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, toStringSafe, utf8Encode } from "./Utils";
+import { endsWith, ensurePrototype, errorToString, formatStringList, hasOwnProperty, isIntegerInRange, isNumber, isString, isStringArray, LazyString, parseFloatStrict, parseIntStrict, startsWith, toStringSafe, utf8Encode } from "./Utils";
 
 export class EvaluateContext {
   private _settingType: SettingType | UnknownSettingType | undefined = void 0;
@@ -64,7 +64,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
   }
 
   evaluate(defaultValue: SettingValue, context: EvaluateContext): EvaluateResult {
-    this.logger.debug("RolloutEvaluator.evaluate() called.");
+    logMethodDebug(this.logger, "RolloutEvaluator.evaluate");
 
     // Building the evaluation log is expensive, so let's not do it if it wouldn't be logged anyway.
     const logBuilder = context.logBuilder = this.logger.isEnabled(LogLevel.Info)
@@ -471,7 +471,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
     return result !== negate;
   }
 
-  private evaluateTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>, startsWith: boolean, negate: boolean): boolean {
+  private evaluateTextSliceEqualsAnyOf(text: string, comparisonValues: ReadonlyArray<string>, isStartsWith: boolean, negate: boolean): boolean {
     for (let i = 0; i < comparisonValues.length; i++) {
       const item = comparisonValues[i];
 
@@ -480,7 +480,7 @@ export class RolloutEvaluator implements IRolloutEvaluator {
       }
 
       // NOTE: String.prototype.startsWith/endsWith were introduced after ES5. We'd rather work around them instead of polyfilling them.
-      const result = (startsWith ? text.lastIndexOf(item, 0) : text.indexOf(item, text.length - item.length)) >= 0;
+      const result = isStartsWith ? startsWith(text, item) : endsWith(text, item);
       if (result) {
         return !negate;
       }

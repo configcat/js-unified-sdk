@@ -9,9 +9,11 @@ describe("ConfigCatClient tests", () => {
 
       const client: IConfigCatClient = configcatClient.getClient("SDKKEY-890123456789012/1234567890123456789012", pollingMode);
 
-      assert.isDefined(client);
-
-      client.dispose();
+      try {
+        assert.isDefined(client);
+      } finally {
+        client.dispose();
+      }
     });
   }
 

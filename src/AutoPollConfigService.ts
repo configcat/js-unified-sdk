@@ -1,5 +1,7 @@
 import type { AutoPollOptions } from "./ConfigCatClientOptions";
+import { logMethodDebug } from "./ConfigCatLogger";
 import type { FetchResult } from "./ConfigFetcher";
+import { FetchError } from "./ConfigFetcher";
 import type { IConfigService, RefreshResult } from "./ConfigServiceBase";
 import { ClientCacheState, ConfigServiceBase } from "./ConfigServiceBase";
 import type { ProjectConfig } from "./ProjectConfig";
@@ -75,32 +77,34 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
   }
 
   async getConfigAsync(): Promise<ProjectConfig> {
-    this.options.logger.debug("AutoPollConfigService.getConfigAsync() called.");
+    const methodName = "AutoPollConfigService.getConfigAsync";
+    const debugLogger = this.options.logger.ifDebug;
+    logMethodDebug(debugLogger, methodName);
 
     let cachedConfig = await this.syncUpWithCache();
 
     if (!cachedConfig.isExpired(this.pollIntervalMs)) {
       this.signalInitialization();
     } else if (!this.isOffline && !this.initialized) {
-      this.options.logger.debug("AutoPollConfigService.getConfigAsync() - cache is empty or expired, waiting for initialization.");
+      logMethodDebug(debugLogger, methodName, "cache is empty or expired, waiting for initialization.");
       await this.initializationPromise;
       cachedConfig = this.options.cache.getInMemory();
     } else {
-      this.options.logger.debug("AutoPollConfigService.getConfigAsync() - cache is empty or expired.");
+      logMethodDebug(debugLogger, methodName, "cache is empty or expired.");
       return cachedConfig;
     }
 
-    this.options.logger.debug("AutoPollConfigService.getConfigAsync() - returning value from cache.");
+    logMethodDebug(debugLogger, methodName, "returning value from cache.");
     return cachedConfig;
   }
 
   override refreshConfigAsync(): Promise<[RefreshResult, ProjectConfig]> {
-    this.options.logger.debug("AutoPollConfigService.refreshConfigAsync() called.");
+    logMethodDebug(this.options.logger, "AutoPollConfigService.refreshConfigAsync");
     return super.refreshConfigAsync();
   }
 
   override dispose(): void {
-    this.options.logger.debug("AutoPollConfigService.dispose() called.");
+    logMethodDebug(this.options.logger, "AutoPollConfigService.dispose");
     super.dispose();
     if (!this.stopToken.aborted) {
       this.stopRefreshWorker();
@@ -121,7 +125,7 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
   }
 
   private async startRefreshWorker(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig> | null, stopToken: AbortToken) {
-    this.options.logger.debug("AutoPollConfigService.startRefreshWorker() called.");
+    logMethodDebug(this.options.logger, "AutoPollConfigService.startRefreshWorker");
 
     while (!stopToken.aborted) {
       try {
@@ -129,38 +133,36 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
         try {
           await this.refreshWorkerLogic(initialCacheSyncUp);
         } catch (err) {
+          if (err instanceof FetchError && (err as FetchError).cause === "abort") {
+            continue;
+          }
+
           this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
         }
 
-        const realNextTimeMs = scheduledNextTimeMs - getMonotonicTimeMs();
-        if (realNextTimeMs > 0) {
-          await delay(realNextTimeMs, stopToken);
+        const timeToWaitMs = scheduledNextTimeMs - getMonotonicTimeMs();
+        if (timeToWaitMs > 0) {
+          await delay(timeToWaitMs, stopToken);
         }
       } catch (err) {
         this.options.logger.autoPollConfigServiceErrorDuringPolling(err);
+      } finally {
+        initialCacheSyncUp = null; // allow GC to collect the Promise and its result
       }
-
-      initialCacheSyncUp = null; // allow GC to collect the Promise and its result
     }
   }
 
   private stopRefreshWorker() {
-    this.options.logger.debug("AutoPollConfigService.stopRefreshWorker() called.");
+    logMethodDebug(this.options.logger, "AutoPollConfigService.stopRefreshWorker");
     this.stopToken.abort();
   }
 
   private async refreshWorkerLogic(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig> | null) {
-    this.options.logger.debug("AutoPollConfigService.refreshWorkerLogic() called.");
+    logMethodDebug(this.options.logger, "AutoPollConfigService.refreshWorkerLogic");
 
     const latestConfig = await (initialCacheSyncUp ?? this.syncUpWithCache());
     if (latestConfig.isExpired(this.pollExpirationMs)) {
-      // Even if the service gets disposed immediately, we allow the first refresh for backward compatibility,
-      // i.e. to not break usage patterns like this:
-      // ```
-      // client.getValueAsync("SOME_KEY", false, user).then(value => { /* ... */ });
-      // client.dispose();
-      // ```
-      if (initialCacheSyncUp ? !this.isOfflineExactly : !this.isOffline) {
+      if (!this.isOffline) {
         await this.refreshConfigCoreAsync(latestConfig, false);
         return; // postpone signalling initialization until `onConfigFetched`
       }

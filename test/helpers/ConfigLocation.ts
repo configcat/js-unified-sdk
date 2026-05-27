@@ -50,18 +50,21 @@ export class CdnConfigLocation extends ConfigLocation {
 
   getRealLocation(): string {
     const url = this.options.getUrl();
-    const index = url.lastIndexOf("?");
+    const index = url.indexOf("?");
     return index >= 0 ? url.slice(0, index) : url;
   }
 
   async fetchConfigAsync(): Promise<Config> {
     const configService = new ManualPollConfigService(this.options);
-
-    const [fetchResult, projectConfig] = await configService.refreshConfigAsync();
-    if (!fetchResult.isSuccess) {
-      throw new Error("Could not fetch config from CDN: " + fetchResult.errorMessage);
+    try {
+      const [fetchResult, projectConfig] = await configService.refreshConfigAsync();
+      if (!fetchResult.isSuccess) {
+        throw new Error("Could not fetch config from CDN: " + fetchResult.errorMessage);
+      }
+      return projectConfig.config!;
+    } finally {
+      configService.dispose();
     }
-    return projectConfig.config!;
   }
 
   toString(): string {
