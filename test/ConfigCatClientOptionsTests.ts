@@ -31,7 +31,8 @@ describe("Options", () => {
 
     assert.equal("APIKEY", options.sdkKey);
     assert.equal(30000, options.requestTimeoutMs);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
+    assert.equal("common/m-1.0.0", options.clientVersion);
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
   });
 
   it("ManualPollOptions initialization With parameters works", () => {
@@ -51,7 +52,8 @@ describe("Options", () => {
     assert.equal(fakeLogger, options.logger["logger"]);
     assert.equal("APIKEY", options.sdkKey);
     assert.equal(10, options.requestTimeoutMs);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
+    assert.equal("common/m-1.0.0", options.clientVersion);
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
   });
 
   it("ManualPollOptions initialization With 'baseUrl' Should create an instance with custom baseUrl", () => {
@@ -59,8 +61,9 @@ describe("Options", () => {
     const options = createManualPollOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
 
     assert.isDefined(options);
-    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
-    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/m-1.0.0", options.getUrl());
+    assert.equal("common/m-1.0.0", options.clientVersion);
+    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json", options.getUrl());
+    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
   });
 
   it("AutoPollOptions initialization With -1 requestTimeoutMs ShouldThrowError", () => {
@@ -76,7 +79,8 @@ describe("Options", () => {
     assert.isTrue(options.logger instanceof LoggerWrapper);
     assert.isTrue(options.logger["logger"] instanceof ConfigCatConsoleLogger);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
+    assert.equal("common/a-1.0.0", options.clientVersion);
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
     assert.equal(60, options.pollIntervalSeconds);
     assert.equal(30000, options.requestTimeoutMs);
     assert.isDefined(options.cache);
@@ -98,7 +102,8 @@ describe("Options", () => {
     assert.isDefined(options);
     assert.equal(fakeLogger, options.logger["logger"]);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
+    assert.equal("common/a-1.0.0", options.clientVersion);
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
     assert.equal(59, options.pollIntervalSeconds);
     assert.equal(20, options.requestTimeoutMs);
   });
@@ -152,8 +157,9 @@ describe("Options", () => {
     const options = createAutoPollOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
 
     assert.isDefined(options);
-    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
-    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/a-1.0.0", options.getUrl());
+    assert.equal("common/a-1.0.0", options.clientVersion);
+    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json", options.getUrl());
+    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
   });
 
   it("AutoPollOptions initialization With NaN 'maxInitWaitTimeSeconds' ShouldThrowError", () => {
@@ -201,7 +207,8 @@ describe("Options", () => {
     const options = createLazyLoadOptions("APIKEY", void 0, kernel);
     assert.isDefined(options);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
+    assert.equal("common/l-1.0.0", options.clientVersion);
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
     assert.equal(60, options.cacheTimeToLiveSeconds);
     assert.equal(30000, options.requestTimeoutMs);
   });
@@ -223,7 +230,8 @@ describe("Options", () => {
     assert.isDefined(options);
     assert.equal(fakeLogger, options.logger["logger"]);
     assert.equal("APIKEY", options.sdkKey);
-    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
+    assert.equal("common/l-1.0.0", options.clientVersion);
+    assert.equal("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
     assert.equal(59, options.cacheTimeToLiveSeconds);
     assert.equal(20, options.requestTimeoutMs);
   });
@@ -252,8 +260,9 @@ describe("Options", () => {
     const options = createLazyLoadOptions("APIKEY", { baseUrl: "https://mycdn.example.org" }, kernel);
 
     assert.isDefined(options);
-    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
-    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json?sdk=common/l-1.0.0", options.getUrl());
+    assert.equal("common/l-1.0.0", options.clientVersion);
+    assert.equal("https://mycdn.example.org/configuration-files/APIKEY/config_v6.json", options.getUrl());
+    assert.notEqual("https://cdn-global.configcat.com/configuration-files/APIKEY/config_v6.json", options.getUrl());
   });
 
   it("Options initialization With 'defaultCacheFactory' Should set option cache to passed instance", () => {
@@ -453,6 +462,7 @@ describe("Options", () => {
     "sdkKey": ${JSON.stringify(options.sdkKey)},
     "clientVersion": ${JSON.stringify(options.clientVersion)},
     "configFetcher": "[object Object]",
+    "ownsConfigFetcher": ${JSON.stringify(options.ownsConfigFetcher)},
     "dataGovernance": ${JSON.stringify(options.dataGovernance)},
     "baseUrl": ${JSON.stringify(options.baseUrl)},
     "hooks": "[object Object]",

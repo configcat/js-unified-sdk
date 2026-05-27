@@ -1,4 +1,4 @@
-import type { IAutoPollOptions, IConfigCatClient, IConfigCatConfigFetcher as IConfigFetcher, ILazyLoadingOptions, IManualPollOptions, IOptions, PollingMode } from "#lib";
+import type { IAutoPollOptions, IConfigCatClient, IConfigCatConfigFetcher as IConfigFetcher, ILazyLoadingOptions, IManualPollOptions, PollingMode } from "#lib";
 import { ConfigCatClient } from "#lib/ConfigCatClient";
 import { AutoPollOptions, LazyLoadOptions, ManualPollOptions } from "#lib/ConfigCatClientOptions";
 import type { IConfigCatKernel, OptionsBase } from "#lib/index.pubternals";

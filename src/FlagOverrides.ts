@@ -1,6 +1,6 @@
 import type { Setting, SettingValue } from "./ProjectConfig";
 import { createSettingFromValue } from "./ProjectConfig";
-import { hasOwnProperty, isArray, isString, parseFloatStrict } from "./Utils";
+import { endsWith, hasOwnProperty, isArray, isString, parseFloatStrict, startsWith } from "./Utils";
 
 export type FlagOverrides = {
   dataSource: IOverrideDataSource;
@@ -193,7 +193,7 @@ function extractSettingsFromQueryParams(queryParams: Record<string, string | Rea
 
 function extractSettingFromQueryString(queryString: string, paramPrefix: string, settings: Record<string, Setting>) {
   if (!queryString
-    || queryString.lastIndexOf("?", 0) < 0) { // identical to `!queryString.startsWith("?")`
+    || !startsWith(queryString, "?")) {
     return;
   }
 
@@ -212,14 +212,14 @@ function extractSettingFromQueryString(queryString: string, paramPrefix: string,
 function extractSettingFromQueryParam(key: string, value: string, paramPrefix: string, settings: Record<string, Setting>) {
   if (!key
     || key.length <= paramPrefix.length
-    || key.lastIndexOf(paramPrefix, 0) < 0) { // identical to `!key.startsWith(paramPrefix)`
+    || !startsWith(key, paramPrefix)) {
     return;
   }
 
   key = key.substring(paramPrefix.length);
 
   const interpretValueAsString = key.length > FORCE_STRING_VALUE_SUFFIX.length
-    && key.indexOf(FORCE_STRING_VALUE_SUFFIX, key.length - FORCE_STRING_VALUE_SUFFIX.length) >= 0; // identical to `key.endsWith(strSuffix)`
+    && endsWith(key, FORCE_STRING_VALUE_SUFFIX);
 
   if (interpretValueAsString) {
     key = key.substring(0, key.length - FORCE_STRING_VALUE_SUFFIX.length);

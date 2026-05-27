@@ -14,7 +14,14 @@ on:
 jobs:
   check-ts-compat:
     runs-on: ubuntu-latest
-    name: TypeScript v4.0.2 compatibility check
+    strategy:
+      matrix:
+        ts-version: [
+          {display: "v4.0.2", tag: "", tsc_args: ""},
+          {display: "v5.x", tag: "<6.0.0", tsc_args: ""},
+          {display: "v6.x", tag: "<7.0.0", tsc_args: "--ignoreDeprecations 6.0"},
+        ]
+    name: TypeScript ${{ matrix.ts-version.display }} compatibility check
     steps:
       - uses: actions/checkout@v6
 
@@ -25,8 +32,14 @@ jobs:
       - name: Install dependencies & build
         run: npm install
 
+      - name: Set TypeScript version
+        if: matrix.ts-version.tag != ''
+        working-directory: ./extra-checks/ts-compat-check
+        run: npm install typescript@"${{ matrix.ts-version.tag }}"
+
       - name: Run check
-        run: npm run check:ts-compat
+        working-directory: ./extra-checks/ts-compat-check
+        run: npm run check -- ${{ matrix.ts-version.tsc_args }}
 
   test-browser-chrome:
     # Runner image version is temporarily pinned to `ubuntu-22.04`.
@@ -106,27 +119,29 @@ jobs:
       - name: Test
         run: npm run test:browser:firefox
 
-  test-browser-safari:
-    runs-on: macos-latest
-    name: Browser - Safari latest test
-    steps:
-      - uses: actions/checkout@v6
+  # test-browser-safari:
+  # This test run is temporarily disabled due to a probable regression in Safari/SafariDriver 26.5.
+  # TODO: Re-enable it as soon as the regression is fixed.
+  #   runs-on: macos-latest
+  #   name: Browser - Safari latest test
+  #   steps:
+  #     - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
+  #     - uses: actions/setup-node@v6
+  #       with:
+  #         node-version: 22
 
-      - name: Enable Safari automation
-        run: |
-          sudo safaridriver --enable
-          /Applications/Safari.app/Contents/MacOS/Safari & sleep 5
-          killall Safari
+  #     - name: Enable Safari automation
+  #       run: |
+  #         sudo safaridriver --enable
+  #         /Applications/Safari.app/Contents/MacOS/Safari & sleep 5
+  #         killall Safari
 
-      - name: Install dependencies & build
-        run: npm install
+  #     - name: Install dependencies & build
+  #       run: npm install
 
-      - name: Test
-        run: npm run test:browser:safari
+  #     - name: Test
+  #       run: npm run test:browser:safari
 
   test-bun:
     runs-on: ${{ matrix.os }}
@@ -270,7 +285,7 @@ jobs:
   coverage:
     needs: [
       check-ts-compat,
-      test-browser-chrome, test-browser-chromium, test-browser-firefox, test-browser-safari,
+      test-browser-chrome, test-browser-chromium, test-browser-firefox, ## test-browser-safari,
       test-bun,
       test-chromium-extension-chrome, test-chromium-extension-chromium,
       test-cloudflare-worker,
@@ -299,7 +314,7 @@ jobs:
           path: coverage
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v7.1.0
+        uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

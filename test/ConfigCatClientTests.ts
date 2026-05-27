@@ -653,7 +653,7 @@ describe("ConfigCatClient", () => {
 
       const configFetchDelay = maxInitWaitTimeSeconds * 1000 / 4;
       const configFetcher = new FakeConfigFetcherBase(null, configFetchDelay, () =>
-        statusCode ? { statusCode, reasonPhrase: "x" } : (() => { throw "network error"; })());
+        statusCode ? { statusCode, reasonPhrase: "x" } as FetchResponse : (() => { throw "network error"; })());
 
       const configCatKernel = createKernel({ configFetcherFactory: () => configFetcher });
       const options: AutoPollOptions = createAutoPollOptions("APIKEY", { maxInitWaitTimeSeconds }, configCatKernel);
@@ -1032,7 +1032,7 @@ describe("ConfigCatClient", () => {
     client.dispose();
     assert.equal(configFetcher.calledTimes, 0);
     setTimeout(() => {
-      assert.equal(configFetcher.calledTimes, 1);
+      assert.equal(configFetcher.calledTimes, 0);
       client.dispose();
       done();
     }, 4000);

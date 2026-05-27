@@ -12,9 +12,11 @@ describe("ConfigCatClient tests", () => {
 
       const client: IConfigCatClient = configcatClient.getClient("SDKKEY-890123456789012/1234567890123456789012", pollingMode);
 
-      assert.isDefined(client);
-
-      client.dispose();
+      try {
+        assert.isDefined(client);
+      } finally {
+        client.dispose();
+      }
     });
 
     it(`getClient() should set httpAgent and httpsAgent - ${PollingMode[pollingMode]}`, () => {
@@ -26,18 +28,20 @@ describe("ConfigCatClient tests", () => {
         httpsAgent,
       });
 
-      assert.isDefined(client);
+      try {
+        assert.isDefined(client);
 
-      const configService = (client as ConfigCatClient)["configService"];
-      if (!(configService instanceof ConfigServiceBase)) assert.fail();
+        const configService = (client as ConfigCatClient)["configService"];
+        if (!(configService instanceof ConfigServiceBase)) assert.fail();
 
-      const configFetcher = configService["configFetcher"];
-      assert.instanceOf(configFetcher, NodeHttpConfigFetcher);
+        const configFetcher = configService["configFetcher"];
+        assert.instanceOf(configFetcher, NodeHttpConfigFetcher);
 
-      assert.strictEqual(configFetcher["httpAgent"], httpAgent);
-      assert.strictEqual(configFetcher["httpsAgent"], httpsAgent);
-
-      client.dispose();
+        assert.strictEqual(configFetcher["httpAgentState"], httpAgent);
+        assert.strictEqual(configFetcher["httpsAgentState"], httpsAgent);
+      } finally {
+        client.dispose();
+      }
     });
   }
 
