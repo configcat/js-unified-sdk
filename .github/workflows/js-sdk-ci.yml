@@ -106,27 +106,29 @@ jobs:
       - name: Test
         run: npm run test:browser:firefox
 
-  test-browser-safari:
-    runs-on: macos-latest
-    name: Browser - Safari latest test
-    steps:
-      - uses: actions/checkout@v6
+  # test-browser-safari:
+  # This test run is temporarily disabled due to a probable regression in Safari/SafariDriver 26.5.
+  # TODO: Re-enable it as soon as the regression is fixed.
+  #   runs-on: macos-latest
+  #   name: Browser - Safari latest test
+  #   steps:
+  #     - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
+  #     - uses: actions/setup-node@v6
+  #       with:
+  #         node-version: 22
 
-      - name: Enable Safari automation
-        run: |
-          sudo safaridriver --enable
-          /Applications/Safari.app/Contents/MacOS/Safari & sleep 5
-          killall Safari
+  #     - name: Enable Safari automation
+  #       run: |
+  #         sudo safaridriver --enable
+  #         /Applications/Safari.app/Contents/MacOS/Safari & sleep 5
+  #         killall Safari
 
-      - name: Install dependencies & build
-        run: npm install
+  #     - name: Install dependencies & build
+  #       run: npm install
 
-      - name: Test
-        run: npm run test:browser:safari
+  #     - name: Test
+  #       run: npm run test:browser:safari
 
   test-bun:
     runs-on: ${{ matrix.os }}
@@ -270,7 +272,7 @@ jobs:
   coverage:
     needs: [
       check-ts-compat,
-      test-browser-chrome, test-browser-chromium, test-browser-firefox, test-browser-safari,
+      test-browser-chrome, test-browser-chromium, test-browser-firefox, ## test-browser-safari,
       test-bun,
       test-chromium-extension-chrome, test-chromium-extension-chromium,
       test-cloudflare-worker,
@@ -299,7 +301,7 @@ jobs:
           path: coverage
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v7.1.0
+        uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
