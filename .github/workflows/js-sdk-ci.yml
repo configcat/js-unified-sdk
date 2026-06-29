@@ -119,29 +119,27 @@ jobs:
       - name: Test
         run: npm run test:browser:firefox
 
-  # test-browser-safari:
-  # This test run is temporarily disabled due to a probable regression in Safari/SafariDriver 26.5.
-  # TODO: Re-enable it as soon as the regression is fixed.
-  #   runs-on: macos-latest
-  #   name: Browser - Safari latest test
-  #   steps:
-  #     - uses: actions/checkout@v7
+  test-browser-safari:
+    runs-on: macos-latest
+    name: Browser - Safari latest test
+    steps:
+      - uses: actions/checkout@v7
 
-  #     - uses: actions/setup-node@v6
-  #       with:
-  #         node-version: 22
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
 
-  #     - name: Enable Safari automation
-  #       run: |
-  #         sudo safaridriver --enable
-  #         /Applications/Safari.app/Contents/MacOS/Safari & sleep 5
-  #         killall Safari
+      - name: Enable Safari automation
+        run: |
+          sudo safaridriver --enable
+          /Applications/Safari.app/Contents/MacOS/Safari & sleep 5
+          killall Safari
 
-  #     - name: Install dependencies & build
-  #       run: npm install
+      - name: Install dependencies & build
+        run: npm install
 
-  #     - name: Test
-  #       run: npm run test:browser:safari
+      - name: Test
+        run: npm run test:browser:safari
 
   test-bun:
     runs-on: ${{ matrix.os }}
@@ -263,11 +261,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x, 20.x, 22.x, 24.x]
+        node-version: [16.x, 18.x, 20.x, 22.x, 24.x, 26.x]
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        exclude:
-          - node-version: 14.x
-            os: macOS-latest
     name: Node.js ${{ matrix.node-version }} (${{ matrix.os }}) test
     steps:
       - uses: actions/checkout@v7
@@ -275,6 +270,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
+
+      - name: Apply workaround for yargs issue on Node 26+
+        if: matrix.node-version == '26.x'
+        # see also: https://github.com/yargs/yargs/issues/2509#issuecomment-4412569569
+        run: npm pkg set overrides.mocha.yargs=^18.0.0
 
       - name: Install dependencies & build
         run: npm install
