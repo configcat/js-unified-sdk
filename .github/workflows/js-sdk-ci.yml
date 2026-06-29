@@ -263,11 +263,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x, 20.x, 22.x, 24.x]
+        node-version: [16.x, 18.x, 20.x, 22.x, 24.x, 26.x]
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        exclude:
-          - node-version: 14.x
-            os: macOS-latest
     name: Node.js ${{ matrix.node-version }} (${{ matrix.os }}) test
     steps:
       - uses: actions/checkout@v7
@@ -275,6 +272,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
+
+      - name: Apply workaround for yargs issue on Node 26+
+        if: matrix.node-version == '26.x'
+        # see also: https://github.com/yargs/yargs/issues/2509#issuecomment-4412569569
+        run: npm pkg set overrides.mocha.yargs=^18.0.0
 
       - name: Install dependencies & build
         run: npm install
