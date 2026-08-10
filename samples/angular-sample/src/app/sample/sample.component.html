@@ -13,7 +13,7 @@
     <p>Set up to be enabled only for users with an e-mail address that contains "&#64;example.com"</p>
     <input type="text" [(ngModel)]="userEmail">
     <button (click)="checkProofOfConcept()">Check POC feature with Email</button>
-    <p>Value returned from ConfigCat: <strong>{{isPOCEnabled}}</strong></p>
+    <p>Value returned from ConfigCat: <strong>{{isPOCEnabled()}}</strong></p>
     <br />
     <h2>All feature flags</h2>
     <p>Values of all the feature flags in the config, evaluated for a user with the e-mail address specified above:</p>
@@ -25,5 +25,5 @@
     <br />
     <h2>ConfigCat Dashboard</h2>
     <p>A screenshot to see how the ConfigCat Dashboard looks like for this Sample Project.</p>
-    <img alt="mgmt" src="../../assets/mgmt_console.png"/>
+    <img alt="mgmt" src="./images/mgmt_console.png"/>
 </div>

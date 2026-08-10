@@ -11,7 +11,7 @@ npm i
 2. Run sample app
 
 ``` shell
-npm run start
+npm start
 ```
 
 3. Open browser at http://localhost:4200/

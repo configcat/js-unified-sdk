@@ -9,7 +9,7 @@
   "author": "developer@configcat.com",
   "license": "MIT",
   "dependencies": {
-    "@configcat/sdk": "^1.0.0",
+    "@configcat/sdk": "^1.1.0",
     "pubnub": "^7.4.0"
   }
 }
