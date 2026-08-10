@@ -1,5 +1,5 @@
 import { AsyncPipe } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { type SettingValue, User } from "@configcat/sdk/browser";
 import { BehaviorSubject, distinctUntilChanged, Observable, switchMap } from "rxjs";
@@ -12,9 +12,9 @@ import { ConfigCatService } from "../configcat.service";
     imports: [AsyncPipe, FormsModule]
 })
 export class SampleComponent {
-  isAwesomeEnabled$: Observable<boolean>;
-  isPOCEnabled?: boolean;
-  allKeyValues$: Observable<Map<string, SettingValue>>;
+  readonly isAwesomeEnabled$: Observable<boolean>;
+  readonly isPOCEnabled = signal<boolean | undefined>(undefined);
+  readonly allKeyValues$: Observable<Map<string, SettingValue>>;
 
   private userEmailSubject = new BehaviorSubject<string>("configcat@example.com");
   get userEmail() { return this.userEmailSubject.value; }
@@ -36,6 +36,7 @@ export class SampleComponent {
     const userObject = new User("#SOME-USER-ID#", this.userEmail);
 
     // Read more about the User Object: https://configcat.com/docs/advanced/user-object
-    this.isPOCEnabled = await this.configCatService.client.getValueAsync("isPOCFeatureEnabled", false, userObject);
+    const value = await this.configCatService.client.getValueAsync("isPOCFeatureEnabled", false, userObject);
+    this.isPOCEnabled.set(value);
   }
 }

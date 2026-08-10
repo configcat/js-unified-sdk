@@ -9,10 +9,11 @@
     "start": "npm run build && node ../shared/server.mjs dist"
   },
   "dependencies": {
-    "@configcat/sdk": "^1.0.0"
+    "@configcat/sdk": "^1.1.0"
   },
   "devDependencies": {
     "ts-loader": "^9.5.2",
+    "typescript": "^5.9.3",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"
   }
