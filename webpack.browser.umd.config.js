@@ -2,7 +2,7 @@ const target = "ES5";
 
 const entryPoints = [
   "core-js/features/promise",
-  "./src/browser/index.ts",
+  "./src/browser/index.umd.ts",
 ];
 
 module.exports = {
