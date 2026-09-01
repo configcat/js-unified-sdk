@@ -229,7 +229,7 @@ The SDK is [tested](https://github.com/configcat/js-unified-sdk/blob/master/.git
 - @configcat/sdk/bun:
   - Bun (v1.1.0, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/deno:
-  - Deno (v1.31, v1.46, latest stable) on Windows / Ubuntu / macOS
+  - Deno (v1.46, latest stable) on Windows / Ubuntu / macOS
 - @configcat/sdk/node:
   - Node.js (v16.x, v18.x, v20.x, v22.x, v24.x, v26.x) on Windows / Ubuntu / macOS
 - @configcat/sdk/cloudflare-worker:
