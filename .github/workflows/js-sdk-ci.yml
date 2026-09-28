@@ -20,6 +20,7 @@ jobs:
           {display: "v4.0.2", tag: "", tsc_args: ""},
           {display: "v5.x", tag: "<6.0.0", tsc_args: ""},
           {display: "v6.x", tag: "<7.0.0", tsc_args: "--ignoreDeprecations 6.0"},
+          {display: "v7.x", tag: "<8.0.0", tsc_args: ""},
         ]
     name: TypeScript ${{ matrix.ts-version.display }} compatibility check
     steps:
@@ -147,6 +148,11 @@ jobs:
       matrix:
         bun-version: ["1.1.0", "latest"]
         os: [ubuntu-latest, windows-latest, macOS-latest]
+        # Temporarily excluded because of https://github.com/oven-sh/bun/issues/22023
+        # TODO: Re-enable it as soon as the regression is fixed.
+        exclude:
+          - bun-version: latest
+            os: ubuntu-latest
     name: Bun ${{ matrix.bun-version }} (${{ matrix.os }}) test
     steps:
       - uses: actions/checkout@v7
