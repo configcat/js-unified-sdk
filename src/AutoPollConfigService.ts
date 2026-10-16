@@ -53,7 +53,8 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
 
     this.readyPromise = this.getReadyPromise(initialCacheSyncUp);
 
-    this.startRefreshWorker(initialCacheSyncUp, this.stopToken);
+    this.startRefreshWorker(initialCacheSyncUp, this.stopToken)
+      .catch((err: unknown) => this.options.logger.autoPollConfigServiceErrorDuringPolling(err));
   }
 
   private async waitForInitializationAsync(initSignalPromise: Promise<void>): Promise<boolean> {
@@ -121,7 +122,8 @@ export class AutoPollConfigService extends ConfigServiceBase<AutoPollOptions> im
     // immediately instead of waiting for the next tick (which might not happen until much later).
     this.stopRefreshWorker();
     this.stopToken = new AbortToken();
-    this.startRefreshWorker(null, this.stopToken);
+    this.startRefreshWorker(null, this.stopToken)
+      .catch((err: unknown) => this.options.logger.autoPollConfigServiceErrorDuringPolling(err));
   }
 
   private async startRefreshWorker(initialCacheSyncUp: ProjectConfig | Promise<ProjectConfig> | null, stopToken: AbortToken) {
