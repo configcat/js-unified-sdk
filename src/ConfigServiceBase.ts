@@ -256,7 +256,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
     this.pendingConfigRefresh = configRefreshPromise;
     try {
-      configRefreshPromise.finally(() => this.pendingConfigRefresh = null);
+      void configRefreshPromise.finally(() => this.pendingConfigRefresh = null);
     } catch (err) {
       this.pendingConfigRefresh = null;
       throw err;
@@ -476,7 +476,7 @@ export abstract class ConfigServiceBase<TOptions extends OptionsBase> {
 
       this.pendingCacheSyncUp = cacheSyncUpPromise;
       try {
-        cacheSyncUpPromise.finally(() => this.pendingCacheSyncUp = null);
+        void cacheSyncUpPromise.finally(() => this.pendingCacheSyncUp = null);
       } catch (err) {
         this.pendingCacheSyncUp = null;
         throw err;
