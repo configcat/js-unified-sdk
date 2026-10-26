@@ -196,7 +196,9 @@ jobs:
         run: CHROME_BIN=$(which chrome) npm run test:chromium-extension:chrome
 
   test-chromium-extension-chromium:
-    runs-on: windows-latest
+    # Runner image version is temporarily pinned to `windows-2022`.
+    # TODO: Restore it to `windows-latest` as soon as compatibility issues with `browser-actions/setup-chrome@latest` are sorted out.
+    runs-on: windows-2022
     strategy:
       matrix:
         chrome: ["612439", "722274"]
